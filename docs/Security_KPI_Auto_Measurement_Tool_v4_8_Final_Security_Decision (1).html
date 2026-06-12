@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>보안 KPI 자동 측정 도구 v4.8 | 최종 보안 기준 반영</title>
+<style>
+:root{
+  --navy:#0A2540;--ink:#172033;--muted:#64748B;--bg:#F5F7FB;--card:#fff;--line:#DDE5F0;
+  --blue:#2563EB;--violet:#6D28D9;--cyan:#0891B2;--green:#059669;--amber:#D97706;--red:#DC2626;
+  --soft-blue:#EAF2FF;--soft-violet:#F2EEFF;--soft-cyan:#E7F8FB;--soft-green:#EAF8F1;--soft-amber:#FFF5E6;--soft-red:#FEECEC;
+  --shadow:0 14px 34px rgba(15,23,42,.08)
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;color:var(--ink);
+  background:radial-gradient(circle at 80% 0%,rgba(37,99,235,.10),transparent 28%),radial-gradient(circle at 10% 20%,rgba(109,40,217,.08),transparent 24%),var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Noto Sans KR",Arial,sans-serif;line-height:1.58
+}
+a{text-decoration:none;color:inherit}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:1520px;margin:0 auto;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:900;color:var(--navy)}
+.mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet))}
+.nav{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.nav a{padding:8px 10px;border-radius:999px}.nav a:hover{background:var(--soft-blue);color:var(--blue)}
+.container{max-width:1520px;margin:0 auto;padding:34px 28px 76px}
+section{margin:24px 0;padding:34px;background:var(--card);border:1px solid var(--line);border-radius:30px;box-shadow:var(--shadow)}
+.hero{display:grid;grid-template-columns:1.06fr .94fr;gap:42px;align-items:center;min-height:540px;color:#fff;border:0;background:radial-gradient(circle at 82% 20%,rgba(96,165,250,.22),transparent 32%),radial-gradient(circle at 65% 80%,rgba(167,139,250,.20),transparent 34%),linear-gradient(135deg,#071829 0%,#0A2540 48%,#1E1B4B 100%)}
+.eyebrow{display:inline-flex;margin-bottom:18px;color:#93C5FD;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+h1{margin:0 0 18px;font-size:50px;line-height:1.08;letter-spacing:-.048em}
+h2{margin:0 0 10px;color:var(--navy);font-size:34px;line-height:1.18;letter-spacing:-.035em}
+h3{margin:0 0 10px;color:var(--navy);font-size:22px;line-height:1.25;letter-spacing:-.02em}
+p{margin:0 0 12px}.hero p{max-width:850px;color:#D8E7FF;font-size:18px}
+.pill-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.pill{display:inline-flex;align-items:center;padding:8px 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.10);color:#fff;font-size:13px;font-weight:800}
+.hero-card{padding:26px;border:1px solid rgba(255,255,255,.16);border-radius:28px;background:rgba(255,255,255,.09)}
+.hero-card h3{color:#fff}.mini-stack{display:grid;gap:12px}.mini{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.09)}.mini strong{font-size:14px}.mini span{color:#BFDBFE;font-size:12px;text-align:right}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:22px}.section-head p{max-width:850px;color:var(--muted)}
+.ribbon{display:inline-flex;margin-bottom:10px;padding:8px 12px;border:1px solid #BFDBFE;border-radius:999px;background:#EFF6FF;color:#1D4ED8;font-size:13px;font-weight:900}
+.grid{display:grid;gap:18px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{padding:22px;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.soft-blue{background:var(--soft-blue)}.soft-violet{background:var(--soft-violet)}.soft-cyan{background:var(--soft-cyan)}.soft-green{background:var(--soft-green)}.soft-amber{background:var(--soft-amber)}.soft-red{background:var(--soft-red)}
+.num{width:34px;height:34px;display:grid;place-items:center;margin-bottom:14px;border-radius:12px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet));font-weight:900}
+.muted{color:var(--muted)}.small{font-size:13px}
+.callout{padding:18px 20px;border-left:5px solid var(--blue);border-radius:18px;background:#F8FBFF}
+.callout.warning{border-left-color:var(--amber);background:#FFFBEB}.callout.success{border-left-color:var(--green);background:#F0FDF4}.callout.danger{border-left-color:var(--red);background:#FEECEC}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}
+button,.file-label,select,input[type=text],input[type=password]{
+  border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 13px;font-weight:800;color:var(--navy);cursor:pointer;font-family:inherit
+}
+input[type=text],input[type=password]{cursor:text;font-weight:500;min-width:260px}
+button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}button.secondary{background:#EEF2FF;color:#3730A3;border-color:#C7D2FE}button.danger{background:#FEF2F2;color:#B91C1C;border-color:#FECACA}
+input[type=file]{display:none}
+table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;font-size:13px}
+th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#F1F5F9;color:#0F172A;font-weight:900}
+tr:last-child td{border-bottom:none}td strong{color:var(--navy)}
+td input{width:96px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit;font-size:13px}
+textarea{width:100%;min-height:190px;border:1px solid var(--line);border-radius:18px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;background:#FBFDFF;color:#0F172A}
+textarea.source{min-height:260px}
+.badge{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:900;white-space:nowrap}
+.auto{background:#DCFCE7;color:#166534}.hybrid{background:#FEF3C7;color:#92400E}.manual{background:#FEE2E2;color:#991B1B}.pass{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.fail{background:#FEE2E2;color:#991B1B}.empty{background:#E2E8F0;color:#475569}.review{background:#E0E7FF;color:#3730A3}
+.table-wrap{overflow:auto;border-radius:18px}
+.summary-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.summary-card{padding:18px;border-radius:20px;border:1px solid var(--line);background:#fff}
+.summary-card b{display:block;color:var(--navy);font-size:24px;line-height:1.1;margin-top:5px}.summary-card span{color:var(--muted);font-size:13px;font-weight:800}
+.dropzone{border:2px dashed #CBD5E1;border-radius:22px;padding:22px;background:#FBFDFF;text-align:center}
+.dropzone.drag{border-color:var(--blue);background:#EFF6FF}
+.preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.preview-card{border:1px solid var(--line);border-radius:18px;padding:14px;background:#fff}
+.preview-card img{max-width:100%;border-radius:12px;border:1px solid var(--line)}
+.finding-list{display:grid;gap:8px;margin-top:12px}
+.finding{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-size:13px}
+.finding strong{color:var(--navy)}
+.meter{height:8px;border-radius:999px;background:#E2E8F0;overflow:hidden;margin-top:8px}.meter span{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--green))}
+@media(max-width:980px){.hero,.grid-2,.grid-3,.grid-4,.summary-kpis,.preview-grid{grid-template-columns:1fr}.nav{display:none}h1{font-size:38px}section{padding:24px}td input{width:82px}}
+@media print{.topbar,.controls,#data-io,#input-zone,#ai-adapter{display:none}body{background:white}section{break-inside:avoid;box-shadow:none}}
+
+.manual-form{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:10px;align-items:end;margin-top:14px}
+.manual-form label{display:grid;gap:6px;font-size:12px;font-weight:900;color:var(--muted)}
+.manual-form input,.manual-form select{width:100%;min-width:0}
+.manual-stat-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-top:18px}
+.manual-stat-card{padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff}
+.manual-stat-card span{display:block;color:var(--muted);font-size:12px;font-weight:900}
+.manual-stat-card b{display:block;color:var(--navy);font-size:23px;margin-top:4px}
+.review-done{opacity:.65;background:#F8FAFC}
+@media(max-width:1100px){.manual-form,.manual-stat-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.manual-form,.manual-stat-grid{grid-template-columns:1fr}}
+
+
+.manual-measure-layout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(520px,1.45fr);gap:18px;align-items:start}
+.manual-panel,.measure-panel{border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04);overflow:hidden}
+.manual-panel-header,.measure-panel-header{padding:18px 20px;border-bottom:1px solid var(--line);background:#F8FAFC}
+.manual-panel-body,.measure-panel-body{padding:20px}
+.manual-index{display:grid;gap:10px;margin-top:12px}
+.manual-index a{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--navy);font-weight:800;font-size:13px}
+.manual-index a span{color:var(--muted);font-weight:700}
+.manual-step{padding:16px;border:1px solid var(--line);border-radius:18px;background:#FBFDFF;margin-bottom:14px}
+.manual-step h4{margin:0 0 8px;color:var(--navy);font-size:16px}
+.manual-step p,.manual-step li{font-size:13px}
+.kpi-help-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.kpi-help-card{padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.kpi-help-card b{display:block;color:var(--navy);margin-bottom:6px}
+.kpi-help-card p{font-size:13px;color:var(--muted);margin:0}
+@media(max-width:1100px){.manual-measure-layout{grid-template-columns:1fr}.kpi-help-row{grid-template-columns:1fr}}
+
+
+.kpi-preset-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin:16px 0 18px;
+}
+.kpi-preset-card{
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+  padding:14px;
+  box-shadow:0 8px 18px rgba(15,23,42,.04);
+}
+.kpi-preset-card h4{
+  margin:0 0 6px;
+  color:var(--navy);
+  font-size:15px;
+}
+.kpi-preset-card p{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:12px;
+}
+.kpi-preset-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.kpi-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#F8FAFC;
+  color:var(--navy);
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.kpi-chip:hover{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}
+.kpi-chip.high{background:#FEF2F2;color:#991B1B;border-color:#FECACA}
+.kpi-chip.medium{background:#FFFBEB;color:#92400E;border-color:#FDE68A}
+.kpi-chip.low{background:#F0FDF4;color:#166534;border-color:#BBF7D0}
+.manual-kpi-note{
+  padding:12px 14px;
+  border:1px solid #BFDBFE;
+  border-radius:16px;
+  background:#EFF6FF;
+  color:#1E3A8A;
+  font-size:13px;
+  margin:12px 0;
+}
+@media(max-width:900px){.kpi-preset-grid{grid-template-columns:1fr}}
+
+
+.log-example-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.log-example-card{padding:20px;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.log-example-card h3{margin-bottom:8px}
+.log-box{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0F172A;
+  color:#E2E8F0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:12px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow:auto;
+}
+.log-tag{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:11px;font-weight:900;margin-right:4px}
+.log-auto{background:#DCFCE7;color:#166534}.log-review{background:#FEF3C7;color:#92400E}.log-fail{background:#FEE2E2;color:#991B1B}
+@media(max-width:980px){.log-example-grid{grid-template-columns:1fr}}
+
+
+.log-example-inline{margin-top:22px;padding:18px;border:1px solid var(--line);border-radius:22px;background:#FBFDFF}
+.log-example-inline h3{margin-bottom:8px}
+.log-example-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.log-example-card{padding:16px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.log-box{
+  margin-top:10px;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#0F172A;
+  color:#E2E8F0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:12px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow:auto;
+}
+.log-tag{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:11px;font-weight:900;margin-right:4px;margin-top:8px}
+.log-auto{background:#DCFCE7;color:#166534}.log-review{background:#FEF3C7;color:#92400E}.log-fail{background:#FEE2E2;color:#991B1B}
+@media(max-width:980px){.log-example-grid{grid-template-columns:1fr}}
+
+
+/* final decision security scope */
+.final-security-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.final-security-card{padding:22px;border-radius:24px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.final-security-card h3{margin-bottom:8px}
+.final-security-badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900;margin-bottom:10px}
+.final-security-badge.required{background:#FEE2E2;color:#991B1B}
+.final-security-badge.manual{background:#FEF3C7;color:#92400E}
+.final-security-badge.excluded{background:#E2E8F0;color:#475569}
+.final-security-flow{display:flex;gap:12px;align-items:stretch;overflow:auto;padding:18px;border:1px solid var(--line);border-radius:22px;background:#FBFDFF;margin-top:18px}
+.final-security-step{min-width:210px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.final-security-step b{display:block;color:var(--navy);margin-bottom:6px}
+.final-security-step span{display:block;color:var(--muted);font-size:13px}
+.final-security-arrow{display:grid;place-items:center;color:#8AA0B8;font-weight:900;font-size:26px;min-width:24px}
+@media(max-width:980px){.final-security-grid{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><div class="mark">AI</div><span>Security KPI Auto Measurement v4.8</span></div>
+    <nav class="nav">
+      <a href="#summary">요약</a><a href="#final-security-decision">최종보안</a><a href="#usage-measure">매뉴얼+측정</a>
+      <a href="#input-zone">자동분석</a>
+      <a href="#findings">자동결과</a><a href="#design">디자인 KPI</a>
+      <a href="#planning">기획 KPI</a>
+      <a href="#manual-review">수동확인</a>
+      <a href="#data-io">저장</a>
+    </nav>
+  </div>
+</div>
+
+<main class="container">
+<section class="hero">
+  <div>
+    <div class="eyebrow">Interactive HTML · URL / Document / Image Driven Auto Measurement</div>
+    <h1>보안 KPI<br/>자동 측정 도구 v4.8</h1>
+    <p>
+      단순 수동 입력표가 아니라, 사이트 URL·문서 파일·이미지 파일·프롬프트 로그를 분석해
+      자동 측정 가능한 KPI 값을 먼저 채우고, 사람은 최종 판단이 필요한 항목만 확인하도록 구성한 HTML입니다.
+    </p>
+    <div class="pill-row">
+      <span class="pill">URL 자동 분석</span>
+      <span class="pill">문서 업로드 분석</span>
+      <span class="pill">이미지 파일 분석</span>
+      <span class="pill">민감정보 탐지</span>
+      <span class="pill">Human Review Queue</span>
+    </div>
+  </div>
+  <div class="hero-card">
+    <h3>이번 버전의 차이</h3>
+    <div class="mini-stack">
+      <div class="mini"><strong>자동 측정</strong><span>URL·문서·이미지에서 값 자동 입력</span></div>
+      <div class="mini"><strong>AI/Human 분리</strong><span>자동 계산과 수동 확정 분리</span></div>
+      <div class="mini"><strong>보안 중심</strong><span>디자인 1.0 + 기획 2.0 보안 KPI</span></div>
+      <div class="mini"><strong>확장 가능</strong><span>API 연동은 개발 단계로 제외</span></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="scope-notice">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Scope Notice</div>
+      <h2>개발 연동 영역 제외 안내</h2>
+    </div>
+    <p>본 HTML은 기획·디자인 단계에서 사용할 수 있는 보안 KPI 자동 점검 도구입니다. 실제 이미지 내부 텍스트 자동 판독, Figma API, Repository API, 서버 프록시, API Key 보관 등 개발 구현이 필요한 연동 영역은 제외했습니다.</p>
+  </div>
+  <div class="grid grid-2">
+    <div class="card soft-green">
+      <h3>이 HTML에서 수행하는 범위</h3>
+      <ul>
+        <li>URL/문서/붙여넣기 텍스트의 패턴 기반 보안 후보 탐지</li>
+        <li>이미지 파일명, 크기, 해상도, 스크린샷 여부 확인</li>
+        <li>보안 KPI 자동 계산과 Pass/Warning/Fail 판정</li>
+        <li>Human Review Queue 입력, 위험도 분류, 수동 확인 통계 관리</li>
+        <li>자동 분석 결과 로그 예시 표시</li>
+        <li>JSON/CSV 저장 및 보고 데이터 생성</li>
+      </ul>
+    </div>
+    <div class="card soft-amber">
+      <h3>제외한 개발 구현 범위</h3>
+      <ul>
+        <li>이미지 내부 텍스트 자동 판독</li>
+        <li>Figma 실제 권한/API 조회</li>
+        <li>GitHub·Repository 저장 항목 자동 검사</li>
+        <li>외부 LLM/Vision API 호출 및 서버 프록시 구성</li>
+        <li>API Key 보관, 인증, 운영 서버 연동</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<section id="final-security-decision">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Final Security Decision</div>
+      <h2>최종 보안 기준 반영 범위</h2>
+    </div>
+    <p>이 도구는 사전 개발 단계에서 사용할 수 있는 최소 보안 KPI만 자동·수동으로 분리해 측정합니다. 개발 API 연동, OCR, 실제 권한 자동 조회는 제외합니다.</p>
+  </div>
+
+  <div class="final-security-grid">
+    <div class="final-security-card soft-red">
+      <span class="final-security-badge required">Planning 2.0</span>
+      <h3>기획 필수 보안 KPI</h3>
+      <ul>
+        <li>로컬 마스킹 적용률: 100%</li>
+        <li>RFP/회의록 원문 외부 입력 건수: 0건</li>
+        <li>Repository 원문 저장 건수: 0건</li>
+      </ul>
+    </div>
+    <div class="final-security-card soft-blue">
+      <span class="final-security-badge required">Design 1.0</span>
+      <h3>디자인 필수 보안 KPI</h3>
+      <ul>
+        <li>Prompt 더미 데이터 적용률: 100%</li>
+        <li>프롬프트 보안 위반 확정 건수: 0건</li>
+        <li>Figma 전체 공개 링크 건수: 0건</li>
+        <li>비승인 Token 저장소 발견 건수: 0건</li>
+        <li>QA 리포트 비식별화율: 100%</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warning" style="margin-top:18px">
+    <strong>측정 원칙:</strong> 패턴으로 확인 가능한 값은 자동 측정하고, Figma 실제 권한, Repository 원문 저장 여부, 이미지 내부 민감정보, 오염/할루시네이션 확정은 Human Review에서 사람이 최종 확정합니다.
+  </div>
+</section>
+
+
+
+<section id="summary">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Dashboard</div>
+      <h2>전체 보안 KPI 측정 현황</h2>
+    </div>
+    <p>자동 분석 결과가 KPI 표에 입력되며, 판단이 필요한 항목은 Human Review Queue로 분리됩니다.</p>
+  </div>
+  <div class="summary-kpis">
+    <div class="summary-card"><span>전체 KPI</span><b id="totalCount">0</b></div>
+    <div class="summary-card"><span>Pass</span><b id="passCount">0</b></div>
+    <div class="summary-card"><span>Warning</span><b id="warnCount">0</b></div>
+    <div class="summary-card"><span>Fail</span><b id="failCount">0</b></div>
+    <div class="summary-card"><span>Human 확인</span><b id="reviewCount">0</b></div>
+  </div>
+  <div class="controls">
+    <button class="primary" onclick="runAllAutoChecks()">전체 자동 분석 실행</button>
+    <button class="secondary" onclick="loadSampleAutoData()">샘플 자동 분석 데이터</button>
+    <button class="danger" onclick="clearAll()">전체 초기화</button>
+  </div>
+  <div class="callout warning">
+    <strong>구분 기준:</strong> URL/문서/이미지에서 패턴으로 확인 가능한 값은 자동 측정합니다. 단, 오염/할루시네이션, 보안 위반 확정, 이미지 내 민감정보 판단처럼 해석이 필요한 항목은 사람이 최종 확인해야 합니다.
+  </div>
+</section>
+
+
+<section id="usage-measure">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">User Manual + Measurement Details</div>
+      <h2>항목별 사용자 매뉴얼 + 측정 상세</h2>
+    </div>
+    <p>왼쪽은 사용자가 따라야 하는 매뉴얼이고, 오른쪽은 실제 KPI 측정 기준입니다. 자동 분석값이 먼저 채워지고, 사람은 Human Review Queue의 수동 확인 항목만 검토하면 됩니다.</p>
+  </div>
+
+  <div class="manual-measure-layout">
+    <aside class="manual-panel">
+      <div class="manual-panel-header">
+        <h3>사용자 매뉴얼</h3>
+        <p class="muted small">각 입력 소스와 KPI별로 무엇을 넣고 어떻게 확인해야 하는지 설명합니다.</p>
+        <div class="manual-index">
+          <a href="#manual-source">1. 자동 분석 입력 <span>URL/문서/이미지</span></a>
+          <a href="#manual-design">2. 디자인 보안 KPI <span>Design 1.0</span></a>
+          <a href="#manual-planning">3. 기획 보안 KPI <span>Planning 2.0</span></a>
+          <a href="#manual-review-guide">4. 수동 확인 항목 <span>Human Review</span></a>
+          <a href="#manual-export">5. 저장/보고 <span>JSON/CSV</span></a>
+        </div>
+      </div>
+
+      <div class="manual-panel-body">
+        <div id="manual-source" class="manual-step">
+          <h4>1. 자동 분석 입력 방법</h4>
+          <p>URL, 문서, 이미지, 붙여넣기 텍스트를 입력하면 도구가 보안 위험 후보를 분석하고 KPI 입력값을 자동으로 채웁니다.</p>
+          <ul>
+            <li><strong>URL:</strong> CORS 허용 페이지는 직접 읽습니다. 실패 시 HTML/텍스트를 복사해 붙여넣습니다.</li>
+            <li><strong>문서:</strong> TXT, MD, HTML, CSV, JSON을 업로드합니다. PDF/DOCX는 텍스트 변환 후 붙여넣는 방식이 안전합니다.</li>
+            <li><strong>이미지:</strong> 파일명, 크기, 해상도, 스크린샷 여부를 분석합니다. 이미지 내부 텍스트는 사람이 직접 확인합니다.</li>
+            <li><strong>붙여넣기:</strong> 프롬프트 로그, RFP 일부, Figma 공유 정보, QA 리포트를 입력합니다.</li>
+          </ul>
+        </div>
+
+        <div id="manual-design" class="manual-step">
+          <h4>2. 디자인 보안 KPI 사용법</h4>
+          <p>디자인 자동화는 1.0 생성 단계이므로 기존 방식 대비 고도화 KPI는 제외하고 보안 KPI만 측정합니다.</p>
+          <ul>
+            <li><strong>프롬프트 더미 데이터 적용률:</strong> 전체 프롬프트 중 sample, dummy, masked, 비식별 표현이 적용된 비율입니다.</li>
+            <li><strong>디자인 프롬프트 보안 위반 건수:</strong> 내부 URL, API Key, 고객명, 실제 데이터 후보를 확인합니다.</li>
+            <li><strong>Figma 권한 점검 완료율:</strong> Figma 또는 Prototype 링크가 전체 공개 상태인지 확인하는 건수 지표입니다.</li>
+            <li><strong>비승인 저장소 Token 발견 건수:</strong> 개인 저장소, 외부 공개 저장소, 비승인 경로에 Token이 있는지 확인하는 건수 지표입니다.</li>
+            <li><strong>QA 리포트 비식별화율:</strong> 저장된 QA 리포트 중 비식별화가 완료된 비율입니다.</li>
+          </ul>
+        </div>
+
+        <div id="manual-planning" class="manual-step">
+          <h4>3. 기획 보안 KPI 사용법</h4>
+          <p>기획·설계 2.0은 RFP, 회의록, 요구사항, ui_spec, PRD, QA 시나리오의 보안 통제를 측정합니다.</p>
+          <ul>
+            <li><strong>로컬 마스킹 적용률:</strong> 탐지된 민감정보 중 비식별화 완료 항목의 비율입니다.</li>
+            <li><strong>외부 API 전송 전 보안 통과율:</strong> 외부 AI/API 전송 대상 중 보안 Gate를 통과한 비율입니다.</li>
+            <li><strong>SOURCE-REF 연결률:</strong> 전체 REQ-ID 중 원문 근거가 연결된 비율입니다.</li>
+            <li><strong>오염/할루시네이션 확정률:</strong> RFP 근거 없는 항목 후보의 비율입니다. 최종 판단은 사람이 확정합니다.</li>
+            <li><strong>Repository 비식별화율:</strong> 저장소 항목 중 원문이 제거되고 비식별화된 항목의 비율입니다.</li>
+          </ul>
+        </div>
+
+        <div id="manual-review-guide" class="manual-step">
+          <h4>4. Human Review Queue 사용법</h4>
+          <p>자동 분석이 어려운 항목은 사람이 직접 확인합니다. 필요 시 직접 항목을 추가하고 위험도를 지정합니다.</p>
+          <ul>
+            <li><strong>High:</strong> 고객명, 내부 URL, API Key, 원문 저장, 전체 공개 링크 등 즉시 확인이 필요한 항목입니다.</li>
+            <li><strong>Medium:</strong> 이미지 캡처, Figma 권한, SOURCE-REF 누락 가능성, Repository 저장 항목입니다.</li>
+            <li><strong>Low:</strong> 참고 검토 수준의 일반 확인 항목입니다.</li>
+            <li>미확인 High Risk가 남아 있으면 제한 배포 판단을 보류합니다.</li>
+          </ul>
+        </div>
+
+        <div id="manual-export" class="manual-step">
+          <h4>5. 저장 및 보고 방법</h4>
+          <p>측정 결과는 JSON과 CSV로 저장할 수 있습니다.</p>
+          <ul>
+            <li><strong>JSON 저장:</strong> 다음에 다시 불러와 이어서 점검할 때 사용합니다.</li>
+            <li><strong>CSV 내보내기:</strong> 엑셀 정리, 임원 보고, 제한 배포 판단 자료로 사용합니다.</li>
+            <li><strong>보고 기준:</strong> Pass/Warning/Fail뿐 아니라 Human Review 미확인 수와 High Risk 수를 함께 보고합니다.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <div class="measure-panel">
+      <div class="measure-panel-header">
+        <h3>측정 상세</h3>
+        <p class="muted small">아래 표는 자동 입력·수동 확인·판정 로직을 설명합니다. 실제 측정값은 KPI 테이블과 Human Review Queue에서 관리합니다.</p>
+      </div>
+      <div class="measure-panel-body">
+        <div class="kpi-help-row">
+          <div class="kpi-help-card"><b>자동 측정</b><p>URL/문서/로그에서 패턴으로 산출 가능한 값입니다. 예: SOURCE-REF 연결률, 더미 데이터 적용률.</p></div>
+          <div class="kpi-help-card"><b>AI+Human</b><p>AI가 후보를 찾고 사람이 최종 판단합니다. 예: 보안 위반 건수, 오염/할루시네이션 확정률.</p></div>
+          <div class="kpi-help-card"><b>입력 A / 입력 B</b><p>대부분 A ÷ B × 100입니다. 낮을수록 좋은 지표는 목표값 이하일 때 Pass입니다.</p></div>
+          <div class="kpi-help-card"><b>배포 판단</b><p>보안 위반 0건, High Risk 미확인 0건, 주요 KPI Pass 상태를 함께 확인합니다.</p></div>
+        </div>
+
+        <h3 style="margin-top:24px">항목별 측정 상세표</h3>
+        <table>
+          <tr><th>구분</th><th>KPI</th><th>자동 입력 소스</th><th>측정 산식</th><th>사람 확인 기준</th></tr>
+          <tr><td>디자인</td><td><strong>프롬프트 더미 데이터 적용률</strong></td><td>프롬프트 로그, 문서, 붙여넣기 텍스트</td><td>더미 데이터 적용 프롬프트 수 ÷ 전체 프롬프트 수 × 100</td><td>샘플/더미 표현이 실제로 실데이터를 대체했는지 확인</td></tr>
+          <tr><td>디자인</td><td><strong>디자인 프롬프트 보안 위반 건수</strong></td><td>URL, 문서, 프롬프트 로그</td><td>내부 URL, API Key, 고객명, 실데이터 후보 건수</td><td>후보가 실제 보안 위반인지 최종 확정</td></tr>
+          <tr><td>디자인</td><td><strong>Figma 권한 점검 완료율</strong></td><td>Figma 공유 정보, 권한 로그, 문서</td><td>권한 점검 완료 파일 수 ÷ 대상 Figma 파일 수 × 100</td><td>전체 공개 링크 여부와 접근 권한을 실제 Figma에서 확인</td></tr>
+          <tr><td>디자인</td><td><strong>비승인 저장소 Token 발견 건수</strong></td><td>Token Export, DLS/DIS 저장소 목록</td><td>승인 저장소 반영 Token 수 ÷ 전체 운영 Token 수 × 100</td><td>Source of Truth 기준 저장소가 맞는지 확인</td></tr>
+          <tr><td>디자인</td><td><strong>QA 리포트 비식별화율</strong></td><td>QA 리포트 문서, Repository 저장 로그</td><td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td><td>고객명, 내부 URL, 원문 캡처가 남아 있는지 확인</td></tr>
+          <tr><td>기획</td><td><strong>로컬 마스킹 적용률</strong></td><td>RFP, 회의록, 붙여넣기 텍스트</td><td>비식별화 완료 항목 수 ÷ 민감정보 감지 항목 수 × 100</td><td>민감정보 탐지 누락이 없는지 샘플 확인</td></tr>
+          <tr><td>기획</td><td><strong>외부 API 전송 전 보안 통과율</strong></td><td>외부 전송 Gate 로그</td><td>보안 Gate 통과 건수 ÷ 외부 전송 대상 건수 × 100</td><td>예외 전송 승인 여부 확인</td></tr>
+          <tr><td>기획</td><td><strong>SOURCE-REF 연결률</strong></td><td>REQ-ID, SOURCE-REF 문서</td><td>SOURCE-REF 연결 요구사항 수 ÷ 전체 REQ-ID 수 × 100</td><td>REQ-ID와 원문 근거가 실제로 맞는지 샘플 검수</td></tr>
+          <tr><td>기획</td><td><strong>오염/할루시네이션 확정률</strong></td><td>RFP 원문, 산출물, SOURCE-REF</td><td>담당자가 오염으로 확정한 항목 수 ÷ 전체 산출 항목 수 × 100</td><td>근거 없는 항목이 실제 오염인지 최종 확정</td></tr>
+          <tr><td>기획</td><td><strong>Repository 비식별화율</strong></td><td>Repository 저장 항목, QA 리포트</td><td>비식별화 저장 항목 수 ÷ 전체 저장 항목 수 × 100</td><td>RFP/회의록 원문 저장 여부 확인</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="input-zone">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Auto Input Sources</div>
+      <h2>자동 측정 입력 소스</h2>
+    </div>
+    <p>아래 입력 소스를 분석해 KPI 값이 자동 채워집니다. 브라우저 보안 정책상 URL은 CORS가 허용된 경우만 직접 읽을 수 있으며, 실패 시 HTML/텍스트를 붙여넣으면 됩니다.</p>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>1. 사이트 URL 분석</h3>
+      <p class="muted">웹페이지 HTML에서 내부 URL, IP, 이메일, 전화번호, API Key 패턴, 공개 링크 위험을 탐지합니다.</p>
+      <div class="controls">
+        <input id="urlInput" type="text" placeholder="https://example.com/page">
+        <button class="primary" onclick="fetchAndAnalyzeUrl()">URL 자동 분석</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>2. 문서 파일 분석</h3>
+      <p class="muted">TXT/MD/HTML/CSV/JSON 문서를 분석해 Prompt, RFP, SOURCE-REF, 마스킹 여부, 보안 위반 후보를 탐지합니다.</p>
+      <div class="controls">
+        <label class="file-label" for="docFiles">문서 파일 선택</label>
+        <input id="docFiles" type="file" multiple accept=".txt,.md,.html,.htm,.csv,.json,text/*" onchange="loadDocumentFiles(event)">
+        <button class="secondary" onclick="analyzeTextSources()">문서 자동 분석</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card">
+      <h3>3. 이미지 파일 분석</h3>
+      <p class="muted">이미지 파일명, 크기, 해상도, 위험 키워드를 분석하고 미리보기를 제공합니다. 이미지 내부 텍스트 판독은 이 HTML 범위에서는 자동 판독하지 않으며 사람이 직접 확인합니다.</p>
+      <div id="imageDrop" class="dropzone">
+        <p><strong>이미지를 드래그하거나 선택하세요.</strong></p>
+        <label class="file-label" for="imageFiles">이미지 파일 선택</label>
+        <input id="imageFiles" type="file" multiple accept="image/*" onchange="loadImageFiles(event)">
+      </div>
+    </div>
+    <div class="card">
+      <h3>4. 원문/로그 직접 붙여넣기</h3>
+      <p class="muted">프롬프트 로그, RFP 일부, Figma 공유 정보, QA 리포트 내용을 붙여넣고 자동 분석합니다.</p>
+      <textarea id="manualText" class="source" placeholder="프롬프트 로그, RFP/회의록 비식별본, Figma 권한 로그, QA 리포트 내용을 붙여넣으세요."></textarea>
+      <div class="controls">
+        <button class="primary" onclick="analyzeManualText()">붙여넣기 텍스트 분석</button>
+        <button onclick="document.getElementById('manualText').value=''">비우기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sourcePreview" class="preview-grid"></div>
+</section>
+
+
+<section id="findings">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Auto Findings</div>
+      <h2>자동 분석 결과 로그</h2>
+    </div>
+    <p>URL, 문서, 이미지에서 감지된 항목입니다. Human 확인이 필요한 항목은 아래 수동 확인 영역에도 자동 등록됩니다.</p>
+  </div>
+  <div id="findingList" class="finding-list">
+    <div class="finding"><strong>대기:</strong> 아직 자동 분석을 실행하지 않았습니다.</div>
+  </div>
+
+  <div class="log-example-inline" id="finding-log-examples">
+    <h3>자동 분석 결과 로그 예시</h3>
+    <p class="muted small">아래 예시는 URL, 문서, 이미지, 붙여넣기 텍스트를 분석했을 때 이 “자동 분석 결과 로그” 영역에 표시될 수 있는 대표 메시지입니다. 실제 로그는 입력 데이터에 따라 달라집니다.</p>
+
+    <div class="log-example-grid">
+      <div class="log-example-card">
+        <h3>1. URL 분석 로그</h3>
+        <div class="log-box">URL 분석:
+https://example.com/prototype 내용을 가져왔습니다.
+48,320 characters
+
+민감정보 후보:
+내부 URL/IP 패턴 2건 감지
+URL: https://example.com/prototype
+Human 확인
+
+URL 분석 실패:
+브라우저 CORS 또는 접근 권한 문제로 직접 분석하지 못했습니다.
+https://example.com/private-page
+Human 확인</div>
+        <span class="log-tag log-auto">자동 측정</span>
+        <span class="log-tag log-review">Human 확인</span>
+      </div>
+
+      <div class="log-example-card">
+        <h3>2. 문서 / 프롬프트 로그</h3>
+        <div class="log-box">문서 분석:
+문서: design_prompt_log.md 분석 완료
+prompt=12, sensitive=1, req=0, sourceRef=0
+
+민감정보 후보:
+내부 URL/IP 패턴 1건 감지
+문서: design_prompt_log.md
+Human 확인
+
+민감정보 후보:
+API Key/Token 의심 패턴 1건 감지
+문서: qa_report.html
+Human 확인</div>
+        <span class="log-tag log-auto">문서 자동 분석</span>
+        <span class="log-tag log-fail">보안 후보</span>
+      </div>
+
+      <div class="log-example-card">
+        <h3>3. SOURCE-REF 분석</h3>
+        <div class="log-box">문서 분석:
+문서: planning_requirements.md 분석 완료
+prompt=0, sensitive=0, req=24, sourceRef=21
+
+추적성:
+REQ-ID 24건 중 SOURCE-REF 후보 21건
+SOURCE-REF 누락 가능성 확인 필요
+Human 확인
+
+KPI 자동 반영:
+SOURCE-REF 연결률 = 21 ÷ 24 × 100 = 87.5%
+판정: Warning 또는 Fail</div>
+        <span class="log-tag log-auto">KPI 자동 반영</span>
+        <span class="log-tag log-review">샘플 검수 필요</span>
+      </div>
+
+      <div class="log-example-card">
+        <h3>4. 이미지 분석 로그</h3>
+        <div class="log-box">이미지 분석:
+admin_dashboard_capture.png 분석 완료
+1920×1080, 842.6KB
+
+이미지 확인 필요:
+스크린샷/캡처 파일은 화면 내 고객정보 노출 여부 확인이 필요합니다.
+admin_dashboard_capture.png
+Human 확인
+
+이미지 내부 텍스트:
+client_internal_admin_screen.png
+이미지 내부 텍스트는 HTML 단독 자동 판독 대상에서 제외
+권장 조치: 사람이 고객명/내부 URL/실데이터 노출 여부 확인</div>
+        <span class="log-tag log-review">사람 확인</span>
+        <span class="log-tag log-fail">민감 후보</span>
+      </div>
+
+      <div class="log-example-card">
+        <h3>5. 붙여넣기 텍스트 분석</h3>
+        <div class="log-box">입력 예시:
+프롬프트 1: V0 화면 생성 요청. sample user, dummy company 사용.
+프롬프트 2: 관리자 화면 생성. 내부 URL http://localhost:3000 포함.
+REQ-001 SOURCE-REF RFP p.12 sec 3.1
+REQ-002 SOURCE-REF RFP p.13 sec 3.2
+REQ-003
+Figma prototype link: 전체 공개
+
+자동 분석 결과:
+민감정보 후보: 내부 URL/IP 패턴 1건 감지
+Figma/공유 링크: 전체 공개 또는 public link 표현 1건 감지
+추적성: REQ-ID 3건 중 SOURCE-REF 후보 2건
+문서 분석: prompt=2, sensitive=1, req=3, sourceRef=2</div>
+        <span class="log-tag log-auto">복합 분석</span>
+        <span class="log-tag log-review">Human Review 등록</span>
+      </div>
+
+      <div class="log-example-card">
+        <h3>6. KPI 자동 반영 결과</h3>
+        <table>
+          <tr><th>KPI</th><th>자동 입력값</th><th>계산 결과</th></tr>
+          <tr><td>프롬프트 더미 데이터 적용률</td><td>2 / 2</td><td>100%</td></tr>
+          <tr><td>디자인 프롬프트 보안 위반 건수</td><td>2건 후보</td><td>Human 확인</td></tr>
+          <tr><td>SOURCE-REF 연결률</td><td>2 / 3</td><td>66.7%</td></tr>
+          <tr><td>로컬 마스킹 적용률</td><td>0 / 1</td><td>0%</td></tr>
+          <tr><td>외부 API 전송 전 보안 통과율</td><td>로그 없음</td><td>미측정</td></tr>
+        </table>
+        <span class="log-tag log-auto">자동 계산</span>
+        <span class="log-tag log-fail">미달 가능</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+
+<section id="design">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Design Security KPI</div>
+      <h2>디자인 자동화 1.0 보안 KPI 자동 측정</h2>
+    </div>
+    <p>프롬프트, Figma 권한, Token 저장소, QA 리포트 비식별화 관련 KPI입니다. 디자인은 Prompt, Figma, Token, QA 리포트 중심의 최종 보안 KPI만 측정합니다.</p>
+  </div>
+  <div class="table-wrap">
+    <table id="designTable">
+      <thead><tr><th>영역</th><th>KPI</th><th>측정 방식</th><th>자동 측정 소스</th><th>입력 A</th><th>입력 B</th><th>목표</th><th>결과</th><th>판정</th><th>Human 역할</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="planning">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Planning Security KPI</div>
+      <h2>기획·설계 자동화 2.0 보안 KPI 자동 측정</h2>
+    </div>
+    <p>기획은 원문 보호, 마스킹, Repository 원문 저장 금지를 필수 보안 KPI로 두고, SOURCE-REF와 오염률은 품질 보조 KPI로 관리합니다.</p>
+  </div>
+  <div class="table-wrap">
+    <table id="planningTable">
+      <thead><tr><th>영역</th><th>KPI</th><th>측정 방식</th><th>자동 측정 소스</th><th>입력 A</th><th>입력 B</th><th>목표</th><th>결과</th><th>판정</th><th>Human 역할</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+
+
+<div class="callout" style="margin-top:18px">
+  <strong>후보율과 확정률 분리:</strong> 근거 없는 산출 항목 후보율은 도구가 SOURCE-REF 누락 등을 기준으로 자동 탐지하는 값입니다. 오염/할루시네이션 확정률은 담당자가 실제 오염으로 확정한 값이며, 최종 보고와 배포 판단에는 확정률을 사용합니다.
+</div>
+
+<section id="manual-review">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Human Review Queue</div>
+      <h2>사람이 수동 확인해야 하는 항목 입력·통계</h2>
+    </div>
+    <p>자동 분석으로 잡힌 후보뿐 아니라 사람이 직접 확인해야 하는 항목을 추가로 입력할 수 있습니다. 확인 상태와 위험도별 통계는 전체 현황에 자동 반영됩니다.</p>
+  </div>
+
+  <div class="manual-stat-grid">
+    <div class="manual-stat-card"><span>전체 확인 항목</span><b id="manualTotal">0</b></div>
+    <div class="manual-stat-card"><span>확인 완료</span><b id="manualDone">0</b></div>
+    <div class="manual-stat-card"><span>미확인</span><b id="manualPending">0</b></div>
+    <div class="manual-stat-card"><span>High Risk</span><b id="manualHigh">0</b></div>
+    <div class="manual-stat-card"><span>Medium Risk</span><b id="manualMedium">0</b></div>
+    <div class="manual-stat-card"><span>Low Risk</span><b id="manualLow">0</b></div>
+  </div>
+
+  <div class="callout" style="margin-top:18px">
+    <strong>입력 기준:</strong> 자동 측정이 어려운 항목, 예를 들어 이미지 내부 고객명 노출 여부, Figma 권한 실제 상태, RFP 원문 저장 여부, 오염/할루시네이션 최종 판단 등을 사람이 직접 등록합니다.
+  </div>
+
+  <div class="manual-kpi-note">
+    <strong>KPI 충족 필수 확인 항목:</strong> 아래 항목은 제한 배포 전 반드시 사람이 확인해야 하는 KPI 연계 항목입니다. 클릭하면 Human Review Queue에 바로 등록됩니다.
+  </div>
+
+  <div class="kpi-preset-grid">
+    <div class="kpi-preset-card">
+      <h4>디자인 1.0 보안 KPI 확인 항목</h4>
+      <p>프롬프트, Figma, Token, QA 리포트 관련 수동 확인 항목입니다.</p>
+      <div class="kpi-preset-actions">
+        <button class="kpi-chip high" onclick="addKpiPresetReview('design_prompt_violation')">프롬프트 보안 위반 확정</button>
+        <button class="kpi-chip high" onclick="addKpiPresetReview('figma_public_link')">Figma 전체 공개 여부</button>
+        <button class="kpi-chip medium" onclick="addKpiPresetReview('token_source_of_truth')">승인 Token 저장소 기준 확인</button>
+        <button class="kpi-chip high" onclick="addKpiPresetReview('qa_report_masking')">QA 리포트 비식별화 확인</button>
+        <button class="kpi-chip medium" onclick="addKpiPresetReview('image_sensitive')">이미지 내부 민감정보 확인</button>
+      </div>
+    </div>
+    <div class="kpi-preset-card">
+      <h4>기획 2.0 보안 KPI 확인 항목</h4>
+      <p>RFP/회의록, SOURCE-REF, 오염/할루시네이션, Repository 관련 수동 확인 항목입니다.</p>
+      <div class="kpi-preset-actions">
+        <button class="kpi-chip high" onclick="addKpiPresetReview('rfp_masking')">RFP/회의록 마스킹 확인</button>
+        <button class="kpi-chip medium" onclick="addKpiPresetReview('source_ref_sample')">SOURCE-REF 샘플 검수</button>
+        <button class="kpi-chip high" onclick="addKpiPresetReview('hallucination_confirm')">오염/할루시네이션 확정</button>
+        <button class="kpi-chip high" onclick="addKpiPresetReview('repository_raw_text')">Repository 원문 저장 여부</button>
+        <button class="kpi-chip medium" onclick="addKpiPresetReview('external_api_exception')">외부 API 예외 전송 승인</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="manual-form">
+    <label>유형
+      <select id="manualType">
+        <option value="이미지 확인">이미지 확인</option>
+        <option value="Figma 권한">Figma 권한</option>
+        <option value="Prompt 보안">Prompt 보안</option>
+        <option value="RFP/회의록">RFP/회의록</option>
+        <option value="Repository">Repository</option>
+        <option value="오염/할루시네이션">오염/할루시네이션</option>
+        <option value="기타">기타</option>
+      </select>
+    </label>
+    <label>위험도
+      <select id="manualRisk">
+        <option value="High">High</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="Low">Low</option>
+      </select>
+    </label>
+    <label>확인 상태
+      <select id="manualStatus">
+        <option value="pending" selected>미확인</option>
+        <option value="done">확인 완료</option>
+      </select>
+    </label>
+    <label>확인 항목
+      <input id="manualItem" type="text" placeholder="예: Figma prototype 전체 공개 여부 확인">
+    </label>
+    <button class="primary" onclick="addManualReviewItem()">항목 추가</button>
+  </div>
+
+  <div class="controls">
+    <button class="primary" onclick="markAllReviewsDone()">전체 확인 완료 처리</button>
+    <button class="secondary" onclick="addManualSampleItems()">수동 확인 샘플 추가</button>
+    <button class="danger" onclick="clearReviewQueue()">Review Queue 초기화</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="reviewTable">
+      <thead><tr><th>확인</th><th>위험도</th><th>유형</th><th>항목</th><th>자동 탐지/수동 입력 근거</th><th>권장 조치</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="data-io">
+  <div class="section-head">
+    <div>
+      <div class="ribbon">Data Export</div>
+      <h2>측정 데이터 저장·내보내기</h2>
+    </div>
+    <p>자동 분석 결과와 KPI 계산값을 JSON/CSV로 저장합니다.</p>
+  </div>
+  <div class="controls">
+    <button class="primary" onclick="downloadJSON()">JSON 저장</button>
+    <label class="file-label" for="jsonFile">JSON 불러오기</label>
+    <input id="jsonFile" type="file" accept=".json" onchange="importJSON(event)">
+    <button class="secondary" onclick="downloadCSV()">CSV 내보내기</button>
+    <button onclick="copyJSON()">JSON 복사</button>
+  </div>
+  <textarea id="jsonPreview"></textarea>
+</section>
+
+<div class="footer">Security KPI Auto Measurement v4.8 · URL / Document / Image Driven Prototype · Log Examples Included · Dev API Excluded</div>
+</main>
+
+<script>
+const KPI_DEFS = [
+  {group:"design", area:"Prompt", kpi:"프롬프트 더미 데이터 적용률", measure:"자동", source:"문서/프롬프트 로그", type:"ratioHigh", target:100, warn:95, unit:"%", a:"더미 데이터 적용 프롬프트 수", b:"전체 프롬프트 수", human:"샘플 검수"},
+  {group:"design", area:"Prompt", kpi:"디자인 프롬프트 보안 위반 확정 건수", measure:"AI+Human", source:"URL/문서/프롬프트 로그", type:"countLow", target:0, warn:1, unit:"건", a:"확정 보안 위반 수", b:"", human:"보안 위반 여부 최종 확정"},
+  {group:"design", area:"Figma", kpi:"Figma 전체 공개 링크 건수", measure:"AI+Human", source:"Figma 공유 정보/문서", type:"countLow", target:0, warn:1, unit:"건", a:"전체 공개 또는 public link 후보 수", b:"", human:"실제 Figma 권한 최종 확인"},
+  {group:"design", area:"DLS/DIS", kpi:"비승인 저장소 Token 발견 건수", measure:"AI+Human", source:"Token/저장소 Export", type:"countLow", target:0, warn:1, unit:"건", a:"비승인 저장소 Token 후보 수", b:"", human:"비승인 저장소 여부 최종 확정"},
+  {group:"design", area:"QA", kpi:"QA 리포트 비식별화율", measure:"AI+Human", source:"QA 리포트 문서", type:"ratioHigh", target:100, warn:95, unit:"%", a:"비식별화 완료 리포트 수", b:"전체 저장 리포트 수", human:"비식별화 여부 최종 확인"},
+
+  {group:"planning", area:"Input", kpi:"로컬 마스킹 적용률", measure:"AI+Human", source:"RFP/회의록/문서", type:"ratioHigh", target:100, warn:95, unit:"%", a:"마스킹 완료 항목 수", b:"민감정보 감지 항목 수", human:"민감정보 누락 여부 샘플 검수"},
+  {group:"planning", area:"Input", kpi:"RFP/회의록 원문 외부 입력 건수", measure:"AI+Human", source:"외부 전송 로그/문서", type:"countLow", target:0, warn:1, unit:"건", a:"원문 외부 입력 후보 수", b:"", human:"원문 외부 입력 여부 최종 확정"},
+  {group:"planning", area:"Repository", kpi:"Repository 원문 저장 건수", measure:"AI+Human", source:"Repository 저장 항목/문서", type:"countLow", target:0, warn:1, unit:"건", a:"RFP/회의록/정책 원문 저장 후보 수", b:"", human:"원문 저장 여부 최종 확정"},
+
+  {group:"planning", area:"Traceability", kpi:"SOURCE-REF 연결률", measure:"자동", source:"REQ-ID/SOURCE-REF 문서", type:"ratioHigh", target:95, warn:90, unit:"%", a:"SOURCE-REF 연결 요구사항 수", b:"전체 REQ-ID 수", human:"샘플 검수"},
+  {group:"planning", area:"Traceability", kpi:"SOURCE-REF 정확성 샘플 검수율", measure:"수동확인", source:"REQ-ID/SOURCE-REF 샘플 검수", type:"ratioHigh", target:100, warn:95, unit:"%", a:"정확성 검수 완료 SOURCE-REF 수", b:"샘플 대상 SOURCE-REF 수", human:"원문 근거 일치 여부 확인"},
+  {group:"planning", area:"Hallucination", kpi:"근거 없는 산출 항목 후보율", measure:"자동", source:"RFP+산출물+SOURCE-REF", type:"ratioLow", target:5, warn:8, unit:"%", a:"SOURCE-REF 없는 산출 항목 후보 수", b:"전체 산출 항목 수", human:"샘플 검수"},
+  {group:"planning", area:"Hallucination", kpi:"오염/할루시네이션 확정률", measure:"AI+Human", source:"RFP+산출물 비교", type:"ratioLow", target:3, warn:5, unit:"%", a:"담당자가 오염으로 확정한 항목 수", b:"전체 산출 항목 수", human:"오염 여부 최종 확정"}
+];
+
+let sources = {texts:[], urls:[], images:[]};
+let findings = [];
+let reviews = [];
+
+function safeId(k){return k.group+"_"+k.area.replace(/[^a-zA-Z0-9가-힣]/g,"_")+"_"+k.kpi.replace(/[^a-zA-Z0-9가-힣]/g,"_")}
+function badge(measure){let cls=measure==="자동"?"auto":measure.includes("Human")?"hybrid":"review";return `<span class="badge ${cls}">${measure}</span>`}
+function formula(k){if(k.type==="ratioHigh")return"A ÷ B × 100";if(k.type==="ratioLow")return"A ÷ B × 100, 낮을수록 좋음";return"A건, 낮을수록 좋음"}
+function statusBadge(status){const label=status==="pass"?"Pass":status==="warn"?"Warning":status==="fail"?"Fail":status==="review"?"Human 확인":"미측정";return `<span class="badge ${status||"empty"}">${label}</span>`}
+function renderTables(){
+  document.querySelector("#designTable tbody").innerHTML="";
+  document.querySelector("#planningTable tbody").innerHTML="";
+  KPI_DEFS.forEach(k=>{
+    const id=safeId(k);
+    const tr=document.createElement("tr");tr.id=id+"_row";tr.dataset.status="empty";
+    tr.innerHTML=`<td>${k.area}</td><td><strong>${k.kpi}</strong></td><td>${badge(k.measure)}</td><td>${k.source}<br><span class="small muted">${formula(k)}</span></td>
+    <td><input type="number" step="0.01" id="${id}_a" placeholder="${k.a}" oninput="calc('${id}')"><div class="small muted">${k.a}</div></td>
+    <td>${k.type==="countLow"?"<span class='small muted'>미사용</span>":`<input type="number" step="0.01" id="${id}_b" placeholder="${k.b}" oninput="calc('${id}')"><div class='small muted'>${k.b}</div>`}</td>
+    <td>${k.target}${k.unit} ${k.type==="ratioLow"||k.type==="countLow"?"이하":"이상"}<br><span class="small muted">Warning: ${k.warn}${k.unit}</span></td>
+    <td id="${id}_result" class="result">-</td><td id="${id}_status">${statusBadge("empty")}</td><td>${k.human}</td>`;
+    document.querySelector(`#${k.group==="design"?"designTable":"planningTable"} tbody`).appendChild(tr);
+  });
+}
+function getK(id){return KPI_DEFS.find(k=>safeId(k)===id)}
+function calc(id){
+  const k=getK(id),aEl=document.getElementById(id+"_a"),bEl=document.getElementById(id+"_b");
+  const a=aEl.value,b=bEl?bEl.value:"";let status="empty",display="-";
+  if(a!==""&&!isNaN(Number(a))){
+    let val=null;
+    if(k.type==="countLow"){val=Number(a)}
+    else if(b!==""&&!isNaN(Number(b))&&Number(b)!==0){val=Number(a)/Number(b)*100}
+    if(val!==null){
+      display=(Math.round(val*10)/10)+k.unit;
+      if(k.type==="ratioLow"||k.type==="countLow"){
+        status=val<=k.target?"pass":val<=k.warn?"warn":"fail";
+      }else{
+        status=val>=k.target?"pass":val>=k.warn?"warn":"fail";
+      }
+      if(k.measure.includes("Human") && status!=="empty") status = status==="pass" ? "review" : status;
+    }
+  }
+  document.getElementById(id+"_result").textContent=display;
+  document.getElementById(id+"_status").innerHTML=statusBadge(status);
+  document.getElementById(id+"_row").dataset.status=status;
+  updateSummary(); updateJSON();
+}
+function recalculateAll(){KPI_DEFS.forEach(k=>calc(safeId(k)))}
+function setKpi(kpiName,a,b){
+  const k=KPI_DEFS.find(x=>x.kpi===kpiName); if(!k)return;
+  const id=safeId(k);
+  const aEl=document.getElementById(id+"_a"), bEl=document.getElementById(id+"_b");
+  if(aEl)aEl.value=a;
+  if(bEl && b!==undefined && b!==null)bEl.value=b;
+  calc(id);
+}
+function updateSummary(){
+  let pass=0,warn=0,fail=0,review=0;
+  KPI_DEFS.forEach(k=>{const row=document.getElementById(safeId(k)+"_row");const s=row?.dataset.status;if(s==="pass")pass++;else if(s==="warn")warn++;else if(s==="fail")fail++;else if(s==="review")review++;});
+  const pendingManual = reviews.filter(r=>!r.done).length;
+  totalCount.textContent=KPI_DEFS.length;
+  passCount.textContent=pass;
+  warnCount.textContent=warn;
+  failCount.textContent=fail;
+  reviewCount.textContent=review + pendingManual;
+  updateManualStats();
+}
+function addFinding(type,msg,detail="",review=false){
+  findings.push({type,msg,detail,review,at:new Date().toISOString()});
+  if(review) reviews.push({type,item:msg,detail,action:recommendAction(type,msg),risk:inferRisk(type,msg,detail),done:false});
+  renderFindings(); renderReviews(); updateSummary(); updateJSON();
+}
+function recommendAction(type,msg){
+  if(type.includes("민감")) return "원문 확인 후 마스킹 또는 삭제 처리";
+  if(type.includes("이미지")) return "이미지 내부 텍스트/로고/고객정보 노출 여부 확인";
+  if(type.includes("Figma")) return "공유 링크 권한을 제한으로 변경";
+  if(type.includes("오염")) return "SOURCE-REF 근거 확인 후 공식 산출물 반영 여부 결정";
+  return "담당자 확인 후 Pass/Fail 확정";
+}
+function renderFindings(){
+  const el=document.getElementById("findingList");
+  if(!findings.length){el.innerHTML='<div class="finding"><strong>대기:</strong> 아직 자동 분석을 실행하지 않았습니다.</div>';return;}
+  el.innerHTML=findings.map(f=>`<div class="finding"><strong>${f.type}:</strong> ${escapeHtml(f.msg)} ${f.detail?`<br><span class="muted small">${escapeHtml(f.detail)}</span>`:""} ${f.review?'<span class="badge review">Human 확인</span>':''}</div>`).join("");
+}
+function normalizeReviewItem(r){
+  return {
+    type: r.type || "기타",
+    risk: r.risk || inferRisk(r.type || "", r.item || "", r.detail || ""),
+    item: r.item || "",
+    detail: r.detail || "",
+    action: r.action || recommendAction(r.type || "", r.item || ""),
+    done: Boolean(r.done)
+  };
+}
+function inferRisk(type,item,detail){
+  const t = `${type} ${item} ${detail}`;
+  if(/API|token|secret|고객명|내부 URL|원문|전체 공개|public|개인정보|주민|계좌|운영 데이터/i.test(t)) return "High";
+  if(/Figma|이미지|캡처|SOURCE-REF|오염|Repository|권한/i.test(t)) return "Medium";
+  return "Low";
+}
+function riskBadge(risk){
+  const cls = risk==="High" ? "fail" : risk==="Medium" ? "warn" : "pass";
+  return `<span class="badge ${cls}">${risk}</span>`;
+}
+function renderReviews(){
+  reviews = reviews.map(normalizeReviewItem);
+  const tb=document.querySelector("#reviewTable tbody");
+  if(!reviews.length){
+    tb.innerHTML='<tr><td colspan="6" class="muted">수동 확인 대상이 없습니다.</td></tr>';
+    updateManualStats();
+    return;
+  }
+  tb.innerHTML=reviews.map((r,i)=>`<tr class="${r.done?'review-done':''}">
+    <td><input type="checkbox" ${r.done?"checked":""} onchange="reviews[${i}].done=this.checked;renderReviews();updateSummary();updateJSON()"></td>
+    <td>${riskBadge(r.risk)}</td>
+    <td>${escapeHtml(r.type)}</td>
+    <td><strong>${escapeHtml(r.item)}</strong></td>
+    <td>${escapeHtml(r.detail)}</td>
+    <td>${escapeHtml(r.action)}</td>
+  </tr>`).join("");
+  updateManualStats();
+}
+function updateManualStats(){
+  const total=reviews.length;
+  const done=reviews.filter(r=>r.done).length;
+  const pending=total-done;
+  const high=reviews.filter(r=>r.risk==="High").length;
+  const medium=reviews.filter(r=>r.risk==="Medium").length;
+  const low=reviews.filter(r=>r.risk==="Low").length;
+  const set=(id,val)=>{const el=document.getElementById(id); if(el) el.textContent=val;};
+  set("manualTotal", total);
+  set("manualDone", done);
+  set("manualPending", pending);
+  set("manualHigh", high);
+  set("manualMedium", medium);
+  set("manualLow", low);
+}
+
+const KPI_PRESET_REVIEWS = {
+  design_prompt_violation: {
+    type:"Prompt 보안", risk:"High",
+    item:"디자인 프롬프트 보안 위반 후보 최종 확정",
+    detail:"내부 URL, API Key, 고객명, 실제 데이터가 프롬프트에 포함되었는지 확인",
+    action:"위반이면 프롬프트 폐기 또는 마스킹 후 재실행"
+  },
+  figma_public_link: {
+    type:"Figma 권한", risk:"High",
+    item:"Figma 파일 또는 Prototype 링크 전체 공개 여부 확인",
+    detail:"링크가 있는 모든 사용자 접근, public link, 외부 공유 권한 확인",
+    action:"전체 공개 해제 후 프로젝트 담당자 권한으로 제한"
+  },
+  token_source_of_truth: {
+    type:"DLS/DIS", risk:"Medium",
+    item:"Token / Variable / Component Source of Truth 저장소 확인",
+    detail:"승인 저장소가 아닌 개인/외부 저장소에 저장되었는지 확인",
+    action:"승인 저장소 기준으로 동기화하고 접근 권한 제한"
+  },
+  qa_report_masking: {
+    type:"QA 리포트", risk:"High",
+    item:"QA 리포트 비식별화 완료 여부 확인",
+    detail:"고객명, 내부 URL, RFP 원문, 실제 운영 데이터가 남아 있는지 확인",
+    action:"비식별화 후 Repository에는 오류 유형과 개선 룰만 저장"
+  },
+  image_sensitive: {
+    type:"이미지 확인", risk:"Medium",
+    item:"이미지 내부 민감정보 노출 여부 확인",
+    detail:"스크린샷/캡처 이미지 내 고객명, 내부 URL, 실제 데이터 노출 확인",
+    action:"민감정보 마스킹 이미지로 교체하거나 이미지 제외"
+  },
+  rfp_masking: {
+    type:"RFP/회의록", risk:"High",
+    item:"RFP/회의록 외부 AI 입력 전 마스킹 완료 여부 확인",
+    detail:"고객사명, 내부 시스템명, 담당자명, IP, 내부 URL, 실제 데이터 확인",
+    action:"마스킹 완료본만 외부 AI/API 입력 허용"
+  },
+  source_ref_sample: {
+    type:"SOURCE-REF", risk:"Medium",
+    item:"REQ-ID와 SOURCE-REF 연결 샘플 검수",
+    detail:"REQ-ID의 원문 근거가 실제 RFP/회의록 위치와 일치하는지 확인",
+    action:"SOURCE-REF 누락 또는 불일치 항목 보정"
+  },
+  hallucination_confirm: {
+    type:"오염/할루시네이션", risk:"High",
+    item:"근거 없는 산출 항목의 오염/할루시네이션 여부 확정",
+    detail:"RFP 근거 없는 기능·정책·문구 후보가 공식 산출물에 포함됐는지 확인",
+    action:"근거 없는 항목 제거 또는 SOURCE-REF 보완 후 재검토"
+  },
+  repository_raw_text: {
+    type:"Repository", risk:"High",
+    item:"Repository에 RFP/회의록 원문 저장 여부 확인",
+    detail:"Knowledge Repository에 원문, 캡처, 고객정보가 저장되었는지 확인",
+    action:"원문 삭제 후 오류 유형, 개선 룰, 템플릿만 저장"
+  },
+
+  raw_external_input: {
+    type:"RFP/회의록", risk:"High",
+    item:"RFP/회의록 원문 외부 입력 여부 확정",
+    detail:"마스킹 전 원문이 외부 AI/API 또는 외부 도구에 입력되었는지 확인",
+    action:"원문 외부 입력이 있으면 배포 보류 및 입력 로그 정리"
+  },
+  unauthorized_token: {
+    type:"DLS/DIS", risk:"High",
+    item:"비승인 저장소 Token 발견 여부 확정",
+    detail:"개인 저장소, 외부 공개 저장소, 승인되지 않은 경로에 Token이 저장되었는지 확인",
+    action:"비승인 Token 저장소를 정리하고 승인 저장소 기준으로 재점검"
+  },
+
+  external_api_exception: {
+    type:"외부 API", risk:"Medium",
+    item:"외부 API 예외 전송 승인 여부 확인",
+    detail:"보안 Gate 미통과 상태로 외부 AI/API에 전송된 예외 항목 확인",
+    action:"예외 전송 승인 로그를 남기거나 전송 금지 처리"
+  }
+};
+function addKpiPresetReview(key){
+  const preset = KPI_PRESET_REVIEWS[key];
+  if(!preset) return;
+  const exists = reviews.some(r => r.item === preset.item && r.type === preset.type);
+  if(exists){
+    alert("이미 등록된 확인 항목입니다.");
+    return;
+  }
+  reviews.push({...preset, done:false});
+  renderReviews(); updateSummary(); updateJSON();
+}
+
+function addManualReviewItem(){
+  const type=document.getElementById("manualType").value;
+  const risk=document.getElementById("manualRisk").value;
+  const status=document.getElementById("manualStatus").value;
+  const item=document.getElementById("manualItem").value.trim();
+  if(!item){ alert("확인 항목을 입력하세요."); return; }
+  reviews.push({type,risk,item,detail:"사람이 직접 등록한 수동 확인 항목",action:recommendAction(type,item),done:status==="done"});
+  document.getElementById("manualItem").value="";
+  renderReviews(); updateSummary(); updateJSON();
+}
+function addManualSampleItems(){
+  const samples=[
+    {type:"이미지 확인",risk:"High",item:"업로드 이미지 내부 고객명/기관명 노출 여부",detail:"이미지 이미지 내부 텍스트 확인 또는 육안 확인 필요",action:"민감정보 확인 후 마스킹 이미지로 교체",done:false},
+    {type:"Figma 권한",risk:"High",item:"Prototype 링크가 전체 공개인지 확인",detail:"Figma 권한 로그 또는 공유 설정 확인 필요",action:"링크가 있는 모든 사용자 접근 해제",done:false},
+    {type:"Repository",risk:"Medium",item:"QA 리포트에 RFP 원문이 저장되었는지 확인",detail:"Repository 저장 항목 확인 필요",action:"원문 삭제 후 오류 유형/개선 룰만 저장",done:false}
+  ];
+  reviews.push(...samples);
+  renderReviews(); updateSummary(); updateJSON();
+}
+function markAllReviewsDone(){reviews.forEach(r=>r.done=true);renderReviews();updateSummary();updateJSON()}
+function clearReviewQueue(){reviews=[];renderReviews();updateSummary();updateJSON()}
+
+function analyzeText(text, label="텍스트"){
+  if(!text || !text.trim())return;
+  sources.texts.push({label, length:text.length});
+  const totalPrompts = countMatches(text, /(prompt|프롬프트|v0|vibe coding|생성 요청|화면 생성)/gi) || countBlocks(text);
+  const dummyCount = countMatches(text, /(dummy|sample|masked|비식별|더미|샘플|가상|예시 데이터)/gi);
+  const internalUrls = countMatches(text, /(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|intranet|internal|dev-|stg-|admin\.)/gi);
+  const emails = countMatches(text, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+  const phones = countMatches(text, /01[016789][-\s]?\d{3,4}[-\s]?\d{4}/g);
+  const apiKeys = countMatches(text, /(sk-[A-Za-z0-9_-]{20,}|api[_-]?key|secret|token\s*[:=]\s*[A-Za-z0-9_-]{16,})/gi);
+  const figmaLinks = countMatches(text, /figma\.com\/(file|design|proto)\//gi);
+  const publicLinks = countMatches(text, /(anyone with the link|전체 공개|public link|링크가 있는 모든 사용자)/gi);
+  const rawExternalInput = countMatches(text, /(RFP\s*원문|회의록\s*원문|정책\s*원문|원문\s*외부\s*입력|마스킹\s*전\s*원문)/gi);
+  const repositoryRawText = countMatches(text, /(Repository|저장소|Knowledge Repository)[\s\S]{0,80}(RFP\s*원문|회의록\s*원문|정책\s*원문|원본\s*캡처|원문\s*저장)/gi);
+  const reqIds = countMatches(text, /REQ[-_A-Z0-9]*\d+/gi);
+  const sourceRefs = countMatches(text, /(SOURCE[-_]?REF|RFP\s*p\.?\s*\d+|회의록\s*\d+|sec\s*\d+(\.\d+)?)/gi);
+  const sensitiveTotal = internalUrls + emails + phones + apiKeys;
+  const masked = countMatches(text, /(\*\*\*|xxx|masked|비식별|마스킹|redacted|sample|dummy)/gi);
+  const securityGatePass = countMatches(text, /(보안\s*Gate\s*통과|security\s*pass|approved|승인)/gi);
+  const externalTargets = countMatches(text, /(외부\s*AI|API\s*전송|v0|gemini|claude|openai|chatgpt)/gi);
+  const repoItems = countMatches(text, /(repository|저장소|knowledge repository|QA 리포트|오류 유형|개선 룰)/gi);
+  const deidentifiedRepo = countMatches(text, /(비식별|마스킹|오류 유형|개선 룰|템플릿)/gi);
+
+  if(totalPrompts>0) setKpi("프롬프트 더미 데이터 적용률", Math.min(dummyCount,totalPrompts), totalPrompts);
+  setKpi("Figma 전체 공개 링크 건수", publicLinks, null);
+  if(securityGatePass>0 || externalTargets>0) setKpi("외부 API 전송 전 보안 통과율", securityGatePass, Math.max(externalTargets,securityGatePass));
+  if(reqIds>0) setKpi("SOURCE-REF 연결률", Math.min(sourceRefs,reqIds), reqIds);
+  if(sensitiveTotal>0) setKpi("로컬 마스킹 적용률", Math.min(masked, sensitiveTotal), sensitiveTotal);
+  setKpi("Repository 원문 저장 건수", repositoryRawText||0, null);
+  setKpi("디자인 프롬프트 보안 위반 건수", internalUrls + apiKeys + publicLinks, null);
+
+  if(internalUrls) addFinding("민감정보 후보", `내부 URL/IP 패턴 ${internalUrls}건 감지`, label, true);
+  if(emails) addFinding("민감정보 후보", `이메일 ${emails}건 감지`, label, true);
+  if(phones) addFinding("민감정보 후보", `전화번호 ${phones}건 감지`, label, true);
+  if(apiKeys) addFinding("민감정보 후보", `API Key/Token 의심 패턴 ${apiKeys}건 감지`, label, true);
+  if(publicLinks) addFinding("Figma/공유 링크", `전체 공개 또는 public link 표현 ${publicLinks}건 감지`, label, true);
+  if(reqIds && sourceRefs<reqIds) addFinding("추적성", `REQ-ID ${reqIds}건 중 SOURCE-REF 후보 ${sourceRefs}건`, "SOURCE-REF 누락 가능성 확인 필요", true);
+
+  addFinding("문서 분석", `${label} 분석 완료`, `prompt=${totalPrompts}, sensitive=${sensitiveTotal}, req=${reqIds}, sourceRef=${sourceRefs}`);
+  recalculateAll();
+}
+function countMatches(text, regex){const m=text.match(regex);return m?m.length:0}
+function countBlocks(text){return text.split(/\n\s*\n/).filter(x=>x.trim().length>20).length}
+function analyzeManualText(){analyzeText(document.getElementById("manualText").value,"붙여넣기 텍스트")}
+
+async function fetchAndAnalyzeUrl(){
+  const url=document.getElementById("urlInput").value.trim(); if(!url){alert("URL을 입력하세요.");return;}
+  try{
+    const res=await fetch(url); if(!res.ok) throw new Error("HTTP "+res.status);
+    const text=await res.text(); sources.urls.push({url,ok:true,length:text.length});
+    addFinding("URL 분석", `${url} 내용을 가져왔습니다.`, `${text.length} characters`);
+    analyzeText(text,"URL: "+url);
+  }catch(e){
+    sources.urls.push({url,ok:false,error:String(e)});
+    addFinding("URL 분석 실패", "브라우저 CORS 또는 접근 권한 문제로 직접 분석하지 못했습니다.", url, true);
+    alert("URL을 직접 읽지 못했습니다. 해당 페이지 HTML/텍스트를 복사해 붙여넣기 영역에 넣어 분석하세요.");
+  }
+}
+function loadDocumentFiles(event){
+  const files=[...event.target.files]; if(!files.length)return;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=()=>{analyzeText(String(reader.result), "문서: "+file.name); addPreview("문서", file.name, `${file.size} bytes`);};
+    reader.readAsText(file);
+  });
+}
+function analyzeTextSources(){document.querySelectorAll("#sourcePreview .preview-card[data-text]").forEach(()=>{}); analyzeManualText();}
+
+function loadImageFiles(event){handleImages([...event.target.files])}
+const imageDrop=document.getElementById("imageDrop");
+imageDrop.addEventListener("dragover",e=>{e.preventDefault();imageDrop.classList.add("drag")});
+imageDrop.addEventListener("dragleave",()=>imageDrop.classList.remove("drag"));
+imageDrop.addEventListener("drop",e=>{e.preventDefault();imageDrop.classList.remove("drag");handleImages([...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")))});
+function handleImages(files){
+  files.forEach(file=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      const riskName=/(고객|client|internal|내부|운영|prod|admin|개인|주민|계좌|보안|secret|token)/i.test(file.name);
+      const isLarge=file.size>3*1024*1024;
+      const isScreenshot=/(screenshot|스크린샷|capture|캡처|화면)/i.test(file.name);
+      sources.images.push({name:file.name,size:file.size,width:img.width,height:img.height,riskName,isLarge,isScreenshot});
+      addImagePreview(file.name,url,file.size,img.width,img.height);
+      addFinding("이미지 분석", `${file.name} 분석 완료`, `${img.width}×${img.height}, ${(file.size/1024).toFixed(1)}KB`);
+      if(riskName) addFinding("이미지 민감 후보", "파일명에 민감 키워드가 포함되어 있습니다.", file.name, true);
+      if(isScreenshot) addFinding("이미지 확인 필요", "스크린샷/캡처 파일은 화면 내 고객정보 노출 여부 확인이 필요합니다.", file.name, true);
+      if(isLarge) addFinding("이미지 확인 필요", "대용량 이미지는 원본 화면 또는 고해상도 캡처일 가능성이 있습니다.", file.name, true);
+      // Image internal 이미지 내부 텍스트 확인 is not available without 사람 확인.
+      reviews.push({type:"이미지 내부 텍스트",item:file.name,detail:"브라우저 기본 기능만으로 이미지 내부 텍스트/이미지 내부 텍스트 확인 확인 불가",action:"사람 확인 또는 사람이 고객명/내부 URL/실데이터 노출 여부 확인",done:false});
+      renderReviews(); updateSummary(); updateJSON();
+    };
+    img.src=url;
+  });
+}
+function addPreview(type,name,detail){
+  const el=document.getElementById("sourcePreview");
+  const div=document.createElement("div");div.className="preview-card";div.dataset.text="1";
+  div.innerHTML=`<strong>${type}</strong><p>${escapeHtml(name)}</p><p class="small muted">${escapeHtml(detail)}</p>`;
+  el.appendChild(div);
+}
+function addImagePreview(name,url,size,w,h){
+  const el=document.getElementById("sourcePreview");
+  const div=document.createElement("div");div.className="preview-card";
+  div.innerHTML=`<img src="${url}" alt=""><p><strong>${escapeHtml(name)}</strong></p><p class="small muted">${w}×${h} / ${(size/1024).toFixed(1)}KB</p>`;
+  el.appendChild(div);
+}
+
+
+
+function runAllAutoChecks(){
+  analyzeManualText();
+  if(sources.images.length===0) addFinding("이미지 분석", "이미지가 업로드되지 않았습니다.", "이미지 기반 보안 검증은 미수행");
+  recalculateAll();
+}
+
+function loadSampleAutoData(){
+  clearAll(false);
+  setKpi("프롬프트 더미 데이터 적용률",10,10);
+  setKpi("디자인 프롬프트 보안 위반 확정 건수",0,null);
+  setKpi("Figma 전체 공개 링크 건수",1,null);
+  setKpi("비승인 저장소 Token 발견 건수",0,null);
+  setKpi("QA 리포트 비식별화율",5,5);
+  setKpi("로컬 마스킹 적용률",8,8);
+  setKpi("RFP/회의록 원문 외부 입력 건수",0,null);
+  setKpi("Repository 원문 저장 건수",0,null);
+  setKpi("SOURCE-REF 연결률",21,24);
+  setKpi("SOURCE-REF 정확성 샘플 검수율",10,10);
+  setKpi("근거 없는 산출 항목 후보율",5,100);
+  setKpi("오염/할루시네이션 확정률",1,100);
+  addFinding("샘플", "최종 보안 기준 샘플 데이터가 입력되었습니다.", "Planning/Design 필수 보안 KPI + 품질 보조 KPI", false);
+  updateJSON();
+}
+
+function clearAll(){
+  findings=[];reviews=[];sources={texts:[],urls:[],images:[]};
+  document.getElementById("manualText").value="";
+  document.getElementById("sourcePreview").innerHTML="";
+  KPI_DEFS.forEach(k=>{const id=safeId(k);const a=document.getElementById(id+"_a"),b=document.getElementById(id+"_b");if(a)a.value="";if(b)b.value="";calc(id)});
+  renderFindings();renderReviews();updateJSON();
+}
+
+function collect(){
+  return KPI_DEFS.map(k=>{
+    const id=safeId(k);
+    return {group:k.group,area:k.area,kpi:k.kpi,measure:k.measure,source:k.source,target:k.target,type:k.type,inputA:document.getElementById(id+"_a")?.value||"",inputB:document.getElementById(id+"_b")?.value||"",result:document.getElementById(id+"_result")?.textContent||"",status:document.getElementById(id+"_status")?.innerText||"",human:k.human};
+  });
+}
+function collectManualStats(){
+  const total=reviews.length;
+  return {
+    total,
+    done: reviews.filter(r=>r.done).length,
+    pending: reviews.filter(r=>!r.done).length,
+    high: reviews.filter(r=>r.risk==="High").length,
+    medium: reviews.filter(r=>r.risk==="Medium").length,
+    low: reviews.filter(r=>r.risk==="Low").length
+  };
+}
+function updateJSON(){
+  const data={generatedAt:new Date().toISOString(),kpis:collect(),manualStats:collectManualStats(),findings,reviews,sources};
+  document.getElementById("jsonPreview").value=JSON.stringify(data,null,2);
+}
+function downloadJSON(){
+  const blob=new Blob([document.getElementById("jsonPreview").value],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="security-kpi-auto-measurement-v3.json";a.click();URL.revokeObjectURL(a.href);
+}
+function importJSON(event){
+  const file=event.target.files[0];if(!file)return;
+  const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);findings=data.findings||[];reviews=data.reviews||[];sources=data.sources||{texts:[],urls:[],images:[]};(data.kpis||[]).forEach(item=>{const k=KPI_DEFS.find(x=>x.kpi===item.kpi&&x.group===item.group);if(k){const id=safeId(k);const a=document.getElementById(id+"_a"),b=document.getElementById(id+"_b");if(a)a.value=item.inputA||"";if(b)b.value=item.inputB||"";}});renderFindings();renderReviews();recalculateAll();}catch(e){alert("JSON 파일을 읽을 수 없습니다.")}};r.readAsText(file);
+}
+function downloadCSV(){
+  const rows=collect();const header=["group","area","kpi","measure","source","target","type","inputA","inputB","result","status","human"];
+  const csv=[header.join(",")].concat(rows.map(r=>header.map(h=>`"${String(r[h]??"").replaceAll('"','""')}"`).join(","))).join("\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="security-kpi-auto-measurement-v3.csv";a.click();URL.revokeObjectURL(a.href);
+}
+function copyJSON(){updateJSON();navigator.clipboard.writeText(document.getElementById("jsonPreview").value).then(()=>alert("JSON을 복사했습니다."))}
+function escapeHtml(str){return String(str??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+document.addEventListener("DOMContentLoaded",()=>{renderTables();renderReviews();renderFindings();recalculateAll();});
+</script>
+</body>
+</html>

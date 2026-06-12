@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>기획 MD 기반 디자인 AX 자동화 1.0 실행계획서</title>
+<style>
+:root{
+  --navy:#0A2540;
+  --ink:#172033;
+  --muted:#64748B;
+  --bg:#F5F7FB;
+  --card:#FFFFFF;
+  --line:#DDE5F0;
+  --blue:#2563EB;
+  --violet:#6D28D9;
+  --cyan:#0891B2;
+  --green:#059669;
+  --amber:#D97706;
+  --red:#DC2626;
+  --soft-blue:#EAF2FF;
+  --soft-violet:#F2EEFF;
+  --soft-cyan:#E7F8FB;
+  --soft-green:#EAF8F1;
+  --soft-amber:#FFF5E6;
+  --soft-red:#FEECEC;
+  --shadow:0 14px 34px rgba(15,23,42,.08);
+  --radius:24px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 80% 0%,rgba(37,99,235,.10),transparent 28%),
+    radial-gradient(circle at 10% 20%,rgba(109,40,217,.08),transparent 24%),
+    var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Noto Sans KR",Arial,sans-serif;
+  line-height:1.58;
+}
+a{color:inherit;text-decoration:none}
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  backdrop-filter:blur(18px);
+  background:rgba(255,255,255,.86);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:1480px;
+  margin:0 auto;
+  padding:14px 28px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-weight:900;
+  color:var(--navy);
+}
+.mark{
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  background:linear-gradient(135deg,var(--blue),var(--violet));
+}
+.nav{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  font-size:13px;
+  color:var(--muted);
+}
+.nav a{
+  padding:8px 10px;
+  border-radius:999px;
+}
+.nav a:hover{
+  background:var(--soft-blue);
+  color:var(--blue);
+}
+.container{
+  max-width:1480px;
+  margin:0 auto;
+  padding:34px 28px 76px;
+}
+section{
+  margin:24px 0;
+  padding:34px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:30px;
+  box-shadow:var(--shadow);
+}
+.hero{
+  display:grid;
+  grid-template-columns:1.12fr .88fr;
+  gap:42px;
+  align-items:center;
+  min-height:560px;
+  color:#fff;
+  border:0;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 82% 20%,rgba(96,165,250,.22),transparent 32%),
+    radial-gradient(circle at 65% 80%,rgba(167,139,250,.20),transparent 34%),
+    linear-gradient(135deg,#071829 0%,#0A2540 48%,#1E1B4B 100%);
+}
+.eyebrow{
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:18px;
+  color:#93C5FD;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+h1{
+  margin:0 0 18px;
+  font-size:52px;
+  line-height:1.08;
+  letter-spacing:-.048em;
+}
+h2{
+  margin:0 0 10px;
+  color:var(--navy);
+  font-size:34px;
+  line-height:1.18;
+  letter-spacing:-.035em;
+}
+h3{
+  margin:0 0 10px;
+  color:var(--navy);
+  font-size:22px;
+  line-height:1.25;
+  letter-spacing:-.02em;
+}
+h4{
+  margin:0 0 8px;
+  color:var(--navy);
+  font-size:16px;
+}
+p{margin:0 0 12px}
+.hero p{
+  max-width:800px;
+  color:#D8E7FF;
+  font-size:18px;
+}
+.pill-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:26px;
+}
+.pill{
+  display:inline-flex;
+  align-items:center;
+  padding:8px 12px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  color:#fff;
+  font-size:13px;
+  font-weight:800;
+}
+.hero-card{
+  padding:26px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:28px;
+  background:rgba(255,255,255,.09);
+}
+.hero-card h3{color:#fff}
+.mini-stack{display:grid;gap:12px}
+.mini{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 16px;
+  border-radius:16px;
+  background:rgba(255,255,255,.09);
+}
+.mini strong{font-size:14px}
+.mini span{color:#BFDBFE;font-size:12px}
+.section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  margin-bottom:22px;
+}
+.section-head p{
+  max-width:760px;
+  color:var(--muted);
+}
+.ribbon{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+  padding:8px 12px;
+  border:1px solid #BFDBFE;
+  border-radius:999px;
+  background:#EFF6FF;
+  color:#1D4ED8;
+  font-size:13px;
+  font-weight:900;
+}
+.grid{display:grid;gap:18px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{
+  padding:22px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:0 8px 18px rgba(15,23,42,.04);
+}
+.soft-blue{background:var(--soft-blue)}
+.soft-violet{background:var(--soft-violet)}
+.soft-cyan{background:var(--soft-cyan)}
+.soft-green{background:var(--soft-green)}
+.soft-amber{background:var(--soft-amber)}
+.soft-red{background:var(--soft-red)}
+.num{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  margin-bottom:14px;
+  border-radius:12px;
+  color:#fff;
+  background:linear-gradient(135deg,var(--blue),var(--violet));
+  font-weight:900;
+}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.callout{
+  padding:18px 20px;
+  border-left:5px solid var(--blue);
+  border-radius:18px;
+  background:#F8FBFF;
+}
+.callout.warning{border-left-color:var(--amber);background:#FFFBEB}
+.callout.success{border-left-color:var(--green);background:#F0FDF4}
+table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  border:1px solid var(--line);
+  border-radius:18px;
+  overflow:hidden;
+  font-size:14px;
+}
+th,td{
+  padding:13px 14px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  background:#F1F5F9;
+  color:#0F172A;
+  font-weight:900;
+}
+tr:last-child td{border-bottom:none}
+td strong{color:var(--navy)}
+.diagram{
+  overflow:auto;
+  padding:28px;
+  border:1px solid var(--line);
+  border-radius:26px;
+  background:
+    radial-gradient(circle at 16% 12%,rgba(37,99,235,.06),transparent 28%),
+    radial-gradient(circle at 82% 74%,rgba(109,40,217,.07),transparent 30%),
+    #FBFDFF;
+}
+svg{display:block;min-width:1240px;width:100%;height:auto}
+.node rect{filter:url(#shadowSvg)}
+.node text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Noto Sans KR",Arial,sans-serif}
+.svg-label{font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
+.svg-title{font-size:17px;font-weight:900}
+.svg-sub{font-size:12px;fill:#64748B}
+.arrow{stroke:#8AA0B8;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+.arrow-strong{stroke:#2563EB;stroke-width:3;fill:none;marker-end:url(#arrowBlue)}
+.arrow-loop{stroke:#6D28D9;stroke-width:2.4;fill:none;stroke-dasharray:7 5;marker-end:url(#arrowViolet)}
+.lane-title{font-size:15px;font-weight:900;fill:#0A2540}
+.timeline{
+  display:grid;
+  gap:14px;
+}
+.month-card{
+  display:grid;
+  grid-template-columns:110px 1fr 1fr 1fr;
+  gap:14px;
+  align-items:stretch;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+}
+.month{
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:var(--soft-blue);
+  color:var(--blue);
+  font-weight:900;
+  font-size:20px;
+}
+.box{
+  padding:14px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  background:#F8FAFC;
+}
+.box b{display:block;color:var(--navy);margin-bottom:5px}
+.tag{
+  display:inline-flex;
+  margin-bottom:8px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#EEF2FF;
+  color:#4338CA;
+  font-size:12px;
+  font-weight:900;
+}
+ul{margin:8px 0 0;padding-left:18px}
+li{margin:5px 0}
+.footer{
+  margin-top:36px;
+  color:var(--muted);
+  font-size:12px;
+  text-align:center;
+}
+@media(max-width:980px){
+  .hero,.grid-2,.grid-3,.grid-4,.month-card{grid-template-columns:1fr}
+  .nav{display:none}
+  h1{font-size:38px}
+  section{padding:24px}
+}
+@media print{
+  .topbar{display:none}
+  body{background:white}
+  section{break-inside:avoid;box-shadow:none}
+}
+
+.security-final-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.security-final-card{padding:22px;border-radius:24px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.security-final-card h3{display:flex;align-items:center;gap:8px}
+.security-flow{display:flex;align-items:stretch;gap:12px;overflow:auto;padding:18px;border:1px solid var(--line);border-radius:22px;background:#FBFDFF}
+.security-step{min-width:210px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.security-step b{display:block;color:var(--navy);margin-bottom:6px}
+.security-step span{display:block;color:var(--muted);font-size:13px}
+.security-arrow{display:grid;place-items:center;color:#8AA0B8;font-weight:900;font-size:26px;min-width:24px}
+.sec-blue{background:var(--soft-blue);border-color:#BFDBFE}
+.sec-violet{background:var(--soft-violet);border-color:#DDD6FE}
+.sec-green{background:var(--soft-green);border-color:#BBF7D0}
+.sec-amber{background:var(--soft-amber);border-color:#FDE68A}
+.sec-red{background:var(--soft-red);border-color:#FECACA}
+@media(max-width:980px){.security-final-grid{grid-template-columns:1fr}}
+
+
+/* v3 improvement: performance criteria, execution method, relationship diagrams */
+.perf-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.perf-card{padding:22px;border-radius:24px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.perf-card .metric{font-size:32px;font-weight:950;color:var(--navy);letter-spacing:-.04em;margin:8px 0 4px}
+.exec-lane{display:grid;grid-template-columns:220px 1fr;gap:14px;margin:14px 0}
+.exec-role{padding:18px;border-radius:18px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;font-weight:900}
+.exec-work{padding:18px;border-radius:18px;background:#fff;border:1px solid var(--line)}
+.rel-diagram{display:flex;gap:12px;align-items:stretch;overflow:auto;padding:18px;border:1px solid var(--line);border-radius:22px;background:#FBFDFF}
+.rel-node{min-width:210px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.rel-node b{display:block;color:var(--navy);margin-bottom:6px}
+.rel-node span{display:block;color:var(--muted);font-size:13px}
+.rel-arrow{display:grid;place-items:center;color:#8AA0B8;font-weight:900;font-size:26px;min-width:24px}
+.node-blue{background:#EAF2FF;border-color:#BFDBFE}.node-violet{background:#F2EEFF;border-color:#DDD6FE}.node-green{background:#EAF8F1;border-color:#BBF7D0}.node-amber{background:#FFF5E6;border-color:#FDE68A}.node-red{background:#FEECEC;border-color:#FECACA}
+@media(max-width:980px){.perf-grid{grid-template-columns:1fr}.exec-lane{grid-template-columns:1fr}}
+
+
+/* final separate security reinforcement */
+.secure-principle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.secure-principle-card{padding:22px;border-radius:24px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.secure-principle-card h3{margin-bottom:8px}
+.secure-level{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:32px;border-radius:999px;color:#fff;font-weight:950;margin-bottom:12px}
+.secure-level.p0{background:#DC2626}.secure-level.p1{background:#D97706}.secure-level.p2{background:#2563EB}.secure-level.p3{background:#059669}
+.secure-flow{display:flex;gap:12px;align-items:stretch;overflow:auto;padding:18px;border:1px solid var(--line);border-radius:22px;background:#FBFDFF}
+.secure-step{min-width:210px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.secure-step b{display:block;color:var(--navy);margin-bottom:6px}
+.secure-step span{display:block;color:var(--muted);font-size:13px}
+.secure-arrow{display:grid;place-items:center;color:#8AA0B8;font-weight:900;font-size:26px;min-width:24px}
+.secure-summary{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.secure-summary .card{box-shadow:0 8px 18px rgba(15,23,42,.04)}
+@media(max-width:980px){.secure-principle-grid,.secure-summary{grid-template-columns:1fr}}
+
+
+/* final decision security scope */
+.final-security-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.final-security-card{padding:22px;border-radius:24px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.final-security-card h3{margin-bottom:8px}
+.final-security-badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900;margin-bottom:10px}
+.final-security-badge.required{background:#FEE2E2;color:#991B1B}
+.final-security-badge.manual{background:#FEF3C7;color:#92400E}
+.final-security-badge.excluded{background:#E2E8F0;color:#475569}
+.final-security-flow{display:flex;gap:12px;align-items:stretch;overflow:auto;padding:18px;border:1px solid var(--line);border-radius:22px;background:#FBFDFF;margin-top:18px}
+.final-security-step{min-width:210px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.final-security-step b{display:block;color:var(--navy);margin-bottom:6px}
+.final-security-step span{display:block;color:var(--muted);font-size:13px}
+.final-security-arrow{display:grid;place-items:center;color:#8AA0B8;font-weight:900;font-size:26px;min-width:24px}
+@media(max-width:980px){.final-security-grid{grid-template-columns:1fr}}
+
+
+.report-note{padding:14px 16px;border-radius:16px;background:#F8FAFC;border:1px solid var(--line);color:var(--muted);font-size:13px}.card > .section-head{margin-bottom:14px}.card .card{box-shadow:none}
+
+
+/* KPI item 4 collapsible control */
+.kpi-details{border:0;background:transparent}
+.kpi-details>summary{list-style:none;cursor:pointer;display:block}
+.kpi-details>summary::-webkit-details-marker{display:none}
+.kpi-toggle-card{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 22px;border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.kpi-toggle-card h2{margin:0}
+.kpi-toggle-meta{color:var(--muted);font-size:14px;margin:6px 0 0}
+.kpi-toggle-btn{display:inline-flex;align-items:center;justify-content:center;min-width:112px;padding:10px 14px;border-radius:999px;background:#EFF6FF;color:#1D4ED8;font-size:13px;font-weight:900;border:1px solid #BFDBFE}
+.kpi-details:not([open]) .kpi-open-label{display:inline}
+.kpi-details:not([open]) .kpi-close-label{display:none}
+.kpi-details[open] .kpi-open-label{display:none}
+.kpi-details[open] .kpi-close-label{display:inline}
+.kpi-details-body{margin-top:22px}
+.kpi-close-area{display:flex;justify-content:flex-end;margin-top:24px}
+.kpi-close-btn{appearance:none;border:1px solid #BFDBFE;border-radius:999px;background:#EFF6FF;color:#1D4ED8;font-weight:900;padding:10px 16px;cursor:pointer;font-family:inherit}
+.kpi-close-btn:hover{background:#DBEAFE}
+@media(max-width:700px){.kpi-toggle-card{align-items:flex-start;flex-direction:column}.kpi-toggle-btn{width:100%}}
+
+
+/* KPI section explicit open/close control */
+.kpi-collapsible{border:0;background:transparent}
+.kpi-main-toggle{width:100%;appearance:none;border:0;background:transparent;padding:0;margin:0;text-align:left;font-family:inherit;color:inherit;cursor:pointer}
+.kpi-main-toggle:focus-visible{outline:3px solid #93C5FD;outline-offset:4px;border-radius:24px}
+.kpi-panel[hidden]{display:none !important}
+.kpi-collapsible:not(.is-open) .kpi-open-label{display:inline}
+.kpi-collapsible:not(.is-open) .kpi-close-label{display:none}
+.kpi-collapsible.is-open .kpi-open-label{display:none}
+.kpi-collapsible.is-open .kpi-close-label{display:inline}
+.kpi-toggle-btn{pointer-events:none}
+</style>
+</head>
+<body>
+<div class="topbar">
+<div class="topbar-inner">
+<div class="brand"><div class="mark">AX</div><span>Design AX Automation Plan</span></div>
+<nav class="nav"><a href="#background">0. 배경</a><a href="#automation-plan">1. 자동화 계획</a><a href="#automation-process">2. 항목별 프로세스</a><a href="#performance-schedule">3. 성과 일정</a><a href="#kpi-extract">4. KPI</a></nav>
+</div>
+</div>
+<main class="container"><section class="hero">
+<div>
+<div class="eyebrow">Execution Plan · Scalable Team Execution</div>
+<h1>기획 MD 기반
+디자인 AX 자동화 1.0 실행계획서</h1>
+<p> 본 계획서는 이미 KPI 기준과 디자인 방향성이 정리되어 있다는 전제에서, 기본 운영 범위로 3대 디자인 자동화 항목을 압축·순차 추진하되 프로젝트 규모, 일정, 검수 범위에 따라 추가 인력을 투입할 수 있는 실행계획입니다. 목표는 10월 v1.0 패키지 완성, 11월 제한 배포, 12월 전사 확산 판단입니다. </p>
+<div class="pill-row">
+<span class="pill">상황별 인력 투입</span>
+<span class="pill">4개월 구축 + 2개월 제한 운영</span>
+<span class="pill">Designer Master Draft 포함</span>
+<span class="pill">V0 / Figma / DLS 연계</span>
+<span class="pill">보안 Gate 반영</span>
+</div>
+</div>
+<div class="hero-card">
+<h3>현실형 추진 결론</h3>
+<div class="mini-stack">
+<div class="mini"><strong>6월</strong><span>기준 정리 + Benchmark PoC</span></div>
+<div class="mini"><strong>7월</strong><span>Vibe Coding UI Generation</span></div>
+<div class="mini"><strong>8월</strong><span>Designer Master Draft</span></div>
+<div class="mini"><strong>9월</strong><span>Figma System Automation</span></div>
+<div class="mini"><strong>10월</strong><span>통합 QA + v1.0 패키지</span></div>
+<div class="mini"><strong>11~12월</strong><span>제한 배포 + 확산 판단</span></div>
+</div>
+</div>
+</section>
+<section id="background">
+  <div class="section-head"><div>
+  <div class="ribbon">Background</div><h2>0. 추진 배경</h2></div><p>기존 기획 MD와 디자인 산출물 간 연결 기준을 정리하고, 기본 운영 범위와 추가 인력 투입 가능 구간을 명확히 합니다.</p></div><div class="card" style="margin-top:18px"><h3>계획 요약</h3><p class="muted">기존 안은 6~12월 전체를 개발 기간으로 두었지만, 이미 기준이 정리된 상태라면 일정은 줄일 수 있습니다. 초기에는 핵심 항목을 순차 구축하고, 일정 압축이나 적용 범위 확대가 필요한 경우 추가 인력을 투입합니다.</p><div class="grid grid-3">
+<div class="card soft-blue">
+<div class="num">1</div>
+<h3>일정은 단축하되 핵심 의존성을 관리한다</h3>
+<p>기준 설계에 1개월을 쓰지 않고 6월 안에 기준 정리와 Benchmark PoC를 함께 처리합니다. 핵심 자동화는 월별 기준으로 추진하되, 검수·정리·산출물 보완은 추가 인력 투입 시 병행 가능합니다.</p>
+</div>
+<div class="card soft-violet">
+<div class="num">2</div>
+<h3>제한 배포 후 확산 여부를 판단한다</h3>
+<p>초기 구축 단계에서는 12월 전사 완전 배포보다 11월 제한 배포, 12월 확산 판단이 현실적입니다. 적용 범위 확대, 산출물 검수, 교육 지원이 필요한 경우 추가 인력을 투입해 확산 준비를 병행할 수 있습니다.</p>
+</div>
+<div class="card soft-green">
+<div class="num">3</div>
+<h3>디자이너의 Master Draft가 기준이다</h3>
+<p>V0 결과는 빠른 초안이고, Designer Master Draft는 품질 기준안입니다. Figma 자동화는 이 Draft를 DLS/DIS 기준으로 표준화합니다.</p>
+</div>
+</div><div class="callout" style="margin-top:18px">
+<strong>핵심 계획:</strong> 6~9월에 3대 자동화 항목을 순차 구축하고, 10월에 통합 QA와 v1.0 패키지를 완성합니다. 11~12월은 제한 배포와 전사 확산 판단 기간으로 운영합니다. </div></div><div class="card" style="margin-top:18px"><h3>왜 3대 자동화 항목이 필요한가</h3><p class="muted">자동화의 목적은 단순 속도 개선이 아니라, 기획 요구사항의 해석 편차, AI Draft 품질 편차, Figma/DLS 적용 불일치, 보안 리스크를 통제하는 것입니다.</p><div class="grid grid-3">
+<div class="card soft-violet">
+<div class="num">①</div>
+<h3>Design Benchmark Automation</h3>
+<p><strong>문제:</strong> 프로젝트마다 키워드, 레퍼런스, 무드보드, 디자인 방향을 반복적으로 수동 정리합니다.</p>
+<p><strong>필요성:</strong> 기획 MD에서 디자인 방향성을 자동 추출해 초기 해석 편차를 줄입니다.</p>
+<p><strong>성과:</strong> 리서치 시간 단축, 방향성 품질 균등화, 출처 관리 강화.</p>
+</div>
+<div class="card soft-cyan">
+<div class="num">②</div>
+<h3>Vibe Coding Design Generation</h3>
+<p><strong>문제:</strong> V0 등 AI 화면 생성은 빠르지만 요구사항 누락, 임의 기능 추가, 상태/예외 누락 가능성이 있습니다.</p>
+<p><strong>필요성:</strong> Planning MD와 ui_spec.json을 기준으로 화면 생성 프롬프트를 표준화해야 합니다.</p>
+<p><strong>성과:</strong> 빠른 화면 초안, 서브화면 파생, 제안/시연 Prototype 확보.</p>
+</div>
+<div class="card soft-green">
+<div class="num">③</div>
+<h3>Figma Design System Automation</h3>
+<p><strong>문제:</strong> 디자인 Draft가 좋아도 Figma 내부 구조, Token, Component, Layer가 정리되지 않으면 전달 품질이 떨어집니다.</p>
+<p><strong>필요성:</strong> Designer Master Draft를 기준으로 DLS/DIS 정합성을 자동 점검해야 합니다.</p>
+<p><strong>성과:</strong> 디자인 의도 보존, DLS 준수, 퍼블리싱 전달 품질 향상.</p>
+</div>
+</div></div><div class="card" style="margin-top:18px"><h3>현실적 범위 재정의</h3><p class="muted">초기 구축 단계에서는 모든 것을 자동화하지 않습니다. 12월까지는 “운영 가능한 최소 자동화 패키지”를 목표로 하되, 프로젝트 수·화면 수·검수 범위가 확대될 경우 추가 인력을 투입합니다.</p><div class="grid grid-2">
+<div class="card">
+<h3>12월까지 포함할 범위</h3>
+<ul>
+<li>기획 MD 기반 디자인 키워드·벤치마킹·무드보드 생성</li>
+<li>V0 기반 주요 화면 생성 프롬프트와 Prototype</li>
+<li>Designer Master Draft 품질 기준 및 비교 리포트</li>
+<li>Figma Token, Component, State, Layer Naming 기본 검증</li>
+<li>통합 QA 리포트, 보안 체크리스트, 제한 배포 가이드</li>
+</ul>
+</div>
+<div class="card">
+<h3>전사 배포 이후 고도화할 범위</h3>
+<ul>
+<li>전 프로젝트 유형별 도메인 룰팩</li>
+<li>완전 자동 Figma ↔ 구현 화면 동기화</li>
+<li>전사 자동 KPI 대시보드</li>
+<li>부서별 권한 관리 자동화</li>
+<li>다중 사용자 협업 워크플로우</li>
+</ul>
+</div>
+</div><div class="callout warning" style="margin-top:18px">
+<strong>범위 통제:</strong> 초기 실행 단계에서는 “전사 플랫폼 완성”이 아니라 “반복 가능한 운영 패키지 완성”을 목표로 합니다. 추가 인력은 화면 생성 보조, Figma 정리, QA 검수, 교육자료 보완 등 병행 가능한 영역에 우선 투입합니다. </div></div></section><section id="automation-plan"><div class="section-head"><div><div class="ribbon">Automation Plan</div><h2>1. 자동화 계획</h2></div><p>V0/Vibe Coding, Designer Master Draft, Figma/DLS 연계를 기준으로 실행 범위를 구성합니다.</p></div><div class="card" style="margin-top:18px"><h3>3대 자동화 구조</h3><p class="muted">기획 자동화 MD를 Source of Truth로 두고, Benchmark, Vibe Coding, Designer Master Draft, Figma System이 연결됩니다.</p><div class="diagram">
+<svg aria-label="3대 디자인 자동화 구조" role="img" viewbox="0 0 1260 500">
+<defs>
+<filter height="140%" id="shadowSvg" width="140%" x="-20%" y="-20%">
+<fedropshadow dx="0" dy="8" flood-color="#0f172a" flood-opacity=".10" stddeviation="8"></fedropshadow>
+</filter>
+<marker id="arrow" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="8.5" refy="5" viewbox="0 0 10 10"><path d="M0,0 L10,5 L0,10 z" fill="#8AA0B8"></path></marker>
+<marker id="arrowBlue" markerheight="8" markerwidth="8" orient="auto-start-reverse" refx="8.5" refy="5" viewbox="0 0 10 10"><path d="M0,0 L10,5 L0,10 z" fill="#2563EB"></path></marker>
+<marker id="arrowViolet" markerheight="8" markerwidth="8" orient="auto-start-reverse" refx="8.5" refy="5" viewbox="0 0 10 10"><path d="M0,0 L10,5 L0,10 z" fill="#6D28D9"></path></marker>
+</defs>
+<g class="node">
+<rect fill="#EFF6FF" height="110" rx="22" stroke="#BFDBFE" width="220" x="40" y="175"></rect>
+<text class="svg-label" fill="#2563EB" x="65" y="205">Source of Truth</text>
+<text class="svg-title" fill="#0A2540" x="65" y="232">Planning MD</text>
+<text class="svg-sub" x="65" y="254">ui_spec.json / IA</text>
+<text class="svg-sub" x="65" y="274">REQ-ID / SCR-ID</text>
+</g>
+<path class="arrow-strong" d="M260 230 H330"></path>
+<g class="node">
+<rect fill="#F5F3FF" height="100" rx="22" stroke="#DDD6FE" width="230" x="330" y="70"></rect>
+<text class="svg-label" fill="#6D28D9" x="355" y="100">01</text>
+<text class="svg-title" fill="#0A2540" x="355" y="127">Design Benchmark</text>
+<text class="svg-sub" x="355" y="149">키워드·레퍼런스·무드보드</text>
+</g>
+<g class="node">
+<rect fill="#ECFEFF" height="100" rx="22" stroke="#A5F3FC" width="230" x="330" y="200"></rect>
+<text class="svg-label" fill="#0891B2" x="355" y="230">02</text>
+<text class="svg-title" fill="#0A2540" x="355" y="257">Vibe Coding Draft</text>
+<text class="svg-sub" x="355" y="279">V0 기반 UI Prototype</text>
+</g>
+<g class="node">
+<rect fill="#F0FDF4" height="100" rx="22" stroke="#BBF7D0" width="230" x="330" y="330"></rect>
+<text class="svg-label" fill="#059669" x="355" y="360">Human</text>
+<text class="svg-title" fill="#0A2540" x="355" y="387">Designer Master Draft</text>
+<text class="svg-sub" x="355" y="409">고품질 기준 디자인</text>
+</g>
+<path class="arrow" d="M560 120 C630 120 630 250 700 250"></path>
+<path class="arrow-strong" d="M560 250 H700"></path>
+<path class="arrow-strong" d="M560 380 C630 380 630 250 700 250"></path>
+<g class="node">
+<rect fill="#F0FDF4" height="120" rx="24" stroke="#BBF7D0" width="240" x="700" y="190"></rect>
+<text class="svg-label" fill="#059669" x="728" y="224">03</text>
+<text class="svg-title" fill="#0A2540" x="728" y="252">Figma Design System</text>
+<text class="svg-sub" x="728" y="275">Token / Component / State</text>
+<text class="svg-sub" x="728" y="295">Layer Naming / QA</text>
+</g>
+<path class="arrow-strong" d="M940 250 H1010"></path>
+<g class="node">
+<rect fill="#FFFBEB" height="120" rx="24" stroke="#FDE68A" width="210" x="1010" y="190"></rect>
+<text class="svg-label" fill="#D97706" x="1035" y="224">Gate</text>
+<text class="svg-title" fill="#0A2540" x="1035" y="252">AX Quality Gate</text>
+<text class="svg-sub" x="1035" y="275">품질·보안·추적성</text>
+<text class="svg-sub" x="1035" y="295">승인 / 반려 / 보완</text>
+</g>
+<path class="arrow-loop" d="M1115 310 C1080 410 780 450 500 430"></path>
+<text class="svg-sub" fill="#6D28D9" x="690" y="450">QA 결과는 Draft·Figma 기준 보정으로 환류</text>
+</svg>
+</div></div><div class="card" style="margin-top:18px"><h3>관계도: 기획 MD → 디자인 Draft → Vibe Coding → Figma/DLS → QA</h3><p class="muted">디자인 자동화는 기획 MD를 입력으로 사용하지만, 디자인 품질 기준은 Designer Master Draft와 DLS/DIS 기준으로 별도 관리합니다.</p><div class="rel-diagram">
+<div class="rel-node node-violet"><b>기획 MD</b><span>요구사항 / 화면 목록 / ui_spec 기준</span></div>
+<div class="rel-arrow">→</div>
+<div class="rel-node node-blue"><b>Benchmark</b><span>디자인 방향 / 키워드 / 무드보드</span></div>
+<div class="rel-arrow">→</div>
+<div class="rel-node node-green"><b>Designer Master Draft</b><span>품질 기준점 / Human 승인</span></div>
+<div class="rel-arrow">→</div>
+<div class="rel-node node-blue"><b>Vibe Coding</b><span>Prototype / 화면 생성 / 상태·예외</span></div>
+<div class="rel-arrow">→</div>
+<div class="rel-node node-amber"><b>Figma / DLS</b><span>Token / Component / Layer / 권한</span></div>
+<div class="rel-arrow">→</div>
+<div class="rel-node node-red"><b>QA / 제한 배포</b><span>보안 위반 0건 / High Risk 0건</span></div>
+</div><h3 style="margin-top:30px">디자인 항목별 관계</h3><table>
+<tr><th>항목</th><th>입력</th><th>핵심 산출물</th><th>연결 대상</th><th>KPI 연결</th></tr>
+<tr><td><strong>Benchmark</strong></td><td>기획 MD, 서비스 방향</td><td>키워드, 무드보드, 레퍼런스</td><td>Master Draft</td><td>키워드 적합률, 승인율</td></tr>
+<tr><td><strong>Vibe Coding</strong></td><td>Prompt, 화면 요구사항, 더미 데이터</td><td>Prototype, 화면 초안</td><td>Figma, QA</td><td>생성 성공률, 보안 위반 확정 건수</td></tr>
+<tr><td><strong>Figma/DLS</strong></td><td>Master Draft, Prototype, Token</td><td>Figma 파일, Component, Token Mapping</td><td>DLS/DIS, QA 리포트</td><td>승인 Token 저장소 반영률, Figma 권한 점검 완료율</td></tr>
+<tr><td><strong>Human Review</strong></td><td>자동 탐지 후보, 보안 후보</td><td>확정값, 반려 사유, 개선 룰</td><td>제한 배포 판단</td><td>High Risk 미확인 0건</td></tr>
+</table></div><div class="card" style="margin-top:18px"><h3>실행 방법: 디자인 자동화 3대 항목</h3><p class="muted">디자인 자동화 1.0은 Benchmark, Vibe Coding, Figma/DLS 자동화의 3대 항목으로 실행합니다. Designer Master Draft는 품질 기준점으로 사용합니다.</p><div class="exec-lane"><div class="exec-role">Item 1<br/>Benchmark</div><div class="exec-work"><strong>실행 방법:</strong> 기획 MD와 서비스 방향을 기준으로 디자인 키워드, 무드보드, 레퍼런스 기준을 정리합니다.<br/><strong>산출물:</strong> 디자인 방향 키워드, 무드보드, Draft 기준.<br/><strong>검증:</strong> 키워드 적합률, 무드보드 승인율, Human Review.</div></div><div class="exec-lane"><div class="exec-role">Item 2<br/>Vibe Coding</div><div class="exec-work"><strong>실행 방법:</strong> V0/Vibe Coding으로 초기 화면 또는 Prototype을 생성하고 더미 데이터·Prompt 보안을 확인합니다.<br/><strong>산출물:</strong> 화면 초안, Prototype, 상태/예외 화면.<br/><strong>검증:</strong> 생성 성공률, 요구사항 반영률, 프롬프트 보안 위반 확정 건수.</div></div><div class="exec-lane"><div class="exec-role">Item 3<br/>Figma / DLS</div><div class="exec-work"><strong>실행 방법:</strong> Designer Master Draft를 기준으로 Figma Token, Layer, Component, DLS/DIS 적용 상태를 정리합니다.<br/><strong>산출물:</strong> Figma Draft, Token Mapping, Component 사용 내역, QA 리포트.<br/><strong>검증:</strong> 승인 Token 저장소 반영률, Figma 권한 점검 완료율, QA 리포트 비식별화율.</div></div></div></section><section id="automation-process"><div class="section-head"><div><div class="ribbon">Automation Process</div><h2>2. 자동화 항목별 프로세스</h2></div><p>각 자동화 항목의 입력, 처리, 검수, 보안 Gate, 산출물 흐름을 정리합니다.</p></div><div class="card" style="margin-top:18px"><h3>상황별 인력 투입 실행 방식 관계도</h3><p class="muted">월별 핵심 항목을 기준으로 단계 간 의존성을 관리하고, 각 단계의 산출물을 다음 달 입력값으로 넘깁니다. 일정 압축, 검수 범위 확대, 교육 지원이 필요한 경우 추가 인력을 투입해 병행 가능한 업무를 분리합니다.</p><div class="diagram">
+<svg aria-label="현실형 실행 방식 관계도" role="img" viewbox="0 0 1360 760">
+<defs>
+<filter height="140%" id="shadowSvg2" width="140%" x="-20%" y="-20%">
+<fedropshadow dx="0" dy="8" flood-color="#0f172a" flood-opacity=".10" stddeviation="8"></fedropshadow>
+</filter>
+<marker id="arrow2" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="8.5" refy="5" viewbox="0 0 10 10"><path d="M0,0 L10,5 L0,10 z" fill="#8AA0B8"></path></marker>
+<marker id="arrowBlue2" markerheight="8" markerwidth="8" orient="auto-start-reverse" refx="8.5" refy="5" viewbox="0 0 10 10"><path d="M0,0 L10,5 L0,10 z" fill="#2563EB"></path></marker>
+<marker id="arrowViolet2" markerheight="8" markerwidth="8" orient="auto-start-reverse" refx="8.5" refy="5" viewbox="0 0 10 10"><path d="M0,0 L10,5 L0,10 z" fill="#6D28D9"></path></marker>
+</defs>
+<rect fill="#EFF6FF" height="150" rx="24" stroke="#BFDBFE" width="1300" x="30" y="76"></rect>
+<rect fill="#F5F3FF" height="150" rx="24" stroke="#DDD6FE" width="1300" x="30" y="253"></rect>
+<rect fill="#F0FDF4" height="150" rx="24" stroke="#BBF7D0" width="1300" x="30" y="430"></rect>
+<rect fill="#FFFBEB" height="105" rx="24" stroke="#FDE68A" width="1300" x="30" y="608"></rect>
+<text class="lane-title" x="52" y="103">A. 순차 구축 흐름</text>
+<text class="lane-title" x="52" y="280">B. 단계별 QA 흐름</text>
+<text class="lane-title" x="52" y="457">C. 산출물 자산화 흐름</text>
+<text class="lane-title" x="52" y="635">D. 제한 배포·확산 판단 흐름</text>
+<g class="node"><rect fill="#FFFFFF" height="74" rx="18" stroke="#BFDBFE" width="170" x="70" y="128"></rect><text class="svg-label" fill="#2563EB" x="90" y="153">6월</text><text class="svg-title" fill="#0A2540" x="90" y="176">기준 + Benchmark</text><text class="svg-sub" x="90" y="193">PoC 압축 수행</text></g>
+<g class="node"><rect fill="#FFFFFF" height="74" rx="18" stroke="#A5F3FC" width="180" x="280" y="128"></rect><text class="svg-label" fill="#0891B2" x="300" y="153">7월</text><text class="svg-title" fill="#0A2540" x="300" y="176">Vibe Coding</text><text class="svg-sub" x="300" y="193">V0 UI 생성</text></g>
+<g class="node"><rect fill="#FFFFFF" height="74" rx="18" stroke="#BBF7D0" width="210" x="500" y="128"></rect><text class="svg-label" fill="#059669" x="520" y="153">8월</text><text class="svg-title" fill="#0A2540" x="520" y="176">Designer Draft</text><text class="svg-sub" x="520" y="193">고품질 기준안</text></g>
+<g class="node"><rect fill="#FFFFFF" height="74" rx="18" stroke="#BBF7D0" width="190" x="750" y="128"></rect><text class="svg-label" fill="#059669" x="770" y="153">9월</text><text class="svg-title" fill="#0A2540" x="770" y="176">Figma System</text><text class="svg-sub" x="770" y="193">DLS/DIS 표준화</text></g>
+<g class="node"><rect fill="#FFFFFF" height="74" rx="18" stroke="#FDE68A" width="170" x="980" y="128"></rect><text class="svg-label" fill="#D97706" x="1000" y="153">10월</text><text class="svg-title" fill="#0A2540" x="1000" y="176">통합 QA</text><text class="svg-sub" x="1000" y="193">v1.0 패키지</text></g>
+<g class="node"><rect fill="#FFFFFF" height="74" rx="18" stroke="#FECACA" width="120" x="1190" y="128"></rect><text class="svg-label" fill="#DC2626" x="1210" y="153">11~12월</text><text class="svg-title" fill="#0A2540" x="1210" y="176">제한 배포</text><text class="svg-sub" x="1210" y="193">확산 판단</text></g>
+<path class="arrow-strong" d="M240 165 H280" marker-end="url(#arrowBlue2)"></path>
+<path class="arrow-strong" d="M460 165 H500" marker-end="url(#arrowBlue2)"></path>
+<path class="arrow-strong" d="M710 165 H750" marker-end="url(#arrowBlue2)"></path>
+<path class="arrow-strong" d="M940 165 H980" marker-end="url(#arrowBlue2)"></path>
+<path class="arrow-strong" d="M1150 165 H1190" marker-end="url(#arrowBlue2)"></path>
+<g class="node"><rect fill="#FFFFFF" height="66" rx="18" stroke="#BFDBFE" width="170" x="70" y="306"></rect><text class="svg-label" fill="#2563EB" x="90" y="331">QA</text><text class="svg-title" fill="#0A2540" x="90" y="354">입력·출처 검증</text></g>
+<g class="node"><rect fill="#FFFFFF" height="66" rx="18" stroke="#A5F3FC" width="180" x="280" y="306"></rect><text class="svg-label" fill="#0891B2" x="300" y="331">QA</text><text class="svg-title" fill="#0A2540" x="300" y="354">프롬프트 보안</text></g>
+<g class="node"><rect fill="#FFFFFF" height="66" rx="18" stroke="#BBF7D0" width="210" x="500" y="306"></rect><text class="svg-label" fill="#059669" x="520" y="331">QA</text><text class="svg-title" fill="#0A2540" x="520" y="354">디자인 품질 검증</text></g>
+<g class="node"><rect fill="#FFFFFF" height="66" rx="18" stroke="#BBF7D0" width="190" x="750" y="306"></rect><text class="svg-label" fill="#059669" x="770" y="331">QA</text><text class="svg-title" fill="#0A2540" x="770" y="354">DLS/DIS 검증</text></g>
+<g class="node"><rect fill="#FFFFFF" height="82" rx="18" stroke="#FDE68A" width="170" x="980" y="298"></rect><text class="svg-label" fill="#D97706" x="1000" y="324">QA</text><text class="svg-title" fill="#0A2540" x="1000" y="347">Cross Verification</text><text class="svg-sub" x="1000" y="365">재작업·보안</text></g>
+<path class="arrow" d="M155 202 V306" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M370 202 V306" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M605 202 V306" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M845 202 V306" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M1065 202 V298" marker-end="url(#arrow2)"></path>
+<g class="node"><rect fill="#FFFFFF" height="72" rx="18" stroke="#BFDBFE" width="200" x="70" y="484"></rect><text class="svg-label" fill="#2563EB" x="90" y="510">Asset</text><text class="svg-title" fill="#0A2540" x="90" y="533">Direction Package</text><text class="svg-sub" x="90" y="550">키워드·무드보드</text></g>
+<g class="node"><rect fill="#FFFFFF" height="72" rx="18" stroke="#A5F3FC" width="210" x="310" y="484"></rect><text class="svg-label" fill="#0891B2" x="330" y="510">Asset</text><text class="svg-title" fill="#0A2540" x="330" y="533">Prompt Library</text><text class="svg-sub" x="330" y="550">V0 화면 생성 규칙</text></g>
+<g class="node"><rect fill="#FFFFFF" height="72" rx="18" stroke="#BBF7D0" width="210" x="560" y="484"></rect><text class="svg-label" fill="#059669" x="580" y="510">Asset</text><text class="svg-title" fill="#0A2540" x="580" y="533">Master Draft</text><text class="svg-sub" x="580" y="550">품질 기준안</text></g>
+<g class="node"><rect fill="#FFFFFF" height="72" rx="18" stroke="#BBF7D0" width="220" x="810" y="484"></rect><text class="svg-label" fill="#059669" x="830" y="510">Asset</text><text class="svg-title" fill="#0A2540" x="830" y="533">Figma System Package</text><text class="svg-sub" x="830" y="550">Token·Component·Layer</text></g>
+<g class="node"><rect fill="#FFFFFF" height="72" rx="18" stroke="#FDE68A" width="220" x="1070" y="484"></rect><text class="svg-label" fill="#D97706" x="1090" y="510">Asset</text><text class="svg-title" fill="#0A2540" x="1090" y="533">v1.0 Release Package</text><text class="svg-sub" x="1090" y="550">운영 매뉴얼·KPI</text></g>
+<path class="arrow" d="M155 372 C155 420 170 430 170 484" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M370 372 C370 420 415 430 415 484" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M605 372 C605 420 665 430 665 484" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M845 372 C845 420 920 430 920 484" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M1065 380 C1065 430 1180 430 1180 484" marker-end="url(#arrow2)"></path>
+<g class="node"><rect fill="#FFFFFF" height="44" rx="16" stroke="#BBF7D0" width="210" x="560" y="650"></rect><text class="svg-title" fill="#0A2540" x="582" y="678">v0.8 Pilot</text></g>
+<g class="node"><rect fill="#FFFFFF" height="44" rx="16" stroke="#BBF7D0" width="220" x="810" y="650"></rect><text class="svg-title" fill="#0A2540" x="832" y="678">v1.0 Limited Release</text></g>
+<g class="node"><rect fill="#FFFFFF" height="44" rx="16" stroke="#FDE68A" width="220" x="1070" y="650"></rect><text class="svg-title" fill="#0A2540" x="1092" y="678">전사 확산 Go/No-Go</text></g>
+<path class="arrow" d="M665 556 V650" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M920 556 V650" marker-end="url(#arrow2)"></path>
+<path class="arrow" d="M1180 556 V650" marker-end="url(#arrow2)"></path>
+<path class="arrow-loop" d="M1065 298 C1040 245 940 225 845 202" marker-end="url(#arrowViolet2)"></path>
+<text class="svg-sub" fill="#6D28D9" x="870" y="247">통합 QA 결과는 Figma System 보정으로 환류</text>
+</svg>
+</div></div><div class="card" style="margin-top:18px"><h3>보안 기준: 디자인 자동화 1.0</h3><p class="muted">디자인 파일은 Figma, V0/Vibe Coding Prompt, DLS/DIS Token, Prototype, QA 리포트를 다루므로 Prompt·Figma·Token·QA 중심의 최소 보안 Gate를 적용합니다.</p><div class="callout warning">
+<strong>운영 결정:</strong> 디자인 자동화의 보안은 “기획 원문 보호”보다 <strong>Prompt 실데이터 금지, Figma 전체 공개 방지, 비승인 Token 저장 금지, QA 리포트 비식별화</strong>에 집중합니다. </div><div class="final-security-grid" style="margin-top:18px">
+<div class="final-security-card soft-red">
+<span class="final-security-badge required">필수 Gate</span>
+<h3>Prompt 보안</h3>
+<ul>
+<li>V0/Vibe Coding Prompt에는 고객명, 내부 URL, 실데이터, API Key를 입력하지 않습니다.</li>
+<li>Sample, Dummy, Masked 데이터만 사용합니다.</li>
+<li>프롬프트 보안 위반 확정 건수는 0건이어야 합니다.</li>
+</ul>
+</div>
+<div class="final-security-card soft-amber">
+<span class="final-security-badge required">필수 Gate</span>
+<h3>Figma / Prototype 공유 권한</h3>
+<ul>
+<li>Figma 파일과 Prototype 링크의 전체 공개를 금지합니다.</li>
+<li>공유 권한은 프로젝트 담당자 중심으로 제한합니다.</li>
+<li>전체 공개 링크 발견 시 제한 배포를 보류합니다.</li>
+</ul>
+</div>
+<div class="final-security-card soft-blue">
+<span class="final-security-badge required">필수 Gate</span>
+<h3>Token / DLS 자산 보호</h3>
+<ul>
+<li>DLS/DIS Token은 승인 저장소에서만 관리합니다.</li>
+<li>개인 저장소, 외부 공개 저장소, 비승인 경로 저장을 금지합니다.</li>
+<li>비승인 Token 발견 건수는 0건이어야 합니다.</li>
+</ul>
+</div>
+<div class="final-security-card soft-green">
+<span class="final-security-badge required">필수 Gate</span>
+<h3>QA 리포트 비식별화</h3>
+<ul>
+<li>QA 리포트에는 고객명, 내부 URL, 원문 캡처, 실제 운영 데이터를 남기지 않습니다.</li>
+<li>Repository에는 오류 유형과 개선 룰만 저장합니다.</li>
+<li>비식별화율은 100%를 목표로 합니다.</li>
+</ul>
+</div>
+</div><h3 style="margin-top:30px">디자인 파일 보안 KPI</h3><table>
+<tr>
+<th>구분</th>
+<th>KPI</th>
+<th>목표</th>
+<th>측정 방식</th>
+<th>제한 배포 판단</th>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>Prompt 더미 데이터 적용률</td>
+<td>100%</td>
+<td>더미 데이터 적용 프롬프트 수 ÷ 전체 프롬프트 수 × 100</td>
+<td>100% 미만이면 재검토</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>디자인 프롬프트 보안 위반 확정 건수</td>
+<td>0건</td>
+<td>내부 URL, 고객명, 실데이터, API Key 후보를 담당자가 확정</td>
+<td>1건 이상이면 재생성</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>Figma 전체 공개 링크 건수</td>
+<td>0건</td>
+<td>Figma/Prototype 공유 링크 문구 탐지 + 실제 권한 수동 확인</td>
+<td>1건 이상이면 보류</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>비승인 저장소 Token 발견 건수</td>
+<td>0건</td>
+<td>Token Export, 저장소 목록, 문서 내 비승인 저장 경로 확인</td>
+<td>1건 이상이면 정리 후 재점검</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>QA 리포트 비식별화율</td>
+<td>100%</td>
+<td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td>
+<td>100% 미만이면 Repository 저장 금지</td>
+</tr>
+</table><h3 style="margin-top:30px">제외 범위</h3><div class="final-security-grid">
+<div class="final-security-card soft-amber">
+<span class="final-security-badge excluded">개발 단계 제외</span>
+<h3>사전 개발 단계에서 제외</h3>
+<ul>
+<li>Figma API 기반 실제 권한 자동 조회</li>
+<li>이미지 내부 텍스트 OCR 자동 판독</li>
+<li>GitHub/Repository API 자동 검사</li>
+<li>서버 프록시, 인증, API Key 보관</li>
+</ul>
+</div>
+<div class="final-security-card soft-green">
+<span class="final-security-badge manual">현재 단계 처리</span>
+<h3>현재 파일에서 처리</h3>
+<ul>
+<li>Prompt 금지 기준 명시</li>
+<li>Figma 공유 권한 수동 확인 기준 정의</li>
+<li>Token 저장소 기준 정의</li>
+<li>QA 리포트 비식별화 기준 정의</li>
+</ul>
+</div>
+</div></div><div class="card" style="margin-top:18px"><h3>디자인 자동화 1.0 보안 세부 반영</h3><p class="muted">디자인 자동화는 현재 1.0 생성 단계이므로 기존 방식 대비 고도화 성과 비교는 제외합니다. 대신 V0/Vibe Coding, Figma, DLS/DIS, QA 리포트의 보안 기준을 실행계획 안에 포함합니다.</p><div class="callout warning">
+<strong>반영 원칙:</strong> 본 문서는 디자인 자동화 1.0의 실행계획을 유지하되, 외부 AI 입력·Figma 권한·DLS/DIS 저장소·QA 리포트 저장 기준을 보안 Gate로 추가한 전체 버전입니다. </div><div class="security-final-grid">
+<div class="security-final-card sec-blue">
+<h3>V0 / Vibe Coding Prompt 보안</h3>
+<p>화면 생성 프롬프트에는 실제 고객 데이터, 내부 URL, 운영 화면 캡처, 고객사명을 포함하지 않습니다.</p>
+<ul>
+<li>프롬프트에는 Sample, Masked, Dummy 데이터만 사용</li>
+<li>내부 URL, IP, 계정명, 기관명, 실제 민원/거래/로그 데이터 입력 금지</li>
+<li>프롬프트 실행 전 민감정보 스캔 체크리스트 적용</li>
+<li>생성 결과에 실데이터가 재노출되지 않았는지 QA에서 확인</li>
+</ul>
+</div>
+<div class="security-final-card sec-violet">
+<h3>Figma 권한 및 Prototype 보안</h3>
+<p>Figma 파일과 Prototype 링크는 프로젝트 단위로 권한을 제한하고 전체 공개 링크 사용을 금지합니다.</p>
+<ul>
+<li>Figma 파일 접근 권한은 담당자·검토자 중심으로 제한</li>
+<li>Prototype 공유 시 외부 공개 링크 사용 금지</li>
+<li>캡처 이미지, 화면명, 테스트 데이터에 고객 식별 정보 포함 금지</li>
+<li>제한 배포 전 Figma 권한 점검 완료율 100% 확인</li>
+</ul>
+</div>
+<div class="security-final-card sec-green">
+<h3>DLS/DIS Token 저장소 통제</h3>
+<p>Token, Variable, Component, State 정의는 승인된 저장소에서만 관리하고 개인 저장소 또는 외부 공개 저장소에 보관하지 않습니다.</p>
+<ul>
+<li>Token / Component / Variable 소스 저장 위치 명확화</li>
+<li>Style Dictionary, Tailwind, Figma Variable 산출물의 접근 권한 제한</li>
+<li>DLS/DIS 원본과 자동 생성 파일의 Source of Truth 구분</li>
+<li>외부 납품 또는 공유 시 내부 Token 구조 노출 범위 검토</li>
+</ul>
+</div>
+<div class="security-final-card sec-amber">
+<h3>QA 리포트·Repository 비식별화</h3>
+<p>QA 리포트와 Knowledge Repository에는 원문, 고객명, 내부 정책, 실제 데이터가 아니라 오류 유형과 개선 룰만 저장합니다.</p>
+<ul>
+<li>QA 리포트 저장 전 고객명·내부 URL·실데이터 제거</li>
+<li>오류 사례는 비식별화된 패턴과 개선 룰 중심으로 축적</li>
+<li>Repository에는 화면 캡처 원본보다 문제 유형과 조치 방법 저장</li>
+<li>보안 위반 후보는 책임자 확정 전 배포 판단에 사용 금지</li>
+</ul>
+</div>
+</div><h3 style="margin-top:30px">디자인 보안 Gate 흐름</h3><div class="security-flow">
+<div class="security-step sec-blue">
+<b>1. 입력 데이터 확인</b>
+<span>Prompt, Figma, Draft, QA 리포트의 민감정보 포함 여부 확인</span>
+</div>
+<div class="security-arrow">→</div>
+<div class="security-step sec-amber">
+<b>2. 더미 데이터 치환</b>
+<span>실제 값은 Sample / Masked 형태로 대체</span>
+</div>
+<div class="security-arrow">→</div>
+<div class="security-step sec-violet">
+<b>3. 권한 제한 실행</b>
+<span>Figma/Prototype/DLS 저장소 접근 권한 제한</span>
+</div>
+<div class="security-arrow">→</div>
+<div class="security-step sec-green">
+<b>4. 산출물 QA</b>
+<span>Prompt 로그, Token, Layer, Component, QA 리포트 검증</span>
+</div>
+<div class="security-arrow">→</div>
+<div class="security-step sec-red">
+<b>5. 보안 Gate</b>
+<span>보안 위반 0건 확인 후 제한 배포</span>
+</div>
+</div><h3 style="margin-top:30px">디자인 보안 KPI</h3><table>
+<tr>
+<th>KPI</th>
+<th>목표</th>
+<th>측정 방식</th>
+<th>AI 측정 가능성</th>
+<th>확정 주체</th>
+</tr>
+<tr>
+<td><strong>프롬프트 더미 데이터 적용률</strong></td>
+<td>100%</td>
+<td>더미 데이터 적용 프롬프트 수 ÷ 전체 프롬프트 수 × 100</td>
+<td>프롬프트 스캔 자동 측정 가능</td>
+<td>자동 산출 + 샘플 검수</td>
+</tr>
+<tr>
+<td><strong>디자인 프롬프트 보안 위반 건수</strong></td>
+<td>0건</td>
+<td>고객명, 내부 URL, 실제 데이터 포함 여부 점검</td>
+<td>AI 후보 탐지 + 책임자 확정</td>
+<td>디자인 책임자 / 보안 담당</td>
+</tr>
+<tr>
+<td><strong>Figma 권한 점검 완료율</strong></td>
+<td>100%</td>
+<td>권한 점검 완료 파일 수 ÷ 대상 Figma 파일 수 × 100</td>
+<td>Figma 권한 로그 기반 측정</td>
+<td>디자인 담당 / 책임자</td>
+</tr>
+<tr>
+<td><strong>승인 Token 저장소 반영률</strong></td>
+<td>85% 이상</td>
+<td>승인 저장소 반영 Token 수 ÷ 전체 운영 Token 수 × 100</td>
+<td>저장소/Export 로그 기반 측정</td>
+<td>자동 산출 + 샘플 검수</td>
+</tr>
+<tr>
+<td><strong>비승인 저장소 Token 발견 건수</strong></td>
+<td>0건</td>
+<td>개인 저장소, 외부 공개 저장소, 승인되지 않은 경로에서 발견된 Token 수</td>
+<td>저장소/Export 로그 기반 후보 탐지 + 책임자 확정</td>
+<td>디자인 책임자 / DLS 담당</td>
+</tr>
+<tr>
+<td><strong>QA 리포트 비식별화율</strong></td>
+<td>100%</td>
+<td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td>
+<td>AI 후보 탐지 + 책임자 확정</td>
+<td>디자인 책임자 / 보안 담당</td>
+</tr>
+</table></div><div class="card" style="margin-top:18px"><h3>디자인 자동화 1.0 보안 강화 기준</h3><p class="muted">디자인 파일은 기획 원문보다 Figma, Prompt, Token, Prototype, QA 리포트 보안이 핵심입니다. 따라서 디자인 보안은 “외부 입력 통제 + 디자인 자산 보호 + 공유 권한 제한” 중심으로 강화합니다.</p><div class="callout warning">
+<strong>보안 우선순위:</strong> 디자인 자동화에서는 V0/Vibe Coding Prompt에 실데이터가 들어가지 않도록 통제하고, Figma/Prototype 공유 권한과 DLS/DIS Token 저장소를 강하게 관리해야 합니다. 디자인 자산과 Token 구조는 회사 자산으로 취급합니다. </div><div class="secure-principle-grid" style="margin-top:18px">
+<div class="secure-principle-card soft-red">
+<div class="secure-level p0">P0</div>
+<h3>Prompt 보안</h3>
+<p>V0/Vibe Coding Prompt에는 고객명, 내부 URL, 실제 운영 데이터, 계정 정보, API Key를 입력하지 않습니다.</p>
+<ul>
+<li>Sample / Dummy / Masked 데이터만 사용</li>
+<li>프롬프트 보안 위반 확정 건수 0건</li>
+<li>위반 후보와 확정값 분리 기록</li>
+</ul>
+</div>
+<div class="secure-principle-card soft-amber">
+<div class="secure-level p1">P1</div>
+<h3>Figma 권한 통제</h3>
+<p>Figma 파일과 Prototype 링크는 프로젝트 담당자 중심으로 제한하며 전체 공개 링크를 금지합니다.</p>
+<ul>
+<li>Figma 권한 점검 완료율 100%</li>
+<li>전체 공개 / public link 0건</li>
+<li>외부 공유 시 만료일과 승인자 기록</li>
+</ul>
+</div>
+<div class="secure-principle-card soft-blue">
+<div class="secure-level p1">P1</div>
+<h3>Token / DLS 자산 보호</h3>
+<p>DLS/DIS Token, Component, Variable, Layer 구조는 승인 저장소에서만 관리합니다.</p>
+<ul>
+<li>승인 Token 저장소 반영률 85% 이상</li>
+<li>비승인 저장소 Token 발견 건수 0건</li>
+<li>개인 저장소·외부 공개 저장소 사용 금지</li>
+</ul>
+</div>
+<div class="secure-principle-card soft-green">
+<div class="secure-level p2">P2</div>
+<h3>Prototype / 화면 캡처 보호</h3>
+<p>Prototype, 시연 링크, 화면 캡처에는 고객정보와 내부 업무 구조가 노출되지 않도록 관리합니다.</p>
+<ul>
+<li>이미지 내부 민감정보 Human 확인</li>
+<li>운영 화면 캡처 사용 금지 또는 마스킹</li>
+<li>제안용 이미지는 더미 데이터 기준으로 생성</li>
+</ul>
+</div>
+<div class="secure-principle-card soft-violet">
+<div class="secure-level p2">P2</div>
+<h3>QA 리포트 비식별화</h3>
+<p>QA 리포트에는 고객명, 내부 URL, 실제 데이터, RFP 원문이 포함되지 않도록 합니다.</p>
+<ul>
+<li>QA 리포트 비식별화율 100%</li>
+<li>Repository에는 오류 유형·개선 룰만 저장</li>
+<li>원본 캡처 저장 시 사전 승인 필요</li>
+</ul>
+</div>
+<div class="secure-principle-card soft-cyan">
+<div class="secure-level p3">P3</div>
+<h3>제한 배포 통제</h3>
+<p>제한 배포 전 Prompt, Figma, Token, QA 리포트 보안 점검을 완료해야 합니다.</p>
+<ul>
+<li>High Risk 미확인 0건</li>
+<li>보안 위반 확정 0건</li>
+<li>비승인 Token 0건</li>
+</ul>
+</div>
+</div><h3 style="margin-top:30px">디자인 보안 Gate 흐름</h3><div class="secure-flow">
+<div class="secure-step soft-red"><b>1. Prompt 입력 점검</b><span>실데이터, 내부 URL, API Key, 고객명 입력 금지</span></div>
+<div class="secure-arrow">→</div>
+<div class="secure-step soft-blue"><b>2. 더미 데이터 적용</b><span>Sample / Dummy / Masked 데이터 사용</span></div>
+<div class="secure-arrow">→</div>
+<div class="secure-step soft-amber"><b>3. Figma 권한 점검</b><span>전체 공개 금지, 프로젝트 권한 제한</span></div>
+<div class="secure-arrow">→</div>
+<div class="secure-step soft-green"><b>4. Token 저장소 검증</b><span>승인 저장소 반영, 비승인 저장소 0건</span></div>
+<div class="secure-arrow">→</div>
+<div class="secure-step soft-violet"><b>5. QA 리포트 비식별화</b><span>캡처, 고객명, 내부 URL 제거</span></div>
+<div class="secure-arrow">→</div>
+<div class="secure-step soft-red"><b>6. 제한 배포 Gate</b><span>High Risk 0건, 보안 위반 0건</span></div>
+</div><h3 style="margin-top:30px">디자인 보안 KPI 강화 기준</h3><table>
+<tr>
+<th>보안 영역</th>
+<th>강화 KPI</th>
+<th>목표</th>
+<th>측정 기준</th>
+<th>배포 판단</th>
+</tr>
+<tr>
+<td><strong>Prompt</strong></td>
+<td>프롬프트 더미 데이터 적용률 / 보안 위반 확정 건수</td>
+<td>100% / 0건</td>
+<td>전체 프롬프트 수, 더미 데이터 적용 수, 보안 후보 확정값</td>
+<td>보안 위반 확정 시 재생성</td>
+</tr>
+<tr>
+<td><strong>Figma</strong></td>
+<td>Figma 권한 점검 완료율 / 전체 공개 링크 건수</td>
+<td>100% / 0건</td>
+<td>점검 완료 파일 수, public link 후보</td>
+<td>전체 공개 링크 발견 시 배포 보류</td>
+</tr>
+<tr>
+<td><strong>Token</strong></td>
+<td>승인 Token 저장소 반영률 / 비승인 저장소 Token 발견 건수</td>
+<td>85% 이상 / 0건</td>
+<td>승인 저장소 반영 Token 수, 비승인 저장소 후보</td>
+<td>비승인 Token 발견 시 저장소 정리 후 재점검</td>
+</tr>
+<tr>
+<td><strong>Prototype / Image</strong></td>
+<td>이미지 내부 민감정보 확인 완료율</td>
+<td>100%</td>
+<td>업로드 이미지, 화면 캡처, 시연 이미지 확인 상태</td>
+<td>미확인 High Risk 이미지 있으면 배포 보류</td>
+</tr>
+<tr>
+<td><strong>QA Report</strong></td>
+<td>QA 리포트 비식별화율</td>
+<td>100%</td>
+<td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td>
+<td>고객정보 포함 시 Repository 저장 금지</td>
+</tr>
+</table></div><div class="card" style="margin-top:18px"><h3>보안 및 운영 통제</h3><p class="muted">기획 MD, ui_spec.json, Figma URL, V0 프롬프트에는 고객 요구사항과 업무 규칙이 포함될 수 있으므로 외부 AI 사용 기준과 접근 권한 관리가 필요합니다.</p><table>
+<tr><th>구간</th><th>보안 리스크</th><th>통제 기준</th><th>목표</th></tr>
+<tr><td>Planning MD 입력</td><td>고객사명, 시스템명, 내부 URL 노출</td><td>외부 AI 입력 전 마스킹</td><td>마스킹 100%</td></tr>
+<tr><td>Benchmark</td><td>레퍼런스 출처·저작권 누락</td><td>URL, 캡처일, 사용 범위 기록</td><td>출처 기록 100%</td></tr>
+<tr><td>Vibe Coding</td><td>프롬프트에 실제 데이터 포함</td><td>더미 데이터 사용, 고객정보 제거</td><td>보안 위반 0건</td></tr>
+<tr><td>Figma Automation</td><td>Figma 링크 권한 과다 공개</td><td>특정 사용자 접근, Agent 권한 제한</td><td>권한 점검 100%</td></tr>
+<tr><td>Knowledge Repository</td><td>고객정보 포함 산출물 저장</td><td>오류 유형과 개선 룰만 비식별화 저장</td><td>비식별화 100%</td></tr>
+</table></div></section><section id="performance-schedule"><div class="section-head"><div><div class="ribbon">Performance Schedule</div><h2>3. 성과 일정</h2></div><p>성과 기준과 월별 추진 일정을 한 흐름으로 재배치합니다.</p></div><div class="card" style="margin-top:18px"><h3>성과 기준: 디자인 자동화 1.0</h3><p class="muted">디자인 자동화는 현재 1.0 생성 단계이므로 기존 대비 고도화 성과 비교는 제외하고, 생성 안정성·보안·DLS/DIS 준수·Human Review 완료 기준으로 성과를 판단합니다.</p><div class="perf-grid">
+<div class="perf-card node-blue">
+<h3>생성 안정성</h3>
+<div class="metric">85%+</div>
+<p>V0/Vibe Coding 화면 생성 성공률과 상태/예외 화면 생성률을 기준으로 판단합니다.</p>
+</div>
+<div class="perf-card node-violet">
+<h3>보안 통제</h3>
+<div class="metric">0건</div>
+<p>디자인 프롬프트 보안 위반 확정 건수와 비승인 저장소 Token 발견 건수를 0건으로 관리합니다.</p>
+</div>
+<div class="perf-card node-green">
+<h3>DLS/DIS 준수</h3>
+<div class="metric">85%+</div>
+<p>승인 Token 저장소 반영률, Layer Naming, Component 사용률을 기준으로 관리합니다.</p>
+</div>
+</div><h3 style="margin-top:30px">성과 기준 상세표</h3><table>
+<tr><th>성과 영역</th><th>핵심 지표</th><th>목표 기준</th><th>측정 데이터</th><th>판정 방식</th></tr>
+<tr><td><strong>생성 안정성</strong></td><td>화면 생성 성공률</td><td>85% 이상</td><td>생성 대상 화면 수, 정상 생성 화면 수</td><td>자동 로그 기반</td></tr>
+<tr><td><strong>보안</strong></td><td>프롬프트 보안 위반 확정 건수</td><td>0건</td><td>프롬프트 로그, 민감정보 후보</td><td>AI 후보 탐지 + 책임자 확정</td></tr>
+<tr><td><strong>DLS/DIS</strong></td><td>승인 Token 저장소 반영률</td><td>85% 이상</td><td>전체 운영 Token, 승인 저장소 반영 Token</td><td>자동 산출 + 샘플 검수</td></tr>
+<tr><td><strong>권한</strong></td><td>Figma 권한 점검 완료율</td><td>100%</td><td>대상 Figma 파일 수, 권한 점검 완료 수</td><td>담당자 확인</td></tr>
+<tr><td><strong>운영 완결성</strong></td><td>Human Review 미확인 High Risk 건수</td><td>0건</td><td>Review Queue, 위험도, 확인 상태</td><td>담당자 확인 완료 기준</td></tr>
+</table></div><div class="card" style="margin-top:18px"><h3>현실형 일정안</h3><p class="muted">기준이 이미 있으므로 6월은 “기준 정리 + Benchmark PoC”로 압축합니다. 핵심 구축은 6~10월, 제한 운영은 11~12월로 봅니다.</p><div class="timeline">
+<div class="month-card">
+<div class="month">6월</div>
+<div class="box"><b>목표</b>기준 정리 + Design Benchmark PoC</div>
+<div class="box"><b>작업</b>Input Contract, KPI 템플릿, 키워드·벤치마킹·무드보드 PoC</div>
+<div class="box"><b>완료 기준</b>키워드 적합률 80%, 출처 기록률 100%</div>
+</div>
+<div class="month-card">
+<div class="month">7월</div>
+<div class="box"><b>목표</b>Vibe Coding UI Generation</div>
+<div class="box"><b>작업</b>V0 프롬프트 변환, 메인/서브/상태/예외 화면 생성</div>
+<div class="box"><b>완료 기준</b>화면 생성 성공률 85%, 요구사항 반영률 90%</div>
+</div>
+<div class="month-card">
+<div class="month">8월</div>
+<div class="box"><b>목표</b>Designer Master Draft</div>
+<div class="box"><b>작업</b>디자이너 고품질 Draft 제작, AI Draft와 Gap 분석</div>
+<div class="box"><b>완료 기준</b>Master Draft 승인율 80%, 디자인 의도 보존율 85%</div>
+</div>
+<div class="month-card">
+<div class="month">9월</div>
+<div class="box"><b>목표</b>Figma Design System Automation</div>
+<div class="box"><b>작업</b>Token, Component, State, Layer Naming, Component Page 점검</div>
+<div class="box"><b>완료 기준</b>Token 적용률 85%, Layer Naming 준수율 90%</div>
+</div>
+<div class="month-card">
+<div class="month">10월</div>
+<div class="box"><b>목표</b>통합 QA + v1.0 패키지</div>
+<div class="box"><b>작업</b>Cross Verification, 명도비, 하드코딩, Figma vs 구현 비교, 운영 매뉴얼</div>
+<div class="box"><b>완료 기준</b>QA 리포트 95%, 재작업률 30% 이하, 보안 위반 0건</div>
+</div>
+<div class="month-card">
+<div class="month">11월</div>
+<div class="box"><b>목표</b>제한 배포</div>
+<div class="box"><b>작업</b>1개 프로젝트 또는 1~2개 팀 적용, 사용자 피드백 수집</div>
+<div class="box"><b>완료 기준</b>사용성 이슈 기록, 개선 백로그, 교육자료 보완</div>
+</div>
+<div class="month-card">
+<div class="month">12월</div>
+<div class="box"><b>목표</b>전사 확산 판단</div>
+<div class="box"><b>작업</b>KPI 리포트 발행, 운영 안정성 검토, 전사 확산 Go/No-Go</div>
+<div class="box"><b>완료 기준</b>확산 로드맵 확정, 다음 분기 고도화 항목 정의</div>
+</div>
+</div></div><div class="card" style="margin-top:18px"><h3>배포 전략 및 판단</h3><p class="muted">초기 운영 기준에서는 12월 전사 완전 배포보다 제한 배포와 확산 판단이 적절합니다. 다만 적용 범위 확대나 교육·검수 지원이 필요한 경우 추가 인력을 투입해 확산 준비를 병행합니다.</p><div class="grid grid-3">
+<div class="card soft-violet">
+<h3>v0.5 PoC</h3>
+<p><strong>시점:</strong> 6월 말</p>
+<p class="muted small">Benchmark 자동화와 입력 기준을 검증합니다. 외부 배포하지 않습니다.</p>
+</div>
+<div class="card soft-cyan">
+<h3>v0.8 Pilot</h3>
+<p><strong>시점:</strong> 8월 말</p>
+<p class="muted small">Vibe Coding Draft와 Designer Master Draft까지 연결해 파일럿 수준으로 검증합니다.</p>
+</div>
+<div class="card soft-green">
+<h3>v1.0 Limited Release</h3>
+<p><strong>시점:</strong> 10~11월</p>
+<p class="muted small">Figma System Automation과 통합 QA까지 포함한 제한 배포 버전입니다.</p>
+</div>
+</div><div class="callout success" style="margin-top:18px">
+<strong>제안:</strong> 10월까지 운영 가능한 v1.0 패키지를 완성하고, 11월에 제한 배포합니다. 12월에는 KPI와 사용자 피드백을 기준으로 전사 확산 여부를 판단합니다. 전사 확대는 다음 분기 단계 확산으로 추진하는 것이 안전합니다. </div></div></section><section id="kpi-extract"><div class="kpi-collapsible" data-kpi-collapsible=""><button aria-controls="kpi-panel-design" aria-expanded="false" class="kpi-main-toggle" data-kpi-toggle="" type="button">
+<div class="kpi-toggle-card">
+<div>
+<div class="ribbon">KPI Extract</div>
+<h2>4. KPI 추출 정리</h2>
+<p class="kpi-toggle-meta">본문에 분산되어 있던 KPI·Before 기준·측정 방식·승인/보안 판정 기준을 표 중심으로만 추출했습니다.</p>
+</div>
+<span class="kpi-toggle-btn"><span class="kpi-open-label">KPI 열기</span><span class="kpi-close-label">KPI 닫기</span></span>
+</div>
+</button><div class="kpi-details-body kpi-panel" hidden="" id="kpi-panel-design"><h3 style="margin-top:24px">KPI 및 측정 기준</h3><table>
+<tr><th>영역</th><th>KPI</th><th>목표</th><th>측정 방식</th></tr>
+<tr><td>공통</td><td><strong>Planning MD 수신 성공률</strong></td><td>95% 이상</td><td>정상 인식 MD 수 ÷ 입력 MD 수 × 100</td></tr>
+<tr><td>Benchmark</td><td><strong>디자인 키워드 적합률</strong></td><td>80% 이상</td><td>승인 키워드 수 ÷ 추출 키워드 수 × 100</td></tr>
+<tr><td>Benchmark</td><td><strong>무드보드 승인율</strong></td><td>70% 이상</td><td>승인 무드보드 수 ÷ 생성 무드보드 수 × 100</td></tr>
+<tr><td>Vibe Coding</td><td><strong>화면 생성 성공률</strong></td><td>85% 이상</td><td>정상 생성 화면 수 ÷ 생성 대상 화면 수 × 100</td></tr>
+<tr><td>Vibe Coding</td><td><strong>요구사항 반영률</strong></td><td>90% 이상</td><td>반영된 REQ-ID 수 ÷ 전체 REQ-ID 수 × 100</td></tr>
+<tr><td>Designer Draft</td><td><strong>Master Draft 승인율</strong></td><td>80% 이상</td><td>승인 Draft 수 ÷ 검토 Draft 수 × 100</td></tr>
+<tr><td>Designer Draft</td><td><strong>디자인 의도 보존율</strong></td><td>85% 이상</td><td>표준화 후 유지된 핵심 의도 수 ÷ 정의 의도 수 × 100</td></tr>
+<tr><td>Figma System</td><td><strong>Token 적용률</strong></td><td>85% 이상</td><td>토큰 적용 스타일 수 ÷ 전체 스타일 수 × 100</td></tr>
+<tr><td>Figma System</td><td><strong>Layer Naming 준수율</strong></td><td>90% 이상</td><td>규칙 준수 레이어 수 ÷ 전체 대상 레이어 수 × 100</td></tr>
+<tr><td>QA</td><td><strong>QA 리포트 생성률</strong></td><td>95% 이상</td><td>QA 리포트 생성 수 ÷ 검증 대상 수 × 100</td></tr>
+<tr><td>재작업</td><td><strong>재작업률</strong></td><td>30% 이하</td><td>재작업 산출물 수 ÷ 전체 산출물 수 × 100</td></tr>
+<tr><td>보안</td><td><strong>보안 위반 건수</strong></td><td>0건</td><td>민감정보·권한·라이선스 위반 건수 집계</td></tr>
+</table><h3 style="margin-top:24px">KPI Before 기준값 및 기대 평균값</h3><table>
+<tr>
+<th>Before 기준</th>
+<th>산정 방식</th>
+<th>권장 샘플</th>
+<th>기록 목적</th>
+</tr>
+<tr>
+<td><strong>기존 수작업 시간</strong></td>
+<td>자동화 없이 사람이 작업 시작부터 승인 가능한 산출물 완성까지 수행한 총 시간</td>
+<td>메인 1개, 목록 1개, 상세 1개, 등록/수정 1개, 상태/예외 1개</td>
+<td>시간 절감률 산정 기준</td>
+</tr>
+<tr>
+<td><strong>기존 오류 건수</strong></td>
+<td>수작업 산출물 QA에서 발견된 요구사항 누락, DLS 미준수, 네이밍 오류, 상태/예외 누락 등의 총합</td>
+<td>대표 화면 3~5개 QA 결과</td>
+<td>오류 감소율 산정 기준</td>
+</tr>
+<tr>
+<td><strong>기존 재작업률</strong></td>
+<td>재작업 발생 산출물 수 ÷ 전체 산출물 수 × 100</td>
+<td>기존 디자인 산출물 10개 또는 대표 화면 세트</td>
+<td>재작업률 개선율 산정 기준</td>
+</tr>
+<tr>
+<td><strong>기존 재작업 시간 비율</strong></td>
+<td>수정/재작업 시간 ÷ 전체 작업 시간 × 100</td>
+<td>팀리더 피드백 반영 시간 포함</td>
+<td>실제 생산성 개선 여부 판단</td>
+</tr>
+</table><h3 style="margin-top:24px">KPI Before 기준값 및 기대 평균값</h3><table>
+<tr>
+<th>영역</th>
+<th>KPI</th>
+<th>Before 예상 평균</th>
+<th>자동화 후 기대 평균</th>
+<th>목표 기준</th>
+<th>측정 방식</th>
+</tr>
+<tr>
+<td><strong>공통</strong></td>
+<td>Planning MD 수신 성공률</td>
+<td>60~70%<br/><span class="muted small">문서 구조가 일정하지 않아 수동 해석 필요</span></td>
+<td>90~95%</td>
+<td>95% 이상</td>
+<td>정상 인식 MD 수 ÷ 입력 MD 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Benchmark</strong></td>
+<td>디자인 키워드 적합률</td>
+<td>60~70%<br/><span class="muted small">작업자 해석에 따라 키워드 편차 발생</span></td>
+<td>78~85%</td>
+<td>80% 이상</td>
+<td>승인 키워드 수 ÷ 추출 키워드 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Benchmark</strong></td>
+<td>무드보드 승인율</td>
+<td>50~60%<br/><span class="muted small">레퍼런스 방향성 재조정 빈도 높음</span></td>
+<td>68~75%</td>
+<td>70% 이상</td>
+<td>승인 무드보드 수 ÷ 생성 무드보드 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Benchmark</strong></td>
+<td>리서치/컨셉 정리 시간</td>
+<td>6~8시간 / 화면군</td>
+<td>3~4.5시간 / 화면군</td>
+<td>40% 이상 절감</td>
+<td>(Before 시간 - After 총 시간) ÷ Before 시간 × 100</td>
+</tr>
+<tr>
+<td><strong>Vibe Coding</strong></td>
+<td>화면 생성 성공률</td>
+<td>0~20%<br/><span class="muted small">기존 수작업 기준에서는 자동 생성 없음</span></td>
+<td>80~88%</td>
+<td>85% 이상</td>
+<td>정상 생성 화면 수 ÷ 생성 대상 화면 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Vibe Coding</strong></td>
+<td>요구사항 반영률</td>
+<td>70~80%<br/><span class="muted small">수작업 전달 과정에서 누락 가능</span></td>
+<td>85~92%</td>
+<td>90% 이상</td>
+<td>반영된 REQ-ID 수 ÷ 전체 REQ-ID 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Vibe Coding</strong></td>
+<td>상태/예외 화면 생성률</td>
+<td>40~55%<br/><span class="muted small">Empty, Loading, Error 화면 누락 빈도 높음</span></td>
+<td>78~88%</td>
+<td>85% 이상</td>
+<td>생성된 상태/예외 화면 수 ÷ 필수 상태/예외 화면 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Designer Draft</strong></td>
+<td>Designer Master Draft 승인율</td>
+<td>60~70%<br/><span class="muted small">초안 품질 편차와 피드백 반복 발생</span></td>
+<td>78~85%</td>
+<td>80% 이상</td>
+<td>승인 Draft 수 ÷ 검토 Draft 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Designer Draft</strong></td>
+<td>디자인 의도 보존율</td>
+<td>65~75%<br/><span class="muted small">파생 화면 확장 시 기준 의도 약화</span></td>
+<td>82~88%</td>
+<td>85% 이상</td>
+<td>유지된 핵심 디자인 의도 수 ÷ 정의된 디자인 의도 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Figma System</strong></td>
+<td>Token 적용률</td>
+<td>55~70%<br/><span class="muted small">하드코딩 컬러/간격/폰트 혼재</span></td>
+<td>80~88%</td>
+<td>85% 이상</td>
+<td>토큰 적용 스타일 수 ÷ 전체 스타일 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Figma System</strong></td>
+<td>Layer Naming 준수율</td>
+<td>50~65%<br/><span class="muted small">Frame, Rectangle 등 의미 없는 레이어명 잔존</span></td>
+<td>85~92%</td>
+<td>90% 이상</td>
+<td>규칙 준수 레이어 수 ÷ 전체 대상 레이어 수 × 100</td>
+</tr>
+<tr>
+<td><strong>Figma System</strong></td>
+<td>Component 사용률</td>
+<td>55~70%<br/><span class="muted small">개별 제작 UI와 DLS 컴포넌트 혼재</span></td>
+<td>75~85%</td>
+<td>80% 이상</td>
+<td>DLS/DIS 컴포넌트 사용 수 ÷ 전체 UI 요소 수 × 100</td>
+</tr>
+<tr>
+<td><strong>QA</strong></td>
+<td>QA 리포트 생성률</td>
+<td>30~50%<br/><span class="muted small">수동 체크 중심, 리포트 누락 가능</span></td>
+<td>90~95%</td>
+<td>95% 이상</td>
+<td>QA 리포트 생성 수 ÷ 검증 대상 수 × 100</td>
+</tr>
+<tr>
+<td><strong>재작업</strong></td>
+<td>재작업률</td>
+<td>35~45%</td>
+<td>20~30%</td>
+<td>30% 이하</td>
+<td>재작업 산출물 수 ÷ 전체 산출물 수 × 100</td>
+</tr>
+<tr>
+<td><strong>재작업</strong></td>
+<td>재작업 시간 비율</td>
+<td>25~35%</td>
+<td>15~25%</td>
+<td>25% 이하</td>
+<td>재작업 시간 ÷ 전체 작업 시간 × 100</td>
+</tr>
+<tr>
+<td><strong>오류</strong></td>
+<td>기존 오류 건수</td>
+<td>대표 화면 5개 기준 25~40건</td>
+<td>15~25건</td>
+<td>30% 이상 감소</td>
+<td>(Before 오류 건수 - After 오류 건수) ÷ Before 오류 건수 × 100</td>
+</tr>
+<tr>
+<td><strong>보안</strong></td>
+<td>보안 위반 건수</td>
+<td>0건 목표이나, 기준 미정 시 잠재 리스크 존재</td>
+<td>0건</td>
+<td>0건 필수</td>
+<td>민감정보, 권한, 라이선스 위반 건수 집계</td>
+</tr>
+</table><h3 style="margin-top:24px">KPI Before 기준값 및 기대 평균값</h3><table>
+<tr>
+<th>측정 항목</th>
+<th>Before 예상 평균</th>
+<th>After 기대 평균</th>
+<th>계산식</th>
+<th>개선 결과</th>
+</tr>
+<tr>
+<td><strong>작업 시간</strong></td>
+<td>30시간</td>
+<td>18시간</td>
+<td>(30 - 18) ÷ 30 × 100</td>
+<td>40% 절감</td>
+</tr>
+<tr>
+<td><strong>오류 건수</strong></td>
+<td>35건</td>
+<td>22건</td>
+<td>(35 - 22) ÷ 35 × 100</td>
+<td>37.1% 감소</td>
+</tr>
+<tr>
+<td><strong>재작업률</strong></td>
+<td>40%</td>
+<td>25%</td>
+<td>(40 - 25) ÷ 40 × 100</td>
+<td>37.5% 개선</td>
+</tr>
+<tr>
+<td><strong>Layer Naming 오류</strong></td>
+<td>10건</td>
+<td>3건</td>
+<td>(10 - 3) ÷ 10 × 100</td>
+<td>70% 감소</td>
+</tr>
+</table><h3 style="margin-top:24px">KPI 측정 방법</h3><table>
+<tr>
+<th>측정 기준</th>
+<th>내용</th>
+<th>기록 방식</th>
+</tr>
+<tr>
+<td><strong>측정 단위</strong></td>
+<td>프로젝트, 화면, 산출물, 실행 건, QA 항목 단위로 구분</td>
+<td>Google Sheet / Notion DB / QA Report</td>
+</tr>
+<tr>
+<td><strong>기준값</strong></td>
+<td>기존 수작업 시간, 기존 오류 건수, 기존 재작업률을 Before 값으로 기록</td>
+<td>파일럿 전 1회 기준값 산정</td>
+</tr>
+<tr>
+<td><strong>측정 시점</strong></td>
+<td>자동화 실행 직후, 팀리더 Draft Review 및 통합 검증 후, QA 완료 후, 제한 배포 후</td>
+<td>단계별 로그 기록</td>
+</tr>
+<tr>
+<td><strong>판정 방식</strong></td>
+<td>Pass / Conditional Pass / Fail로 구분하고 Fail 사유를 기록</td>
+<td>승인 로그와 재작업 리스트에 반영</td>
+</tr>
+<tr>
+<td><strong>리포트 주기</strong></td>
+<td>PoC 단계는 주간, 제한 배포 단계는 월간 리포트 발행</td>
+<td>KPI Dashboard / Monthly Report</td>
+</tr>
+</table><h3 style="margin-top:24px">KPI 측정 방법</h3><table>
+<tr>
+<th>KPI</th>
+<th>측정 산식</th>
+<th>수집 데이터</th>
+<th>측정 주기</th>
+<th>판정 기준</th>
+</tr>
+<tr>
+<td><strong>Planning MD 수신 성공률</strong></td>
+<td>정상 인식 MD 수 ÷ 입력 MD 수 × 100</td>
+<td>입력 MD 파일 수, 파싱 성공 수, 필수 필드 누락 수</td>
+<td>프로젝트 시작 시</td>
+<td>95% 이상 우수 / 90~94% 보통 / 90% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>디자인 키워드 적합률</strong></td>
+<td>디자인 Draft 검토 또는 검증에서 승인된 키워드 수 ÷ 추출 키워드 수 × 100</td>
+<td>추출 키워드 목록, 승인/삭제/수정 키워드 수</td>
+<td>Benchmark 완료 시</td>
+<td>80% 이상 우수 / 70~79% 보통 / 70% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>무드보드 승인율</strong></td>
+<td>승인 무드보드 수 ÷ 생성 무드보드 수 × 100</td>
+<td>생성 무드보드 수, 승인 수, 반려 수, 반려 사유</td>
+<td>Benchmark 완료 시</td>
+<td>70% 이상 우수 / 60~69% 보통 / 60% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>Vibe Coding 화면 생성 성공률</strong></td>
+<td>정상 생성 화면 수 ÷ 생성 대상 화면 수 × 100</td>
+<td>대상 화면 수, 정상 생성 화면 수, 실패 화면 수, 오류 사유</td>
+<td>V0 생성 후</td>
+<td>85% 이상 우수 / 75~84% 보통 / 75% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>요구사항 반영률</strong></td>
+<td>화면에 반영된 REQ-ID 수 ÷ 전체 REQ-ID 수 × 100</td>
+<td>REQ-ID 목록, SCR-ID 매핑표, 화면별 반영 여부</td>
+<td>화면 검토 시</td>
+<td>90% 이상 우수 / 80~89% 보통 / 80% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>Designer Master Draft 승인율</strong></td>
+<td>승인 Draft 수 ÷ 검토 Draft 수 × 100</td>
+<td>Draft 수, 승인/조건부 승인/반려 수, 수정 요청 수</td>
+<td>Master Draft 검토 시</td>
+<td>80% 이상 우수 / 70~79% 보통 / 70% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>디자인 의도 보존율</strong></td>
+<td>표준화 후 유지된 핵심 디자인 의도 수 ÷ 정의된 디자인 의도 수 × 100</td>
+<td>디자인 의도 체크리스트, 표준화 후 유지/변경/훼손 항목</td>
+<td>Figma 표준화 후</td>
+<td>85% 이상 우수 / 75~84% 보통 / 75% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>Token 적용률</strong></td>
+<td>토큰 적용 스타일 수 ÷ 전체 스타일 수 × 100</td>
+<td>컬러, 타이포, 간격, Radius, Shadow 스타일 항목</td>
+<td>Figma System QA 시</td>
+<td>85% 이상 우수 / 75~84% 보통 / 75% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>Layer Naming 준수율</strong></td>
+<td>네이밍 규칙 준수 레이어 수 ÷ 전체 대상 레이어 수 × 100</td>
+<td>전체 레이어 수, 준수 레이어 수, 위반 레이어 수</td>
+<td>Layer Naming Agent 실행 후</td>
+<td>90% 이상 우수 / 80~89% 보통 / 80% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>QA 리포트 생성률</strong></td>
+<td>QA 리포트 생성 수 ÷ 검증 대상 수 × 100</td>
+<td>검증 대상 화면 수, 리포트 생성 수, 리포트 누락 수</td>
+<td>통합 QA 시</td>
+<td>95% 이상 우수 / 90~94% 보통 / 90% 미만 개선 필요</td>
+</tr>
+<tr>
+<td><strong>재작업률</strong></td>
+<td>재작업 산출물 수 ÷ 전체 산출물 수 × 100</td>
+<td>전체 산출물 수, 재작업 수, 재작업 등급, 수정 시간</td>
+<td>팀리더 Draft Review 및 통합 검증 후</td>
+<td>30% 이하 우수 / 31~40% 보통 / 40% 초과 개선 필요</td>
+</tr>
+<tr>
+<td><strong>보안 위반 건수</strong></td>
+<td>민감정보, 권한, 라이선스 위반 건수 집계</td>
+<td>마스킹 여부, Figma 권한, 출처 기록, 프롬프트 보안 점검 결과</td>
+<td>각 Gate별</td>
+<td>0건 필수</td>
+</tr>
+</table><h3 style="margin-top:24px">KPI 측정 방법</h3><table>
+<tr>
+<th>등급</th>
+<th>기준</th>
+<th>판정</th>
+<th>조치</th>
+</tr>
+<tr>
+<td><strong>Level 0</strong></td>
+<td>수정 없음</td>
+<td>즉시 사용 가능</td>
+<td>공식 산출물 승인</td>
+</tr>
+<tr>
+<td><strong>Level 1</strong></td>
+<td>문구, 간격, 색상 일부 수정</td>
+<td>경미 수정</td>
+<td>조건부 승인 가능</td>
+</tr>
+<tr>
+<td><strong>Level 2</strong></td>
+<td>레이아웃, 컴포넌트 일부 재구성</td>
+<td>보통 수정</td>
+<td>수정 후 재검토</td>
+</tr>
+<tr>
+<td><strong>Level 3</strong></td>
+<td>정보 구조, 화면 목적, 상태/예외 재정의 필요</td>
+<td>중대 수정</td>
+<td>자동화 기준 보완</td>
+</tr>
+<tr>
+<td><strong>Level 4</strong></td>
+<td>폐기 후 재작업 필요</td>
+<td>자동화 실패</td>
+<td>원인 분석 후 Knowledge Repository 등록</td>
+</tr>
+</table><h3 style="margin-top:24px">KPI 측정 방법</h3><table>
+<tr>
+<th>기록 항목</th>
+<th>예시</th>
+<th>활용 목적</th>
+</tr>
+<tr>
+<td>프로젝트명 / 화면 ID</td>
+<td>AI Platform / SCR-DASH-001</td>
+<td>요구사항과 화면 추적</td>
+</tr>
+<tr>
+<td>입력 MD / ui_spec</td>
+<td>uxui_planning.md / ui_spec.json</td>
+<td>입력 기준 확인</td>
+</tr>
+<tr>
+<td>자동화 항목</td>
+<td>Benchmark / Vibe Coding / Figma System</td>
+<td>항목별 KPI 분리</td>
+</tr>
+<tr>
+<td>기존 수작업 시간</td>
+<td>6h</td>
+<td>시간 절감률 기준값</td>
+</tr>
+<tr>
+<td>AI 실행 시간</td>
+<td>0.5h</td>
+<td>자동화 실행 효율 측정</td>
+</tr>
+<tr>
+<td>검수/수정 시간</td>
+<td>2h</td>
+<td>실제 총 소요시간 계산</td>
+</tr>
+<tr>
+<td>승인 상태</td>
+<td>승인 / 조건부 승인 / 반려</td>
+<td>Human Review 결과 기록</td>
+</tr>
+<tr>
+<td>재작업 등급</td>
+<td>Level 1~4</td>
+<td>자동화 품질 안정성 판단</td>
+</tr>
+<tr>
+<td>보안 점검 결과</td>
+<td>Pass / Fail</td>
+<td>외부 AI 및 Figma 권한 통제</td>
+</tr>
+<tr>
+<td>개선 룰 등록 여부</td>
+<td>등록 / 미등록</td>
+<td>Knowledge Repository 축적</td>
+</tr>
+</table><h3 style="margin-top:24px">Human-in-the-Loop 승인 기준</h3><table>
+<tr>
+<th>검증 항목</th>
+<th>검증 기준</th>
+<th>통과 기준</th>
+</tr>
+<tr>
+<td><strong>요구사항 반영</strong></td>
+<td>Planning MD / REQ-ID 기준으로 주요 요구사항이 화면과 Prototype에 반영되었는지 확인</td>
+<td>요구사항 반영률 90% 이상</td>
+</tr>
+<tr>
+<td><strong>디자인 의도 보존</strong></td>
+<td>팀리더가 승인한 Designer Master Draft의 방향성, 정보 위계, 사용성 흐름이 유지되었는지 확인</td>
+<td>디자인 의도 보존율 85% 이상</td>
+</tr>
+<tr>
+<td><strong>DLS/DIS 준수</strong></td>
+<td>Token, Component, State, Layer Naming 기준이 적용되었는지 확인</td>
+<td>Token 적용률 85% 이상 / Layer Naming 준수율 90% 이상</td>
+</tr>
+<tr>
+<td><strong>Prototype 품질</strong></td>
+<td>주요 흐름, 서브 화면, 상태/예외 화면, 사용성 오류를 확인</td>
+<td>상태/예외 화면 생성률 85% 이상 / 재작업률 30% 이하</td>
+</tr>
+<tr>
+<td><strong>보안</strong></td>
+<td>고객정보, 내부 URL, 외부 AI 입력, Figma 권한, QA 리포트 저장 위치를 점검</td>
+<td>보안 위반 0건</td>
+</tr>
+</table><h3 style="margin-top:24px">성과 기준: 디자인 자동화 1.0</h3><table>
+<tr><th>성과 영역</th><th>핵심 지표</th><th>목표 기준</th><th>측정 데이터</th><th>판정 방식</th></tr>
+<tr><td><strong>생성 안정성</strong></td><td>화면 생성 성공률</td><td>85% 이상</td><td>생성 대상 화면 수, 정상 생성 화면 수</td><td>자동 로그 기반</td></tr>
+<tr><td><strong>보안</strong></td><td>프롬프트 보안 위반 확정 건수</td><td>0건</td><td>프롬프트 로그, 민감정보 후보</td><td>AI 후보 탐지 + 책임자 확정</td></tr>
+<tr><td><strong>DLS/DIS</strong></td><td>승인 Token 저장소 반영률</td><td>85% 이상</td><td>전체 운영 Token, 승인 저장소 반영 Token</td><td>자동 산출 + 샘플 검수</td></tr>
+<tr><td><strong>권한</strong></td><td>Figma 권한 점검 완료율</td><td>100%</td><td>대상 Figma 파일 수, 권한 점검 완료 수</td><td>담당자 확인</td></tr>
+<tr><td><strong>운영 완결성</strong></td><td>Human Review 미확인 High Risk 건수</td><td>0건</td><td>Review Queue, 위험도, 확인 상태</td><td>담당자 확인 완료 기준</td></tr>
+</table><h3 style="margin-top:24px">보안 기준: 디자인 자동화 1.0</h3><table>
+<tr>
+<th>구분</th>
+<th>KPI</th>
+<th>목표</th>
+<th>측정 방식</th>
+<th>제한 배포 판단</th>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>Prompt 더미 데이터 적용률</td>
+<td>100%</td>
+<td>더미 데이터 적용 프롬프트 수 ÷ 전체 프롬프트 수 × 100</td>
+<td>100% 미만이면 재검토</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>디자인 프롬프트 보안 위반 확정 건수</td>
+<td>0건</td>
+<td>내부 URL, 고객명, 실데이터, API Key 후보를 담당자가 확정</td>
+<td>1건 이상이면 재생성</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>Figma 전체 공개 링크 건수</td>
+<td>0건</td>
+<td>Figma/Prototype 공유 링크 문구 탐지 + 실제 권한 수동 확인</td>
+<td>1건 이상이면 보류</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>비승인 저장소 Token 발견 건수</td>
+<td>0건</td>
+<td>Token Export, 저장소 목록, 문서 내 비승인 저장 경로 확인</td>
+<td>1건 이상이면 정리 후 재점검</td>
+</tr>
+<tr>
+<td><strong>필수</strong></td>
+<td>QA 리포트 비식별화율</td>
+<td>100%</td>
+<td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td>
+<td>100% 미만이면 Repository 저장 금지</td>
+</tr>
+</table><h3 style="margin-top:24px">디자인 자동화 1.0 보안 세부 반영</h3><table>
+<tr>
+<th>KPI</th>
+<th>목표</th>
+<th>측정 방식</th>
+<th>AI 측정 가능성</th>
+<th>확정 주체</th>
+</tr>
+<tr>
+<td><strong>프롬프트 더미 데이터 적용률</strong></td>
+<td>100%</td>
+<td>더미 데이터 적용 프롬프트 수 ÷ 전체 프롬프트 수 × 100</td>
+<td>프롬프트 스캔 자동 측정 가능</td>
+<td>자동 산출 + 샘플 검수</td>
+</tr>
+<tr>
+<td><strong>디자인 프롬프트 보안 위반 건수</strong></td>
+<td>0건</td>
+<td>고객명, 내부 URL, 실제 데이터 포함 여부 점검</td>
+<td>AI 후보 탐지 + 책임자 확정</td>
+<td>디자인 책임자 / 보안 담당</td>
+</tr>
+<tr>
+<td><strong>Figma 권한 점검 완료율</strong></td>
+<td>100%</td>
+<td>권한 점검 완료 파일 수 ÷ 대상 Figma 파일 수 × 100</td>
+<td>Figma 권한 로그 기반 측정</td>
+<td>디자인 담당 / 책임자</td>
+</tr>
+<tr>
+<td><strong>승인 Token 저장소 반영률</strong></td>
+<td>85% 이상</td>
+<td>승인 저장소 반영 Token 수 ÷ 전체 운영 Token 수 × 100</td>
+<td>저장소/Export 로그 기반 측정</td>
+<td>자동 산출 + 샘플 검수</td>
+</tr>
+<tr>
+<td><strong>비승인 저장소 Token 발견 건수</strong></td>
+<td>0건</td>
+<td>개인 저장소, 외부 공개 저장소, 승인되지 않은 경로에서 발견된 Token 수</td>
+<td>저장소/Export 로그 기반 후보 탐지 + 책임자 확정</td>
+<td>디자인 책임자 / DLS 담당</td>
+</tr>
+<tr>
+<td><strong>QA 리포트 비식별화율</strong></td>
+<td>100%</td>
+<td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td>
+<td>AI 후보 탐지 + 책임자 확정</td>
+<td>디자인 책임자 / 보안 담당</td>
+</tr>
+</table><h3 style="margin-top:24px">디자인 자동화 1.0 보안 강화 기준</h3><table>
+<tr>
+<th>보안 영역</th>
+<th>강화 KPI</th>
+<th>목표</th>
+<th>측정 기준</th>
+<th>배포 판단</th>
+</tr>
+<tr>
+<td><strong>Prompt</strong></td>
+<td>프롬프트 더미 데이터 적용률 / 보안 위반 확정 건수</td>
+<td>100% / 0건</td>
+<td>전체 프롬프트 수, 더미 데이터 적용 수, 보안 후보 확정값</td>
+<td>보안 위반 확정 시 재생성</td>
+</tr>
+<tr>
+<td><strong>Figma</strong></td>
+<td>Figma 권한 점검 완료율 / 전체 공개 링크 건수</td>
+<td>100% / 0건</td>
+<td>점검 완료 파일 수, public link 후보</td>
+<td>전체 공개 링크 발견 시 배포 보류</td>
+</tr>
+<tr>
+<td><strong>Token</strong></td>
+<td>승인 Token 저장소 반영률 / 비승인 저장소 Token 발견 건수</td>
+<td>85% 이상 / 0건</td>
+<td>승인 저장소 반영 Token 수, 비승인 저장소 후보</td>
+<td>비승인 Token 발견 시 저장소 정리 후 재점검</td>
+</tr>
+<tr>
+<td><strong>Prototype / Image</strong></td>
+<td>이미지 내부 민감정보 확인 완료율</td>
+<td>100%</td>
+<td>업로드 이미지, 화면 캡처, 시연 이미지 확인 상태</td>
+<td>미확인 High Risk 이미지 있으면 배포 보류</td>
+</tr>
+<tr>
+<td><strong>QA Report</strong></td>
+<td>QA 리포트 비식별화율</td>
+<td>100%</td>
+<td>비식별화 완료 리포트 수 ÷ 전체 저장 리포트 수 × 100</td>
+<td>고객정보 포함 시 Repository 저장 금지</td>
+</tr>
+</table><h3 style="margin-top:24px">보안 및 운영 통제</h3><table>
+<tr><th>구간</th><th>보안 리스크</th><th>통제 기준</th><th>목표</th></tr>
+<tr><td>Planning MD 입력</td><td>고객사명, 시스템명, 내부 URL 노출</td><td>외부 AI 입력 전 마스킹</td><td>마스킹 100%</td></tr>
+<tr><td>Benchmark</td><td>레퍼런스 출처·저작권 누락</td><td>URL, 캡처일, 사용 범위 기록</td><td>출처 기록 100%</td></tr>
+<tr><td>Vibe Coding</td><td>프롬프트에 실제 데이터 포함</td><td>더미 데이터 사용, 고객정보 제거</td><td>보안 위반 0건</td></tr>
+<tr><td>Figma Automation</td><td>Figma 링크 권한 과다 공개</td><td>특정 사용자 접근, Agent 권한 제한</td><td>권한 점검 100%</td></tr>
+<tr><td>Knowledge Repository</td><td>고객정보 포함 산출물 저장</td><td>오류 유형과 개선 룰만 비식별화 저장</td><td>비식별화 100%</td></tr>
+</table><div class="kpi-close-area"><button class="kpi-close-btn" data-kpi-panel-close="" type="button">KPI 닫기</button></div></div></div></section><div class="footer">Report order: 0. Background → 1. Automation Plan → 2. Process by Item → 3. Performance Schedule → 4. KPI Extract</div></main>
+
+
+<script>
+(function(){
+  function setKpiOpen(wrapper, open){
+    var panel = wrapper.querySelector('.kpi-panel');
+    var toggle = wrapper.querySelector('[data-kpi-toggle]');
+    if(!panel || !toggle) return;
+    wrapper.classList.toggle('is-open', open);
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(!open){
+      wrapper.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+
+  document.addEventListener('click', function(event){
+    var toggle = event.target.closest('[data-kpi-toggle]');
+    if(toggle){
+      var wrapper = toggle.closest('[data-kpi-collapsible]');
+      if(wrapper){
+        var panel = wrapper.querySelector('.kpi-panel');
+        setKpiOpen(wrapper, !!panel && panel.hidden);
+      }
+      return;
+    }
+
+    var closeButton = event.target.closest('[data-kpi-panel-close]');
+    if(closeButton){
+      var wrapper = closeButton.closest('[data-kpi-collapsible]');
+      if(wrapper){
+        setKpiOpen(wrapper, false);
+      }
+    }
+  });
+
+  document.querySelectorAll('[data-kpi-collapsible]').forEach(function(wrapper){
+    setKpiOpen(wrapper, false);
+  });
+})();
+</script>
+</body>
+</html>
