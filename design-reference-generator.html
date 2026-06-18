@@ -78,6 +78,9 @@
     margin: -5px 0 14px;
   }
   .check-row input { margin-top: 2px; }
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; }
+  .key-row .btn { padding: 10px 11px; font-size: 14px; white-space: nowrap; }
   .upload {
     position: relative;
     display: block;
@@ -143,6 +146,19 @@
     padding: 5px 9px;
     font-size: 14px;
     font-weight: 700;
+  }
+  .keyword-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .keyword-group { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .keyword-group h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+  .keyword-list { display: flex; flex-wrap: wrap; gap: 7px; }
+  .keyword-list a, .keyword-list span {
+    color: var(--text);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 999px;
+    padding: 6px 9px;
+    font-size: 14px;
+    text-decoration: none;
   }
   .grid { display: grid; gap: 14px; }
   .grid.two { grid-template-columns: 1fr 1fr; }
@@ -239,12 +255,14 @@
   }
   .images { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .image-tile { min-height: 130px; background: var(--panel-2); border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .image-tile.selected { border-color: var(--blue); box-shadow: 0 0 0 1px rgba(56,189,248,.22); }
   .image-tile img { width: 100%; height: 150px; object-fit: cover; display: block; }
   .image-tile a { display: block; color: var(--muted); padding: 8px; font-size: 14px; text-decoration: none; }
+  .image-tile button { width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--blue); padding: 8px; font-size: 14px; text-align: left; }
   .prompt { display: grid; gap: 8px; }
   .prompt-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: var(--panel-2); border-radius: 7px; padding: 11px; color: var(--muted); font-size: 16px; line-height: 1.45; }
   @media (max-width: 920px) {
-    .layout, .grid.two, .grid.three, .images, .artifact-board, .login-preview, .screen-grid, .brochure-preview { grid-template-columns: 1fr; }
+    .layout, .grid.two, .grid.three, .images, .artifact-board, .login-preview, .screen-grid, .brochure-preview, .keyword-groups { grid-template-columns: 1fr; }
     .topline { display: grid; }
   }
 </style>
@@ -273,13 +291,16 @@
       </div>
       <div class="field" id="keyField">
         <label for="apiKey">분석 API key</label>
-        <input id="apiKey" type="password" placeholder="브라우저 세션에만 저장">
+        <div class="key-row">
+          <input id="apiKey" type="password" placeholder="브라우저 세션에만 저장">
+          <button type="button" class="btn" id="apiKeyDeleteBtn" title="입력값과 저장된 key 삭제">삭제</button>
+        </div>
       </div>
       <label class="check-row" id="rememberAnalysisRow">
         <input type="checkbox" id="rememberAnalysisKey">
         <span>이 브라우저에 분석 API key 저장</span>
       </label>
-      <p class="hint">공용 PC에서는 저장하지 마세요. 팀 배포 시에는 key 입력 방식을 서버리스 프록시로 바꾸는 것이 안전합니다.</p>
+      <p class="hint">⚠️ 입력한 설계 문서 내용과 API key는 선택한 분석 API(Gemini/Groq)로 그대로 전송됩니다. 비공개 설계서·고객사 문서는 업로드 전에 한 번 더 검토하세요. 공용 PC에서는 key를 저장하지 말고, 팀 배포 시에는 key 입력 방식을 서버리스 프록시로 바꾸는 것이 안전합니다.</p>
 
       <div class="field">
         <label for="referencePurpose">찾을 레퍼런스 목적</label>
@@ -310,7 +331,10 @@
       </div>
       <div class="field" id="imageKeyField">
         <label for="imageKey">이미지 API key</label>
-        <input id="imageKey" type="password" placeholder="Pexels/Unsplash API key 필요">
+        <div class="key-row">
+          <input id="imageKey" type="password" placeholder="Pexels/Unsplash API key 필요">
+          <button type="button" class="btn" id="imageKeyDeleteBtn" title="입력값과 저장된 key 삭제">삭제</button>
+        </div>
       </div>
       <label class="check-row" id="rememberImageRow">
         <input type="checkbox" id="rememberImageKey">
@@ -319,8 +343,8 @@
 
       <label class="upload" id="upload" for="fileInput">
         <strong>설계 문서 업로드</strong>
-        <div>.md / .txt / .pdf</div>
-        <input type="file" id="fileInput" accept=".md,.txt,.pdf">
+        <div>.md / .txt / .pdf / .ppt / .pptx</div>
+        <input type="file" id="fileInput" accept=".md,.txt,.pdf,.ppt,.pptx">
         <div class="file-name" id="fileName"></div>
       </label>
 
@@ -365,6 +389,11 @@
         </div>
 
         <div class="card" style="margin-bottom:14px;">
+          <div class="label">키워드 구성</div>
+          <div class="keyword-groups" id="keywordGroups"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
           <div class="label">컬러 팔레트</div>
           <div class="palette" id="palette"></div>
           <div class="list" id="paletteList"></div>
@@ -405,7 +434,8 @@
 </main>
 
 <script>
-const state = { fileText: '', fileBase64: '', fileType: '', result: null, selectedMoodIndex: 0 };
+const TEXT_LIMIT = 18000;
+const state = { fileText: '', fileBase64: '', fileType: '', fileMime: '', useTextOnly: false, result: null, selectedMoodIndex: 0, selectedImageIndex: -1 };
 const $ = id => document.getElementById(id);
 
 const provider = $('provider');
@@ -456,6 +486,8 @@ rememberImageKey.addEventListener('change', () => {
   localStorage.setItem('drg.rememberImageKey', String(rememberImageKey.checked));
   migrateKey('drg.imageKey', rememberImageKey.checked);
 });
+$('apiKeyDeleteBtn').addEventListener('click', () => clearKey('drg.analysisKey', 'drg.rememberAnalysisKey', apiKey, rememberAnalysisKey));
+$('imageKeyDeleteBtn').addEventListener('click', () => clearKey('drg.imageKey', 'drg.rememberImageKey', imageKey, rememberImageKey));
 
 upload.addEventListener('dragover', e => { e.preventDefault(); upload.classList.add('drag'); });
 upload.addEventListener('dragleave', () => upload.classList.remove('drag'));
@@ -498,6 +530,15 @@ function migrateKey(name, remember) {
   saveKey(name, currentValue, remember);
 }
 
+function clearKey(keyName, rememberName, inputEl, rememberCheckbox) {
+  inputEl.value = '';
+  localStorage.removeItem(keyName);
+  sessionStorage.removeItem(keyName);
+  rememberCheckbox.checked = false;
+  localStorage.setItem(rememberName, 'false');
+  setStatus('저장된 key를 삭제했습니다.');
+}
+
 function setStatus(message, isError = false) {
   statusBox.textContent = message;
   statusBox.className = 'status show' + (isError ? ' error' : '');
@@ -505,52 +546,106 @@ function setStatus(message, isError = false) {
 
 function readFile(file) {
   $('fileName').textContent = file.name;
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  const lowerName = file.name.toLowerCase();
+  const isBinaryDoc = file.type === 'application/pdf'
+    || lowerName.endsWith('.pdf')
+    || lowerName.endsWith('.ppt')
+    || lowerName.endsWith('.pptx');
   const reader = new FileReader();
   reader.onload = e => {
-    if (isPdf) {
-      state.fileType = 'pdf';
+    if (isBinaryDoc) {
+      state.fileType = lowerName.endsWith('.pptx') ? 'pptx' : lowerName.endsWith('.ppt') ? 'ppt' : 'pdf';
+      state.fileMime = getFileMime(file);
       state.fileBase64 = e.target.result.split(',')[1];
       state.fileText = '';
-      setStatus('PDF를 읽었습니다. Gemini 분석 API 사용 시 텍스트 추출 없이 원본 문서로 전송됩니다.');
+      if (isPresentationFile()) {
+        setStatus(`${state.fileType.toUpperCase()}를 읽었습니다. 이 정적 HTML에서는 PPT/PPTX 원문 전송을 지원하지 않으므로 내용을 붙여넣거나 PDF로 변환해서 업로드해 주세요.`, true);
+      } else {
+        setStatus('PDF를 읽었습니다. Gemini 분석 API 사용 시 텍스트 추출 없이 원본 문서로 전송됩니다.');
+      }
     } else {
       state.fileType = 'text';
+      state.fileMime = 'text/plain';
       state.fileText = e.target.result;
       state.fileBase64 = '';
-      setStatus('텍스트 문서를 읽었습니다.');
+      const length = state.fileText.length;
+      setStatus(length > TEXT_LIMIT
+        ? `텍스트 문서를 읽었습니다. (${length.toLocaleString()}자, 분석 시 ${TEXT_LIMIT.toLocaleString()}자까지만 사용됩니다)`
+        : `텍스트 문서를 읽었습니다. (${length.toLocaleString()}자)`);
     }
   };
-  if (isPdf) reader.readAsDataURL(file);
+  if (isBinaryDoc) reader.readAsDataURL(file);
   else reader.readAsText(file);
+}
+
+function getFileMime(file) {
+  const lowerName = file.name.toLowerCase();
+  if (file.type) return file.type;
+  if (lowerName.endsWith('.pdf')) return 'application/pdf';
+  if (lowerName.endsWith('.pptx')) return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  if (lowerName.endsWith('.ppt')) return 'application/vnd.ms-powerpoint';
+  return 'application/octet-stream';
 }
 
 async function run() {
   try {
     $('runBtn').disabled = true;
-    setStatus('설계 문서를 분석하는 중입니다.');
     const text = $('pasteText').value.trim() || state.fileText.trim();
+    state.useTextOnly = false;
     if (!text && !state.fileBase64) throw new Error('설계 문서를 업로드하거나 내용을 붙여넣어 주세요.');
     if (provider.value !== 'manual' && !apiKey.value.trim()) throw new Error('분석 API key가 필요합니다.');
-    if (state.fileType === 'pdf' && provider.value === 'groq') throw new Error('Groq는 이 정적 HTML에서 PDF 원문 분석을 지원하지 않습니다. PDF 내용을 텍스트로 붙여넣거나 Gemini를 사용하세요.');
+    if (isPresentationFile() && !text) throw new Error('Gemini가 PPT/PPTX MIME을 지원하지 않습니다. PowerPoint에서 PDF로 저장해 업로드하거나, 슬라이드 내용을 텍스트로 붙여넣어 주세요.');
+    if (isPresentationFile() && text) state.useTextOnly = true;
+    if (shouldSendInlineFile() && provider.value === 'groq') throw new Error('Groq는 이 정적 HTML에서 PDF 원문 분석을 지원하지 않습니다. 내용을 텍스트로 붙여넣거나 Gemini를 사용하세요.');
+    setStatus(buildAnalyzeStatusMessage(text));
 
-    const analysis = provider.value === 'manual'
-      ? createFallbackAnalysis(text)
-      : await analyzeDocument(text);
+    let fallbackReason = '';
+    let analysis;
+    if (provider.value === 'manual') {
+      analysis = createFallbackAnalysis(text);
+    } else {
+      try {
+        analysis = await analyzeDocument(text);
+      } catch (err) {
+        fallbackReason = err.message;
+        analysis = createFallbackAnalysis(text);
+      }
+    }
 
     setStatus('목적별 레퍼런스 수집안과 무드보드를 구성하는 중입니다.');
     normalizeAnalysis(analysis);
     analysis.references = buildReferences(analysis);
     state.selectedMoodIndex = 0;
+    state.selectedImageIndex = -1;
     analysis.selectedMood = analysis.moods[0] || null;
     analysis.moodImages = canLoadMoodImages(analysis) ? await loadMoodImages(getSelectedMoodImageKeywords(analysis)) : [];
     state.result = analysis;
     render(analysis);
-    setStatus('완료되었습니다.');
+    setStatus(fallbackReason
+      ? `AI 분석에 실패해 키워드 기반 샘플 구조로 대체했습니다. (${fallbackReason}) 결과를 확인하고 필요하면 다시 시도하세요.`
+      : '완료되었습니다.', Boolean(fallbackReason));
   } catch (err) {
     setStatus(err.message, true);
   } finally {
+    state.useTextOnly = false;
     $('runBtn').disabled = false;
   }
+}
+
+function buildAnalyzeStatusMessage(text) {
+  if (shouldSendInlineFile() || !text || text.length <= TEXT_LIMIT) return '설계 문서를 분석하는 중입니다.';
+  const used = TEXT_LIMIT.toLocaleString();
+  const total = text.length.toLocaleString();
+  const cut = (text.length - TEXT_LIMIT).toLocaleString();
+  return `설계 문서를 분석하는 중입니다. (전체 ${total}자 중 ${used}자만 사용, ${cut}자 잘림)`;
+}
+
+function isPresentationFile() {
+  return state.fileType === 'ppt' || state.fileType === 'pptx';
+}
+
+function shouldSendInlineFile() {
+  return Boolean(state.fileBase64 && !state.useTextOnly && !isPresentationFile());
 }
 
 async function analyzeDocument(text) {
@@ -560,9 +655,9 @@ async function analyzeDocument(text) {
 }
 
 function buildPrompt(text) {
-  const source = state.fileType === 'pdf'
-    ? '첨부된 PDF 설계 문서'
-    : `설계 문서:\n${text.slice(0, 18000)}`;
+  const source = shouldSendInlineFile()
+    ? `첨부된 ${state.fileType.toUpperCase()} 설계 문서`
+    : `설계 문서:\n${text.slice(0, TEXT_LIMIT)}`;
   return `다음 설계 문서를 분석해서 디자인 레퍼런스와 무드보드 생성을 위한 JSON만 출력하세요.
 마크다운 코드블록 없이 순수 JSON만 출력하세요.
 모든 key와 모든 문자열 value는 반드시 큰따옴표(")로 감싸세요. 한국어 문장도 예외 없이 문자열입니다.
@@ -583,6 +678,7 @@ function buildPrompt(text) {
   "directions": ["디자인 판단 기준 1", "판단 기준 2", "판단 기준 3"],
   "palette": [{"name": "색상명", "hex": "#000000", "role": "역할"}],
   "moods": [{"title": "무드명", "desc": "이 무드가 적합한 이유", "colors": ["#000000"], "keywords": ["english keyword"]}],
+  "keywordGroups": {"deliverable": ["산출물 형태 키워드"], "colorMood": ["컬러/무드 키워드"], "design": ["디자인 키워드"], "domain": ["도메인 키워드"]},
   "referenceKeywords": ["english UI reference search keyword"],
   "platformKeywords": {"Dribbble": ["visual style keyword"], "Behance": ["case study keyword"], "Mobbin": ["product screen pattern keyword"], "Pinterest": ["moodboard keyword"], "Figma Community": ["component or file keyword"]},
   "imageKeywords": ["english mood photo keyword"],
@@ -600,6 +696,9 @@ function buildPrompt(text) {
 - Mobbin 키워드는 dashboard screen, login screen, data table screen처럼 실제 제품 화면 단위로 짧게 작성하세요.
 - Pinterest 키워드는 moodboard, inspiration, visual direction처럼 분위기 수집에 맞게 작성하세요.
 - Figma Community 키워드는 UI kit, template, component, design system처럼 파일/컴포넌트 검색에 맞게 작성하세요.
+- 홈페이지/랜딩/이벤트 페이지/기업 사이트 진행이면 platformKeywords에 "GDWEB"도 포함하고, 국내 웹 어워드/기업 홈페이지 톤을 찾기 좋은 한국어 또는 영어 검색어를 작성하세요.
+- keywordGroups는 산출물형태, 컬러무드, 디자인키워드, 도메인키워드 네 묶음으로 분리하세요. 기술 구현 키워드는 만들지 마세요.
+- 키워드가 클릭되어 바로 검색될 수 있도록 너무 추상적인 한 단어만 쓰지 말고, 산출물 유형과 도메인을 조합한 2~5단어 검색어로 작성하세요.
 - screenTypes는 실제 제작하거나 검토해야 하는 산출물 단위입니다. 웹/앱이면 Dashboard, Login, Data Table, Detail, Settings 같은 화면 단위로 쓰고, 문서형이면 Cover, Intro Spread, Content Spread, Infographic 같은 지면 구성 단위로 쓰세요.
 - directions는 디자인 판단 기준입니다. 레퍼런스를 고르거나 시안을 만들 때 사용할 우선순위이며, 정보 구조, 레이아웃, 가독성, 상태 표현, 브랜드 톤, 접근성, 테마 대응 중 해당 프로젝트에 중요한 기준을 3개로 압축하세요.
 - 브로셔/리플렛/PDF 홍보물은 assetType을 brochure/proposal/report 중 하나로 두고 screenTypes에 Cover, Intro Spread, Content Spread, Infographic, CTA/Contact 같은 인쇄/편집 구성 요소를 넣으세요.
@@ -620,9 +719,9 @@ ${source}`;
 }
 
 async function analyzeWithGemini(prompt) {
-  const parts = state.fileType === 'pdf'
+  const parts = shouldSendInlineFile()
     ? [
-        { inlineData: { mimeType: 'application/pdf', data: state.fileBase64 } },
+        { inlineData: { mimeType: state.fileMime || 'application/octet-stream', data: state.fileBase64 } },
         { text: prompt }
       ]
     : [{ text: prompt }];
@@ -762,6 +861,7 @@ function normalizeAnalysis(d) {
     { name: 'Warning', hex: '#f59e0b', role: 'Warning' }
   ];
   d.moods ||= [];
+  d.keywordGroups = normalizeKeywordGroups(d);
   d.referenceKeywords ||= getDefaultReferenceKeywords(d.project);
   d.platformKeywords ||= buildPlatformKeywords(d.referencePurpose.value, d.project, d.referenceKeywords);
   d.imageKeywords ||= getDefaultImageKeywords(d);
@@ -774,13 +874,44 @@ function normalizeAnalysis(d) {
   d.selectedMood ||= d.moods[0] || null;
 }
 
+function normalizeKeywordGroups(d) {
+  const existing = d.keywordGroups || {};
+  const project = d.project || {};
+  const assetType = project.assetType || getPurposeConfig(getPurposeValue(d)).assetType;
+  const moodWords = (d.moods || []).flatMap(m => [m.title, ...(m.keywords || [])]).filter(Boolean);
+  return {
+    deliverable: uniqueKeywords(existing.deliverable || [
+      assetType,
+      ...(d.screenTypes || []).map(s => s.name),
+      `${project.domain || 'service'} ${assetType}`
+    ]),
+    colorMood: uniqueKeywords(existing.colorMood || [
+      ...(d.palette || []).map(c => c.name || c.role),
+      ...moodWords
+    ]),
+    design: uniqueKeywords(existing.design || d.referenceKeywords || getDefaultReferenceKeywords(project)),
+    domain: uniqueKeywords(existing.domain || [
+      project.domain,
+      project.target,
+      ...(project.tags || [])
+    ])
+  };
+}
+
+function uniqueKeywords(items) {
+  return Array.from(new Set((items || [])
+    .map(item => String(item || '').trim())
+    .filter(Boolean)))
+    .slice(0, 8);
+}
+
 function applySelectedPurpose(d) {
   if (referencePurpose.value === 'auto') return;
   const purpose = getPurposeConfig(referencePurpose.value);
   d.referencePurpose = { value: purpose.value, label: purpose.label, reason: purpose.reason };
   d.project.assetType ||= purpose.assetType;
   d.project.tags = Array.from(new Set([...(d.project.tags || []), ...purpose.tags]));
-  d.referenceKeywords = getDefaultReferenceKeywords({ ...d.project, assetType: purpose.assetType });
+  d.referenceKeywords = getDefaultReferenceKeywords(d.project);
   d.platformKeywords = buildPlatformKeywords(purpose.value, d.project, d.referenceKeywords);
   d.imageKeywords = getDefaultImageKeywords(d);
   if (isImageGenerationPurpose(d) && (!d.imagePrompts || !d.imagePrompts.length)) d.imagePrompts = getDefaultImagePrompts(d);
@@ -940,7 +1071,8 @@ function buildPlatformKeywords(purpose, project, baseKeywords) {
         Behance: [`${domain} website case study`, 'landing page brand system', 'product storytelling website'],
         Mobbin: ['marketing website screen', 'SaaS landing page pattern', 'pricing section UI'],
         Pinterest: [`${domain} website moodboard`, 'landing page layout inspiration', 'web hero visual moodboard'],
-        'Figma Community': ['landing page template', 'website design system', 'hero section components']
+        'Figma Community': ['landing page template', 'website design system', 'hero section components'],
+        GDWEB: [`${domain} 홈페이지`, `${domain} 웹사이트`, '기업 홈페이지']
       };
     }
     return {
@@ -948,7 +1080,8 @@ function buildPlatformKeywords(purpose, project, baseKeywords) {
       Behance: [`${domain} product UX case study`, 'enterprise web application UI', 'dashboard interface case study'],
       Mobbin: ['dashboard screen', 'admin screen', 'data table screen'],
       Pinterest: [`${domain} UI inspiration`, 'web app interface moodboard', 'dashboard layout inspiration'],
-      'Figma Community': ['dashboard UI kit', 'web app template', 'component library']
+      'Figma Community': ['dashboard UI kit', 'web app template', 'component library'],
+      GDWEB: assetType.includes('web') ? [`${domain} 홈페이지`, `${domain} 웹사이트`] : []
     };
   }
   if (isDocumentAsset(assetType)) {
@@ -957,7 +1090,8 @@ function buildPlatformKeywords(purpose, project, baseKeywords) {
       Behance: [`${domain} brochure case study`, 'brand booklet visual system', 'business proposal visual design'],
       Mobbin: [],
       Pinterest: [`${domain} brochure image direction`, 'technology abstract background', 'editorial cover inspiration'],
-      'Figma Community': ['brochure template', 'proposal template', 'editorial layout template']
+      'Figma Community': ['brochure template', 'proposal template', 'editorial layout template'],
+      GDWEB: []
     };
   }
   if (purpose === 'image-reference' && assetType.includes('login')) {
@@ -966,7 +1100,8 @@ function buildPlatformKeywords(purpose, project, baseKeywords) {
       Behance: [`${domain} login visual case study`, 'authentication brand visual', 'secure service hero image'],
       Mobbin: ['login screen', 'sign in screen', 'authentication flow'],
       Pinterest: [`${domain} login image direction`, 'login background visual', 'SaaS login inspiration'],
-      'Figma Community': ['login page template', 'authentication template', 'sign in screen']
+      'Figma Community': ['login page template', 'authentication template', 'sign in screen'],
+      GDWEB: []
     };
   }
   if (purpose === 'image-reference') {
@@ -975,7 +1110,8 @@ function buildPlatformKeywords(purpose, project, baseKeywords) {
       Behance: [`${domain} brand visual case study`, 'product hero image system', 'digital service visual design'],
       Mobbin: [],
       Pinterest: [`${domain} hero image inspiration`, 'technology abstract background', 'editorial image direction'],
-      'Figma Community': ['hero section template', 'website visual template', 'landing page template']
+      'Figma Community': ['hero section template', 'website visual template', 'landing page template'],
+      GDWEB: assetType.includes('web') || assetType.includes('landing') ? [`${domain} 홈페이지`, `${domain} 랜딩페이지`] : []
     };
   }
   const byPurpose = {
@@ -998,7 +1134,8 @@ function buildPlatformKeywords(purpose, project, baseKeywords) {
       Behance: [`${domain} website case study`, 'landing page brand system', 'product storytelling website'],
       Mobbin: ['marketing website screen', 'SaaS landing page pattern', 'pricing section UI'],
       Pinterest: [`${domain} website moodboard`, 'landing page layout inspiration', 'web hero visual moodboard'],
-      'Figma Community': ['landing page template', 'website design system', 'hero section components']
+      'Figma Community': ['landing page template', 'website design system', 'hero section components'],
+      GDWEB: [`${domain} 홈페이지`, `${domain} 랜딩페이지`, '기업 홈페이지']
     },
     brochure: {
       Dribbble: [`${domain} brochure visual design`, 'corporate brochure layout', 'editorial brochure design'],
@@ -1025,20 +1162,22 @@ function buildPlatformReferenceGroups(platformKeywords) {
     Behance: q => `https://www.behance.net/search/projects?search=${make(q)}`,
     Mobbin: q => `https://mobbin.com/search?q=${make(q)}`,
     Pinterest: q => `https://www.pinterest.com/search/pins/?q=${make(q)}`,
-    'Figma Community': q => `https://www.figma.com/community/search?resource_type=files&q=${make(q)}`
+    'Figma Community': q => `https://www.figma.com/community/search?resource_type=files&q=${make(q)}`,
+    GDWEB: q => `https://www.gdweb.co.kr/sub/list.asp?Txt_fgbn=1&Txt_keyword=${make(q)}`
   };
   const notes = {
     Dribbble: '시각 스타일, 화면 톤, 마이크로 UI 탐색',
     Behance: '프로젝트 맥락, UX 케이스스터디, 전체 콘셉트 탐색',
     Mobbin: '실제 제품 화면 패턴, 플로우, 화면 단위 탐색',
     Pinterest: '무드보드, 시각 톤, 이미지 방향 탐색',
-    'Figma Community': 'UI kit, 컴포넌트, 템플릿 탐색'
+    'Figma Community': 'UI kit, 컴포넌트, 템플릿 탐색',
+    GDWEB: '국내 홈페이지, 랜딩, 이벤트 페이지 톤 탐색'
   };
   return Object.keys(urls).map(name => ({
     name,
     note: notes[name],
     items: (platformKeywords[name] || []).map(k => ({ label: k, url: urls[name](k) }))
-  }));
+  })).filter(group => group.items.length);
 }
 
 function getPurposeValue(d) {
@@ -1095,7 +1234,8 @@ async function loadMoodImages(keywords) {
       return (data.photos || []).map(p => ({
         src: p.src?.medium || p.src?.large,
         link: p.url,
-        credit: `${p.photographer} / Pexels`
+        credit: `${p.photographer} / Pexels`,
+        query
       }));
     }
     const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=8&orientation=landscape&content_filter=high`, {
@@ -1106,7 +1246,8 @@ async function loadMoodImages(keywords) {
     return (data.results || []).map(p => ({
       src: p.urls?.small,
       link: p.links?.html,
-      credit: `${p.user?.name || 'Creator'} / Unsplash`
+      credit: `${p.user?.name || 'Creator'} / Unsplash`,
+      query
     }));
   } catch (err) {
     setStatus(`분석은 완료됐지만 이미지 API 호출은 실패했습니다: ${err.message}`, true);
@@ -1123,6 +1264,7 @@ function render(d) {
   const unit = ['brochure', 'proposal', 'report', 'poster'].includes((d.project.assetType || '').toLowerCase()) ? '개 구성' : '화면';
   renderRows('screenTypes', d.screenTypes.map(s => [s.icon || '□', s.name || '구성 유형', `${s.count || 1}${unit}`]));
   renderRows('directionList', d.directions.map((x, i) => [`0${i + 1}`, x, '']));
+  renderKeywordGroups(d);
   renderPalette(d.palette);
   renderMoods(d.moods);
   renderMoodBoard(d);
@@ -1132,6 +1274,40 @@ function render(d) {
 
 function renderTags(tags) {
   $('tags').replaceChildren(...tags.map(t => el('span', 'tag', t)));
+}
+
+function renderKeywordGroups(d) {
+  const groups = d.keywordGroups || normalizeKeywordGroups(d);
+  const labels = {
+    deliverable: '산출물 형태',
+    colorMood: '컬러 무드',
+    design: '디자인 키워드',
+    domain: '도메인 키워드'
+  };
+  $('keywordGroups').replaceChildren(...Object.entries(labels).map(([key, label]) => {
+    const box = el('div', 'keyword-group');
+    const list = el('div', 'keyword-list');
+    (groups[key] || []).forEach(keyword => {
+      const node = key === 'colorMood' ? el('span', '', keyword) : el('a', '', keyword);
+      if (node.tagName === 'A') {
+        node.href = buildKeywordSearchUrl(keyword, d);
+        node.target = '_blank';
+        node.rel = 'noopener noreferrer';
+        node.title = `${keyword} 검색`;
+      }
+      list.append(node);
+    });
+    box.append(el('h3', '', label), list);
+    return box;
+  }));
+}
+
+function buildKeywordSearchUrl(keyword, d) {
+  const query = encodeURIComponent(keyword).replace(/%20/g, '+');
+  const assetType = (d.project?.assetType || '').toLowerCase();
+  if (getPurposeValue(d) === 'image-reference') return `https://www.pinterest.com/search/pins/?q=${query}`;
+  if (assetType.includes('landing') || assetType.includes('webpage') || assetType.includes('web')) return `https://www.gdweb.co.kr/sub/list.asp?Txt_fgbn=1&Txt_keyword=${query}`;
+  return `https://dribbble.com/search/${query}`;
 }
 
 function renderRows(id, rows) {
@@ -1342,17 +1518,57 @@ function renderImages(images) {
     return;
   }
   target.replaceChildren(...images.map(img => {
-    const tile = el('div', 'image-tile');
+    const index = images.indexOf(img);
+    const tile = el('div', `image-tile${index === state.selectedImageIndex ? ' selected' : ''}`);
     const image = document.createElement('img');
     image.src = img.src;
     image.alt = img.credit;
-    const link = el('a', '', img.credit);
+    const link = el('a', '', `${img.credit} · ${img.query || 'keyword match'}`);
     link.href = img.link;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    tile.append(image, link);
+    const use = el('button', '', '이 이미지 기준 프롬프트 3종 생성');
+    use.addEventListener('click', () => selectMoodImage(index));
+    tile.append(image, link, use);
     return tile;
   }));
+}
+
+function selectMoodImage(index) {
+  if (!state.result) return;
+  const image = state.result.moodImages?.[index];
+  if (!image) return;
+  state.selectedImageIndex = index;
+  state.result.imagePrompts = buildImagePromptsFromCandidate(state.result, image);
+  renderImageSections(state.result);
+  setStatus('선택한 보조 이미지의 검색어를 기준으로 프롬프트 3종을 생성했습니다.');
+}
+
+function buildImagePromptsFromCandidate(d, image) {
+  const title = d.project?.title || 'digital service';
+  const assetType = (d.project?.assetType || 'visual').toLowerCase();
+  const mood = getSelectedMood(d);
+  const colors = (mood?.colors || []).join(', ');
+  const query = image.query || getSelectedMoodImageKeywords(d).slice(0, 3).join(' ');
+  if (assetType.includes('login')) {
+    return [
+      `Login hero image for ${title}, inspired by ${query}, ${mood?.title || 'selected mood'}, colors ${colors}, clean secure service atmosphere, no text`,
+      `Authentication background visual for ${title}, ${query}, soft depth, trustworthy digital product style, spacious composition, no text`,
+      `Cropped login-side image for a web app, ${query}, refined brand visual, room for form panel on one side, no text`
+    ];
+  }
+  if (assetType.includes('landing') || assetType.includes('web')) {
+    return [
+      `Homepage hero image for ${title}, inspired by ${query}, ${mood?.title || 'selected mood'}, colors ${colors}, strong focal point, no text`,
+      `Landing page support visual for ${title}, ${query}, premium digital service mood, clean composition with copy space, no text`,
+      `Wide web hero background, ${query}, modern brand direction, polished realistic/abstract blend, no text, no logos`
+    ];
+  }
+  return [
+    `Proposal cover image for ${title}, inspired by ${query}, ${mood?.title || 'selected mood'}, colors ${colors}, editorial composition, no text`,
+    `Brochure cover visual for ${title}, ${query}, refined technology abstract background, strong but uncluttered focal area, no text`,
+    `Document section background image, ${query}, professional brand mood, subtle depth, suitable for overlaying headings, no text`
+  ];
 }
 
 function renderPrompts(prompts) {
@@ -1377,7 +1593,7 @@ function el(tag, className, text) {
 
 function createFallbackAnalysis(text) {
   const title = (text.match(/(?:프로젝트|서비스|시스템|제목)[:：]\s*(.+)/)?.[1] || 'Design Reference Project').slice(0, 60);
-  if (looksLikeBrochure(text) || (state.fileType === 'pdf' && !text.trim())) return createBrochureFallback(title);
+  if (looksLikeBrochure(text) || (shouldSendInlineFile() && !text.trim())) return createBrochureFallback(title);
   if (referencePurpose.value === 'image-reference') return createBrochureFallback(title);
   return {
     project: {
@@ -1557,24 +1773,27 @@ function exportMarkdown() {
     '## 3. 디자인 판단 기준',
     ...(d.directions || []).map(item => `- ${item}`),
     '',
-    '## 4. 컬러 팔레트',
+    '## 4. 키워드 구성',
+    ...Object.entries(d.keywordGroups || {}).flatMap(([group, keywords]) => [`### ${group}`, ...(keywords || []).map(k => `- ${k}`)]),
+    '',
+    '## 5. 컬러 팔레트',
     ...(d.palette || []).map(item => `- ${item.name || 'Color'} (${item.hex || ''}): ${item.role || ''}`),
     '',
-    '## 5. 무드보드 방향',
+    '## 6. 무드보드 방향',
     ...(d.moods || []).map(item => `- ${item.title || 'Mood'}: ${item.desc || ''}`),
     '',
-    '## 6. 선택 무드 기반 보드',
+    '## 7. 선택 무드 기반 보드',
     `- 선택 무드: ${mood?.title || ''}`,
     `- 설명: ${mood?.desc || ''}`,
     `- 사용 색상: ${(mood?.colors || []).join(', ')}`,
     `- 적용 키워드: ${[...(mood?.keywords || []), ...(d.referenceKeywords || [])].slice(0, 6).join(', ')}`,
     `- 보드 기준: 설계문서의 산출물 유형과 선택한 컬러 무드를 조합해 화면/문서 구조 미리보기를 구성`,
     '',
-    '## 7. 플랫폼별 검색어',
+    '## 8. 플랫폼별 검색어',
     ...Object.entries(d.platformKeywords || {}).flatMap(([platform, keywords]) => [`### ${platform}`, ...(keywords || []).map(k => `- ${k}`)]),
   ];
   if (shouldUseMoodImages(d) && (d.imagePrompts || []).length) {
-    lines.push('', '## 8. 이미지 생성 프롬프트', ...(d.imagePrompts || []).map(item => `- ${item}`));
+    lines.push('', '## 9. 이미지 생성 프롬프트', ...(d.imagePrompts || []).map(item => `- ${item}`));
   }
   const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
   downloadBlob(blob, `${d.project.title || 'design-reference'}-moodboard.md`);
@@ -1600,8 +1819,11 @@ function reset() {
   state.fileText = '';
   state.fileBase64 = '';
   state.fileType = '';
+  state.fileMime = '';
+  state.useTextOnly = false;
   state.result = null;
   state.selectedMoodIndex = 0;
+  state.selectedImageIndex = -1;
   $('fileName').textContent = '';
   $('pasteText').value = '';
   $('result').classList.remove('show');
