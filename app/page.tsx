@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import FileDropzone from "@/components/FileDropzone";
-import { buildImageSearchQuery } from "@/lib/moodImageQuery";
+import { buildImageSearchQueries, buildRelevanceTerms } from "@/lib/moodImageQuery";
 import type { AnalyzeResponse, GeneratorAnalysis, MoodImage } from "@/types";
 
 const purposeTone = {
@@ -29,11 +29,32 @@ const paletteAdjustmentOptions = [
   },
 ];
 
-function getAssetSampleLabel(assetType: string): string {
-  if (/brochure|proposal|report|poster/i.test(assetType)) return "표지와 내지 샘플";
-  if (/dashboard|admin/i.test(assetType)) return "대시보드 화면 샘플";
-  if (/landing|web|homepage|event/i.test(assetType)) return "랜딩/홈페이지 샘플";
-  return "구현 샘플";
+function isLightColor(hex: string): boolean {
+  const c = hex.replace("#", "");
+  if (c.length !== 6) return false;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function isDocumentStyleAsset(assetType: string): boolean {
+  return /brochure|proposal|report|poster/i.test(assetType);
+}
+
+// 실제 UI(대시보드/웹앱/모바일 등) 콘텐츠 영역 배경은 거의 항상 무채색이다 - 채도 높은 팔레트
+// 컬러를 그대로 까는 건 표지 디자인이 있는 제안서/포스터류에서만 자연스럽다. mood.colors는
+// 색 개수가 일정하지 않아 고정 인덱스(예: colors[3])로 "surface"를 집어내면 실제로는 비비드한
+// 포인트 컬러가 배경 전체에 깔리는 사고가 난다.
+function pickSurfaceColor(colors: string[], assetType: string, themeIsLight: boolean): string {
+  if (isDocumentStyleAsset(assetType)) {
+    return colors[3] || (themeIsLight ? "#f8fafc" : "#18181b");
+  }
+  return themeIsLight ? "#f8fafc" : "#0b1220";
 }
 
 function buildImagePromptVariants(prompt: string, moodTitle: string, colors: string[]): string[] {
@@ -42,6 +63,17 @@ function buildImagePromptVariants(prompt: string, moodTitle: string, colors: str
     `${prompt}, palette ${palette}, ${moodTitle} mood, clean composition, no text, no logo`,
     `${prompt}, refined editorial crop, strong focal visual, ${moodTitle} direction, colors ${palette}, no people unless explicitly required`,
     `${prompt}, production-ready key visual, layered depth, premium lighting, ${moodTitle} moodboard style, avoid handshake and meeting scenes`,
+  ];
+}
+
+// buildImagePromptVariants와 한 줄씩 그대로 대응하는 직역. 끝에 태그만 붙이면 세 줄이 거의 같아 보이므로
+// 영문 원문의 절(clause) 하나하나를 빠짐없이 옮긴다.
+function buildImagePromptVariantsKo(promptKo: string, moodTitle: string, colors: string[]): string[] {
+  const palette = colors.slice(0, 4).join(", ");
+  return [
+    `${promptKo}. 팔레트는 ${palette}, ${moodTitle} 무드, 깔끔한 구성. 텍스트 없음, 로고 없음.`,
+    `${promptKo}. 정제된 에디토리얼 크롭(편집형 프레이밍), 강렬한 포컬 비주얼, ${moodTitle} 방향성, 컬러는 ${palette}. 별도로 요구되지 않는 한 인물 없음.`,
+    `${promptKo}. 실제 제작에 바로 쓸 수 있는 키 비주얼, 레이어드 뎁스, 프리미엄 조명, ${moodTitle} 무드보드 스타일. 악수나 회의 장면은 피함.`,
   ];
 }
 
@@ -68,6 +100,32 @@ function buildImagePromptsFromImage(analysis: GeneratorAnalysis, mood: Generator
     `Proposal cover image for ${title}, inspired by ${query}, ${mood.title} mood, colors ${colors}, editorial composition, no text`,
     `Brochure cover visual for ${title}, ${query}, refined technology abstract background, strong but uncluttered focal area, no text`,
     `Document section background image, ${query}, professional brand mood, subtle depth, suitable for overlaying headings, no text`,
+  ];
+}
+
+function buildImagePromptsFromImageKo(analysis: GeneratorAnalysis, mood: GeneratorAnalysis["moods"][number], image: MoodImage): string[] {
+  const { title, assetType } = analysis.project;
+  const colors = mood.colors.slice(0, 4).join(", ");
+  const query = image.query;
+
+  if (/login/i.test(assetType)) {
+    return [
+      `${title} 로그인 히어로 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 깔끔하고 안전한 서비스 느낌, 텍스트 없음`,
+      `${title} 인증 화면 배경 — "${query}" 기반, 부드러운 깊이감, 신뢰감 있는 디지털 제품 스타일, 여유로운 구성, 텍스트 없음`,
+      `웹앱 로그인 분할형 이미지 — "${query}" 참고, 정제된 브랜드 비주얼, 한쪽에 폼 패널 들어갈 공간 확보, 텍스트 없음`,
+    ];
+  }
+  if (/landing|web|homepage|event/i.test(assetType)) {
+    return [
+      `${title} 홈페이지 히어로 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 강한 포컬 포인트, 텍스트 없음`,
+      `${title} 랜딩페이지 보조 비주얼 — "${query}" 기반, 프리미엄 디지털 서비스 느낌, 카피 들어갈 여백 포함, 텍스트 없음`,
+      `와이드 웹 히어로 배경 — "${query}" 참고, 모던 브랜드 방향, 사실적·추상 혼합 톤, 텍스트·로고 없음`,
+    ];
+  }
+  return [
+    `${title} 제안서 표지 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 에디토리얼 구성, 텍스트 없음`,
+    `${title} 브로셔 표지 비주얼 — "${query}" 기반, 정제된 기술 추상 배경, 강하지만 정돈된 포컬 영역, 텍스트 없음`,
+    `문서 섹션 배경 이미지 — "${query}" 참고, 전문적인 브랜드 무드, 미세한 깊이감, 제목 얹기 적합, 텍스트 없음`,
   ];
 }
 
@@ -314,7 +372,8 @@ function SelectedMoodBoard({
   const bg = colors[0] || "#111827";
   const primary = colors[1] || "#2563eb";
   const accent = colors[2] || "#06b6d4";
-  const surface = colors[3] || "#f8fafc";
+  const bgIsLight = isLightColor(bg);
+  const surface = pickSurfaceColor(colors, analysis.project.assetType, bgIsLight);
 
   return (
     <WorkCard className="p-5">
@@ -322,15 +381,15 @@ function SelectedMoodBoard({
       <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950">
           <div className="grid min-h-[360px] grid-cols-[0.9fr_1.1fr] max-md:grid-cols-1">
-            <div className="flex flex-col justify-between p-6 text-white" style={{ background: bg }}>
+            <div className={`flex flex-col justify-between p-6 ${bgIsLight ? "text-zinc-900" : "text-white"}`} style={{ background: bg }}>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/60">{analysis.project.assetType}</p>
+                <p className={`text-xs font-bold uppercase tracking-[0.14em] ${bgIsLight ? "text-zinc-500" : "text-white/60"}`}>{analysis.project.assetType}</p>
                 <h3 className="mt-4 text-2xl font-black">{analysis.project.title}</h3>
-                <p className="mt-4 max-w-sm text-sm leading-6 text-white/75">{mood.desc}</p>
+                <p className={`mt-4 max-w-sm text-sm leading-6 ${bgIsLight ? "text-zinc-600" : "text-white/75"}`}>{mood.desc}</p>
               </div>
               <div className="grid gap-2">
                 {analysis.screenTypes.slice(0, 3).map((item) => (
-                  <div key={item.name} className="rounded-md bg-white/12 px-3 py-2 text-sm font-bold text-white/90">
+                  <div key={item.name} className={`rounded-md px-3 py-2 text-sm font-bold ${bgIsLight ? "bg-black/10 text-zinc-800" : "bg-white/12 text-white/90"}`}>
                     {item.name}
                   </div>
                 ))}
@@ -432,8 +491,15 @@ const referenceFilterOptions = [
   { value: "image" as const, label: "이미지" },
 ];
 
-function References({ analysis }: { analysis: GeneratorAnalysis }) {
-  const [filter, setFilter] = useState<"all" | "layout" | "image">("all");
+function References({
+  analysis,
+  filter,
+  onFilterChange,
+}: {
+  analysis: GeneratorAnalysis;
+  filter: "all" | "layout" | "image";
+  onFilterChange: (filter: "all" | "layout" | "image") => void;
+}) {
   const showFilter = analysis.referenceNeeds.layout && analysis.referenceNeeds.image;
   const visibleGroups = showFilter
     ? analysis.references.filter((group) => filter === "all" || group.purpose === "both" || group.purpose === filter)
@@ -449,7 +515,7 @@ function References({ analysis }: { analysis: GeneratorAnalysis }) {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setFilter(option.value)}
+                onClick={() => onFilterChange(option.value)}
                 className={`rounded-full px-3 py-1 text-xs font-bold ${
                   filter === option.value ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-zinc-900"
                 }`}
@@ -506,66 +572,622 @@ function References({ analysis }: { analysis: GeneratorAnalysis }) {
   );
 }
 
-function ImplementationSample({ analysis, mood }: { analysis: GeneratorAnalysis; mood: GeneratorAnalysis["moods"][number] }) {
-  const sampleLabel = getAssetSampleLabel(analysis.project.assetType);
-  const hasEnoughStructure = analysis.screenTypes.length >= 2;
-  const hasPalette = mood.colors.length >= 3 || analysis.palette.length >= 3;
-  const hasReferences = analysis.references.length > 0;
-  const checks = [
-    ["구성 정의", hasEnoughStructure ? "가능" : "보강 필요", hasEnoughStructure],
-    ["컬러 적용", hasPalette ? "가능" : "보강 필요", hasPalette],
-    ["레퍼런스 연결", hasReferences ? "가능" : "보강 필요", hasReferences],
-  ] as const;
-  const colors = mood.colors.length ? mood.colors : analysis.palette.map((item) => item.hex);
-  const primary = colors[1] || "#2563eb";
-  const accent = colors[2] || "#06b6d4";
+export type ScreenLayout = "splash" | "onboarding" | "terms" | "login" | "form" | "dashboard" | "list" | "detail";
+
+const LOGIN_SCREEN_PATTERN = /login|sign\s*in|signin|auth|authentication|로그인|인증/i;
+
+// 화면 이름/설명에서 키워드를 찾지 못하면 detail로 떨어진다. 화면 성격이 뚜렷이 다른
+// 진입형(splash/onboarding/terms/login/form) 화면을 먼저 골라내야 모든 화면이
+// 같은 "레코드 상세" 모양으로 뭉개지지 않는다.
+function detectScreenLayout(name: string, desc: string): ScreenLayout {
+  const text = `${name} ${desc}`.toLowerCase();
+  if (/splash|스플래시|인트로|intro\b/.test(text)) return "splash";
+  if (/onboarding|온보딩|워크스루|walkthrough|시작\s*가이드/.test(text)) return "onboarding";
+  if (/terms|약관|동의|consent|agreement/.test(text)) return "terms";
+  if (LOGIN_SCREEN_PATTERN.test(text)) return "login";
+  if (/profile|프로필|setup|셋업|설정|등록|가입|sign\s*up|signup|edit|form/.test(text)) return "form";
+  if (/main|dashboard|home|대시보드|홈|메인|overview|summary|현황|리포트|report|결과/.test(text)) return "dashboard";
+  if (/list|table|목록|테이블|카드|grid|feed|조회|이력|기록|history/.test(text)) return "list";
+  return "detail";
+}
+
+// 문서 desc는 Gemini가 "이 화면이 왜 필요한지"를 요약한 텍스트라 실제 버튼 문구가
+// 들어있지 않다. 그래서 desc 본문을 파싱해 라벨을 추출하지 않고, 레이아웃 타입별로
+// 합리적인 기본 CTA 문구를 고정해서 쓴다.
+function defaultCtaLabel(layout: ScreenLayout): string {
+  switch (layout) {
+    case "splash":
+      return "시작하기";
+    case "onboarding":
+      return "다음";
+    case "terms":
+      return "동의하고 계속";
+    case "login":
+      return "로그인";
+    case "form":
+      return "완료";
+    default:
+      return "저장";
+  }
+}
+
+// 앱 메인 탭 구조에 들어가기 전 단계(진입/단일 액션형) 화면들. 이 화면들은 모바일/데스크탑
+// 모두에서 같은 "중앙 카드 한 장" 구조이므로 HTML 다운로드 콘텐츠를 공유한다.
+const ENTRY_LAYOUTS: ScreenLayout[] = ["splash", "onboarding", "terms", "login", "form"];
+
+function buildEntryScreenFragment({
+  layout,
+  screen,
+  primary,
+  accent,
+  cardBg,
+  cardLine,
+  onSurface,
+  textMuted,
+}: {
+  layout: ScreenLayout;
+  screen: GeneratorAnalysis["screenTypes"][number];
+  primary: string;
+  accent: string;
+  cardBg: string;
+  cardLine: string;
+  onSurface: string;
+  textMuted: string;
+}): string {
+  const cta = escapeHtml(defaultCtaLabel(layout));
+  const desc = escapeHtml(screen.desc || "화면 설명이 등록되지 않았습니다.");
+  const name = escapeHtml(screen.name);
+  // primary는 배너/브랜드 블록 색이고, 실제로 누르는 CTA는 accent로 채워야 카드 배경 위에서
+  // 또렷하게 도드라진다(나머지 화면들도 동일 규칙: accent = 클릭 가능한 버튼).
+  const onAccentText = isLightColor(accent) ? "#18181b" : "#ffffff";
+  const ctaButton = `<div style="width:100%;height:46px;border-radius:12px;background:${accent};color:${onAccentText};display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;">${cta}</div>`;
+
+  if (layout === "splash") {
+    return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
+  <div style="width:64px;height:64px;border-radius:18px;background:${primary};margin-bottom:16px;"></div>
+  <h2 style="font-size:17px;font-weight:900;color:${onSurface};margin-bottom:8px;">${name}</h2>
+  <p style="font-size:12.5px;line-height:1.6;color:${textMuted};margin-bottom:24px;">${desc}</p>
+  ${ctaButton}
+</div>`;
+  }
+
+  if (layout === "onboarding") {
+    return `<div>
+  <div style="width:100%;height:160px;border-radius:18px;background:${accent};margin-bottom:20px;"></div>
+  <h2 style="font-size:16px;font-weight:900;color:${onSurface};margin-bottom:8px;text-align:center;">${name}</h2>
+  <p style="font-size:12.5px;line-height:1.6;color:${textMuted};text-align:center;margin-bottom:18px;">${desc}</p>
+  <div style="display:flex;justify-content:center;gap:6px;margin-bottom:18px;">
+    ${[0, 1, 2].map((i) => `<div style="width:6px;height:6px;border-radius:999px;background:${i === 0 ? accent : cardLine};"></div>`).join("")}
+  </div>
+  ${ctaButton}
+</div>`;
+  }
+
+  if (layout === "terms") {
+    return `<div>
+  <h2 style="font-size:16px;font-weight:900;color:${onSurface};margin-bottom:12px;">${name}</h2>
+  <div style="max-height:220px;overflow:hidden;border-radius:12px;padding:14px;background:${cardBg};margin-bottom:14px;font-size:11.5px;line-height:1.7;color:${textMuted};">${desc}</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+    <div style="width:18px;height:18px;border-radius:5px;border:1.5px solid ${accent};flex-shrink:0;"></div>
+    <span style="font-size:12.5px;color:${onSurface};">필수 약관에 모두 동의합니다</span>
+  </div>
+  ${ctaButton}
+</div>`;
+  }
+
+  if (layout === "login") {
+    return `<div>
+  <h2 style="font-size:16px;font-weight:900;color:${onSurface};margin-bottom:18px;">${name}</h2>
+  <div style="display:grid;gap:10px;margin-bottom:8px;">
+    <div style="height:44px;border-radius:10px;padding:0 14px;display:flex;align-items:center;background:${cardBg};font-size:12.5px;color:${textMuted};">이메일</div>
+    <div style="height:44px;border-radius:10px;padding:0 14px;display:flex;align-items:center;background:${cardBg};font-size:12.5px;color:${textMuted};">비밀번호</div>
+  </div>
+  <div style="text-align:right;font-size:11.5px;color:${textMuted};margin-bottom:18px;">비밀번호를 잊으셨나요?</div>
+  ${ctaButton}
+  <div style="text-align:center;font-size:11.5px;color:${textMuted};margin-top:14px;">계정이 없으신가요? <span style="color:${accent};font-weight:700;">가입하기</span></div>
+</div>`;
+  }
+
+  return `<div>
+  <h2 style="font-size:16px;font-weight:900;color:${onSurface};margin-bottom:6px;">${name}</h2>
+  <p style="font-size:12px;line-height:1.6;color:${textMuted};margin-bottom:18px;">${desc}</p>
+  <div style="display:grid;gap:12px;margin-bottom:18px;">
+    ${["입력 항목 1", "입력 항목 2", "입력 항목 3"]
+      .map((label) => `<div><div style="font-size:11px;font-weight:700;color:${textMuted};margin-bottom:5px;">${label}</div><div style="height:42px;border-radius:10px;background:${cardBg};"></div></div>`)
+      .join("")}
+  </div>
+  ${ctaButton}
+</div>`;
+}
+
+function hasLoginScreen(analysis: GeneratorAnalysis): boolean {
+  return analysis.screenTypes.some((screen) => LOGIN_SCREEN_PATTERN.test(`${screen.name} ${screen.desc}`));
+}
+
+// 대시보드/관리자/웹앱 + 로그인 화면 없음 → 실사 이미지보다 UI 레퍼런스가 핵심이라
+// 레퍼런스 이미지 워크숍을 기본 접힘으로 둔다(완전히 숨기지는 않음).
+const UI_FIRST_ASSET_PATTERN = /dashboard|web-app|mobile-app|admin|other/i;
+
+function shouldPrioritizeUi(analysis: GeneratorAnalysis): boolean {
+  return analysis.referenceNeeds.layout && UI_FIRST_ASSET_PATTERN.test(analysis.project.assetType) && !hasLoginScreen(analysis);
+}
+
+function PreviewNav({ primary }: { primary: string }) {
+  const light = isLightColor(primary);
+  return (
+    <div className="flex h-10 select-none items-center justify-between px-4" style={{ background: primary }}>
+      <div className="flex items-center gap-4">
+        <div className={`h-4 w-20 rounded ${light ? "bg-black/20" : "bg-white/30"}`} />
+        <div className={`h-2.5 w-12 rounded ${light ? "bg-black/12" : "bg-white/20"}`} />
+        <div className={`h-2.5 w-12 rounded ${light ? "bg-black/12" : "bg-white/20"}`} />
+      </div>
+      <div className={`h-7 w-7 rounded-full ${light ? "bg-black/20" : "bg-white/30"}`} />
+    </div>
+  );
+}
+
+function PreviewDashboard({ colors, screenName, assetType }: { colors: string[]; screenName: string; assetType: string }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
 
   return (
-    <WorkCard className="p-5">
-      <SectionTitle label="Implementation Check" meta={sampleLabel} />
-      <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="grid gap-3">
-          {checks.map(([label, status, ok]) => (
-            <div key={label} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <span className="text-sm font-bold text-zinc-700">{label}</span>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${ok ? "bg-teal-100 text-teal-900" : "bg-amber-100 text-amber-900"}`}>
-                {status}
-              </span>
-            </div>
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="flex min-h-72" style={{ background: surface }}>
+        <div className="w-16 shrink-0 border-r border-zinc-200 p-2.5" style={{ background: surfaceLight ? "#f0f0f1" : "#18181b" }}>
+          <div className="mb-3 h-2 w-10 rounded" style={{ background: accent }} />
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="mb-2 h-2 rounded" style={{ background: surfaceLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)" }} />
           ))}
-          <p className="rounded-lg bg-zinc-950 p-4 text-sm leading-6 text-zinc-200">
-            {hasEnoughStructure && hasPalette
-              ? "현재 분석 결과로 선택 무드 기반의 정적 HTML/CSS 샘플을 만들 수 있습니다."
-              : "구현 샘플을 만들기 전에 화면 구성이나 컬러 기준을 조금 더 보강하는 편이 좋습니다."}
-          </p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-black text-zinc-950">{sampleLabel}</h3>
-            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-bold text-zinc-500">{mood.title}</span>
+        <div className="flex-1 grid gap-3 content-start p-4">
+          <h4 className={`truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          <div className="grid grid-cols-3 gap-2">
+            {[accent, "#e4e4e7", "#e4e4e7"].map((bg, i) => (
+              <div key={i} className="rounded-lg border border-zinc-200 bg-white p-2.5">
+                <div className="h-1.5 w-8 rounded bg-zinc-200" />
+                <div className="mt-2 h-5 w-12 rounded" style={{ background: bg }} />
+              </div>
+            ))}
           </div>
-          <div className="grid gap-3 md:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-lg p-5 text-white" style={{ background: colors[0] || "#111827" }}>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/60">{analysis.project.domain}</p>
-              <h4 className="mt-5 text-xl font-black">{analysis.project.title}</h4>
-              <div className="mt-8 h-24 rounded-lg bg-white/16" />
-            </div>
-            <div className="grid gap-3">
-              {analysis.screenTypes.slice(0, 3).map((item, index) => (
-                <div key={item.name} className="grid grid-cols-[40px_1fr] gap-3 rounded-lg bg-zinc-50 p-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-md text-sm font-black text-white" style={{ background: index === 0 ? primary : accent }}>
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-black text-zinc-900">{item.name}</p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-500">{item.desc}</p>
-                  </div>
-                </div>
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
+            <div className="mb-2 h-1.5 w-12 rounded bg-zinc-200" />
+            <div className="flex h-14 items-end gap-1">
+              {[35, 55, 40, 70, 45, 85, 60].map((h, i) => (
+                <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: i === 5 ? accent : "#e4e4e7" }} />
               ))}
             </div>
           </div>
+          <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+            <div className="flex gap-4 bg-zinc-50 px-3 py-1.5">
+              {[16, 36, 16].map((w, i) => <div key={i} className="h-1.5 rounded bg-zinc-300" style={{ width: `${w}%` }} />)}
+            </div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 border-t border-zinc-100 px-3 py-2">
+                <div className="h-5 w-5 rounded-full bg-zinc-200" />
+                <div className="h-1.5 flex-1 rounded bg-zinc-200" />
+                <div className="h-1.5 w-10 rounded bg-zinc-100" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PreviewList({ colors, screenName, assetType }: { colors: string[]; screenName: string; assetType: string }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="grid gap-3 p-4" style={{ background: surface }}>
+        <h4 className={`truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <div className="h-7 w-28 rounded-lg border border-zinc-200 bg-white" />
+            <div className="h-7 w-16 rounded-lg" style={{ background: accent }} />
+          </div>
+          <div className="h-7 w-24 rounded-lg border border-zinc-200 bg-white" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="rounded-lg border border-zinc-200 bg-white p-3">
+              <div className="mb-2 h-10 rounded" style={{ background: i % 3 === 0 ? `${accent}33` : "#f4f4f5" }} />
+              <div className="h-2 w-3/4 rounded bg-zinc-200" />
+              <div className="mt-1 h-1.5 w-1/2 rounded bg-zinc-100" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewDetail({ colors, screenName, assetType }: { colors: string[]; screenName: string; assetType: string }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="grid gap-3 p-4" style={{ background: surface }}>
+        <div className={`flex items-center gap-2 text-xs font-bold ${surfaceLight ? "text-zinc-500" : "text-white/60"}`}>
+          <span>목록</span>
+          <span>›</span>
+          <span style={{ color: accent }}>{screenName}</span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[1.4fr_0.6fr]">
+          <div className="rounded-lg border border-zinc-200 bg-white p-4">
+            <div className="mb-3 h-3.5 w-1/2 rounded bg-zinc-200" />
+            <div className="mb-3 h-px bg-zinc-100" />
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="grid grid-cols-[80px_1fr] items-center gap-2 border-b border-zinc-50 py-1.5">
+                <div className="h-2 rounded bg-zinc-200" />
+                <div className="h-2 rounded bg-zinc-100" />
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-2 content-start">
+            <div className="rounded-lg border border-zinc-200 bg-white p-3">
+              <div className="mb-2 h-2 w-10 rounded bg-zinc-200" />
+              <div className="h-6 w-16 rounded" style={{ background: `${accent}33` }} />
+              <div className="mt-3 grid gap-1.5">
+                {[...Array(3)].map((_, i) => <div key={i} className="h-1.5 rounded bg-zinc-100" />)}
+              </div>
+            </div>
+            <div className="h-8 rounded-lg" style={{ background: accent }} />
+            <div className="h-8 rounded-lg border border-zinc-200 bg-white" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// splash/onboarding/terms/login/form은 사이드바·테이블이 아니라 화면 중앙에 단일
+// 액션 카드 하나만 있는 구조라 PreviewDashboard/List/Detail과는 다른 모양이 필요하다.
+function PreviewCentered({
+  colors,
+  screenName,
+  assetType,
+  layout,
+}: {
+  colors: string[];
+  screenName: string;
+  assetType: string;
+  layout: ScreenLayout;
+}) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const lineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
+  const dotInactive = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.2)";
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="flex min-h-72 items-center justify-center p-6" style={{ background: surface }}>
+        <div className="grid w-full max-w-[280px] gap-3">
+          {(layout === "splash" || layout === "onboarding") && (
+            <div
+              className="mx-auto h-14 w-14 rounded-2xl"
+              style={{ background: layout === "splash" ? primary : accent }}
+            />
+          )}
+          <h4 className={`truncate text-center text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          {layout === "onboarding" && (
+            <div className="flex justify-center gap-1.5">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: i === 0 ? accent : dotInactive }} />
+              ))}
+            </div>
+          )}
+          {layout === "terms" && (
+            <>
+              <div className={`h-16 rounded-lg ${lineBg}`} />
+              <div className="flex items-center gap-2">
+                <div className={`h-3.5 w-3.5 rounded border ${surfaceLight ? "border-zinc-300" : "border-white/30"}`} />
+                <div className={`h-1.5 w-32 rounded ${lineBg}`} />
+              </div>
+            </>
+          )}
+          {(layout === "login" || layout === "form") && (
+            <div className="grid gap-2">
+              {[...Array(layout === "login" ? 2 : 3)].map((_, i) => (
+                <div key={i} className={`h-8 rounded-md border ${surfaceLight ? "border-zinc-200 bg-white" : "border-white/15 bg-white/5"}`} />
+              ))}
+            </div>
+          )}
+          <div className="mt-1 h-9 rounded-lg" style={{ background: accent }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 모바일 전용 문서(예: "모바일 전용 UI, iPhone 화면비")는 데스크탑 nav+sidebar 와이어프레임이 아니라
+// 폰 프레임 안에 상태바/하단 탭바를 갖춘 모바일 형태로 보여줘야 한다.
+function PreviewMobile({ colors, screenName, layout }: { colors: string[]; screenName: string; layout: ScreenLayout }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, "mobile-app", isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "text-zinc-800" : "text-white";
+  const cardBg = surfaceLight ? "bg-white" : "bg-white/10";
+  const cardLineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
+  const dotInactive = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.2)";
+  // 스플래시/온보딩/약관/로그인은 메인 탭 구조에 들어가기 전 단계라 하단 탭바가 없다.
+  const showTabBar = layout === "dashboard" || layout === "list" || layout === "detail" || layout === "form";
+
+  return (
+    <div className="flex justify-center bg-zinc-100 p-6">
+      <div className="w-[300px] overflow-hidden rounded-[28px] border-4 border-zinc-900 bg-zinc-900 shadow-xl select-none">
+        <div
+          className="flex items-center justify-between px-4 pb-1 pt-2 text-[10px] font-bold"
+          style={{ background: surface, color: surfaceLight ? "#18181b" : "#fff" }}
+        >
+          <span>9:41</span>
+          <span>●●●</span>
+        </div>
+        <div className="flex min-h-[480px] flex-col p-4" style={{ background: surface }}>
+          {layout === "splash" || layout === "onboarding" ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <div className="h-16 w-16 rounded-2xl" style={{ background: layout === "splash" ? primary : accent }} />
+              <h4 className={`truncate text-center text-sm font-black ${onSurface}`}>{screenName}</h4>
+              {layout === "onboarding" && (
+                <div className="flex gap-1.5">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: i === 0 ? accent : dotInactive }} />
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 h-11 w-full rounded-xl" style={{ background: accent }} />
+            </div>
+          ) : (
+            <>
+              <h4 className={`mb-3 truncate text-sm font-black ${onSurface}`}>{screenName}</h4>
+              {layout === "terms" && (
+                <div className="grid gap-3">
+                  <div className={`h-32 rounded-xl ${cardBg}`} />
+                  <div className="flex items-center gap-2">
+                    <div className={`h-4 w-4 rounded border ${surfaceLight ? "border-zinc-300" : "border-white/30"}`} />
+                    <div className={`h-1.5 w-32 rounded ${cardLineBg}`} />
+                  </div>
+                  <div className="mt-2 h-11 rounded-xl" style={{ background: accent }} />
+                </div>
+              )}
+              {layout === "login" && (
+                <div className="grid gap-3">
+                  <div className={`h-11 rounded-xl border ${surfaceLight ? "border-zinc-200 bg-white" : "border-white/15 bg-white/5"}`} />
+                  <div className={`h-11 rounded-xl border ${surfaceLight ? "border-zinc-200 bg-white" : "border-white/15 bg-white/5"}`} />
+                  <div className="mt-2 h-11 rounded-xl" style={{ background: accent }} />
+                  <div className={`h-1.5 w-24 justify-self-center rounded ${cardLineBg}`} />
+                </div>
+              )}
+              {layout === "form" && (
+                <div className="grid gap-2.5">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className={`h-11 rounded-xl border ${surfaceLight ? "border-zinc-200 bg-white" : "border-white/15 bg-white/5"}`} />
+                  ))}
+                  <div className="mt-2 h-11 rounded-xl" style={{ background: accent }} />
+                </div>
+              )}
+              {layout === "dashboard" && (
+                <div className="grid gap-3">
+                  <div className="h-28 rounded-2xl" style={{ background: primary }} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className={`h-16 rounded-xl ${cardBg}`} />
+                    <div className="h-16 rounded-xl" style={{ background: accent }} />
+                  </div>
+                  <div className={`h-20 rounded-xl ${cardBg}`} />
+                </div>
+              )}
+              {layout === "list" && (
+                <div className="grid gap-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className={`flex items-center gap-3 rounded-xl p-2.5 ${cardBg}`}>
+                      <div className="h-10 w-10 shrink-0 rounded-lg" style={{ background: i === 0 ? accent : "#e4e4e7" }} />
+                      <div className="grid flex-1 gap-1">
+                        <div className={`h-2 w-3/4 rounded ${cardLineBg}`} />
+                        <div className={`h-1.5 w-1/2 rounded ${cardLineBg}`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {layout === "detail" && (
+                <div className="grid gap-3">
+                  <div className="h-36 rounded-2xl" style={{ background: accent }} />
+                  <div className={`h-3 w-2/3 rounded ${cardLineBg}`} />
+                  <div className={`h-2 w-full rounded ${cardLineBg}`} />
+                  <div className={`h-2 w-5/6 rounded ${cardLineBg}`} />
+                  <div className="mt-3 h-11 rounded-xl" style={{ background: accent }} />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        {showTabBar && (
+          <div className="flex items-center justify-around border-t border-white/10 py-3" style={{ background: surface }}>
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="h-5 w-5 rounded-md"
+                style={{ background: i === 0 ? accent : surfaceLight ? "#a1a1aa" : "#71717a", opacity: i === 0 ? 1 : 0.5 }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ImplementationSample({
+  analysis,
+  mood,
+  screen,
+}: {
+  analysis: GeneratorAnalysis;
+  mood: GeneratorAnalysis["moods"][number];
+  screen: GeneratorAnalysis["screenTypes"][number];
+}) {
+  const colors = mood.colors.length ? mood.colors : analysis.palette.map((item) => item.hex);
+  const layout = detectScreenLayout(screen.name, screen.desc);
+
+  const handleDownload = () => {
+    const primary = colors[0] || "#111827";
+    const accent = colors[1] || "#2563eb";
+    const surface = pickSurfaceColor(colors, analysis.project.assetType, isLightColor(colors[0] || "#111827"));
+    const surfaceLight = isLightColor(surface);
+    const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+    const textMuted = surfaceLight ? "#71717a" : "rgba(255,255,255,0.6)";
+    const cardBg = surfaceLight ? "#ffffff" : "rgba(255,255,255,0.1)";
+    const cardLine = surfaceLight ? "#f4f4f5" : "rgba(255,255,255,0.08)";
+    const onPrimary = isLightColor(primary) ? "#18181b" : "#ffffff";
+    const onPrimaryMuted = isLightColor(primary) ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+    const isMobile = analysis.project.assetType === "mobile-app";
+
+    let html: string;
+
+    if (ENTRY_LAYOUTS.includes(layout)) {
+      const fragment = buildEntryScreenFragment({ layout, screen, primary, accent, cardBg, cardLine, onSurface, textMuted });
+
+      html = isMobile
+        ? `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #18181b; display: flex; justify-content: center; padding: 32px 0; }</style>\n</head>\n<body>\n<div style="width:375px;border-radius:36px;overflow:hidden;background:${surface};box-shadow:0 20px 60px rgba(0,0,0,0.35);">\n  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px 4px;font-size:12px;font-weight:700;color:${onSurface};">\n    <span>9:41</span><span>●●●</span>\n  </div>\n  <div style="min-height:600px;padding:24px 20px;display:flex;flex-direction:column;justify-content:center;">\n    ${fragment}\n  </div>\n</div>\n</body>\n</html>`
+        : `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 40px; }</style>\n</head>\n<body>\n<div style="width:100%;max-width:400px;">${fragment}</div>\n</body>\n</html>`;
+    } else if (isMobile) {
+      const onPrimaryLocal = onPrimary;
+      const onAccent = isLightColor(accent) ? "#18181b" : "#ffffff";
+      const screenDesc = escapeHtml(screen.desc || "화면 설명이 등록되지 않았습니다.");
+
+      const mobileBodyHtml =
+        layout === "dashboard"
+          ? `<div style="border-radius:18px;padding:18px;background:${primary};color:${onPrimaryLocal};margin-bottom:12px;">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;opacity:0.75;">${escapeHtml(screen.name)}</div>
+  <div style="font-size:28px;font-weight:900;margin-top:8px;">1,284</div>
+  <div style="font-size:12px;margin-top:6px;opacity:0.85;">전월 대비 +12%</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+  <div style="border-radius:14px;padding:14px;background:${cardBg};">
+    <div style="font-size:11px;font-weight:700;color:${textMuted};">활성</div>
+    <div style="font-size:18px;font-weight:900;color:${onSurface};margin-top:6px;">342</div>
+  </div>
+  <div style="border-radius:14px;padding:14px;background:${accent};color:#fff;">
+    <div style="font-size:11px;font-weight:700;opacity:0.85;">달성률</div>
+    <div style="font-size:18px;font-weight:900;margin-top:6px;">87%</div>
+  </div>
+</div>
+<div style="border-radius:14px;padding:14px;background:${cardBg};">
+  <div style="font-size:11px;font-weight:700;color:${textMuted};margin-bottom:10px;">최근 활동</div>
+  ${[1, 2, 3]
+    .map(
+      (i) =>
+        `<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:${i === 1 ? "none" : `1px solid ${cardLine}`};font-size:12.5px;"><span style="color:${onSurface};">항목 ${i}</span><span style="color:${textMuted};">2026-06-${String(i + 12).padStart(2, "0")}</span></div>`,
+    )
+    .join("")}
+</div>`
+          : layout === "list"
+          ? `<div style="display:flex;gap:8px;margin-bottom:12px;">
+  <div style="flex:1;border-radius:10px;padding:9px 12px;background:${cardBg};font-size:12.5px;color:${textMuted};">검색</div>
+  <div style="border-radius:10px;padding:9px 16px;background:${accent};color:#fff;font-size:12.5px;font-weight:700;">+ 추가</div>
+</div>
+<div style="display:grid;gap:8px;">
+  ${[...Array(4)]
+    .map(
+      (_, i) =>
+        `<div style="display:flex;align-items:center;gap:12px;border-radius:12px;padding:10px;background:${cardBg};"><div style="width:40px;height:40px;border-radius:8px;flex-shrink:0;background:${i === 0 ? accent : "#e4e4e7"};"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:${onSurface};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(screen.name)} ${i + 1}</div><div style="font-size:11.5px;color:${textMuted};margin-top:2px;">2026-06-${String(i + 10).padStart(2, "0")}</div></div><span style="font-size:10.5px;font-weight:700;color:${accent};background:${accent}22;padding:3px 8px;border-radius:999px;flex-shrink:0;">Active</span></div>`,
+    )
+    .join("")}
+</div>`
+          : `<div style="font-size:12px;font-weight:600;color:${textMuted};margin-bottom:10px;">‹ 목록</div>
+<div style="border-radius:16px;height:140px;background:${accent};margin-bottom:14px;"></div>
+<h3 style="font-size:16px;font-weight:900;color:${onSurface};margin-bottom:6px;">${escapeHtml(screen.name)}</h3>
+<p style="font-size:12.5px;line-height:1.6;color:${textMuted};margin-bottom:14px;">${screenDesc}</p>
+<div style="border-radius:14px;padding:4px 14px;background:${cardBg};margin-bottom:14px;">
+  ${[["상태", "Active"], ["등록일", "2026-06-19"]]
+    .map(
+      ([l, v], i) =>
+        `<div style="display:flex;justify-content:space-between;padding:10px 0;border-top:${i === 0 ? "none" : `1px solid ${cardLine}`};font-size:12.5px;"><span style="color:${textMuted};font-weight:600;">${l}</span><span style="color:${onSurface};">${v}</span></div>`,
+    )
+    .join("")}
+</div>
+<div style="height:46px;border-radius:12px;background:${accent};color:${onAccent};display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;margin-bottom:8px;">저장</div>
+<div style="height:46px;border-radius:12px;background:${cardBg};color:${onSurface};display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;">취소</div>`;
+
+      const mobileHeaderHtml =
+        layout === "list"
+          ? `<h2 style="font-size:15px;font-weight:900;color:${onSurface};margin-bottom:14px;">${escapeHtml(screen.name)}</h2>`
+          : "";
+
+      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #18181b; display: flex; justify-content: center; padding: 32px 0; }</style>\n</head>\n<body>\n<div style="width:375px;border-radius:36px;overflow:hidden;background:${surface};box-shadow:0 20px 60px rgba(0,0,0,0.35);">\n  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px 4px;font-size:12px;font-weight:700;color:${onSurface};">\n    <span>9:41</span><span>●●●</span>\n  </div>\n  <div style="min-height:600px;padding:16px;">\n    ${mobileHeaderHtml}${mobileBodyHtml}\n  </div>\n  <div style="display:flex;justify-content:space-around;padding:14px 0;border-top:1px solid rgba(255,255,255,0.08);">\n    ${[...Array(4)]
+        .map(
+          (_, i) =>
+            `<div style="width:20px;height:20px;border-radius:6px;background:${i === 0 ? accent : surfaceLight ? "#a1a1aa" : "#71717a"};opacity:${i === 0 ? 1 : 0.5};"></div>`,
+        )
+        .join("")}\n  </div>\n</div>\n</body>\n</html>`;
+    } else {
+      const navHtml = `<nav style="background:${primary};padding:12px 24px;display:flex;align-items:center;justify-content:space-between;">
+  <span style="font-weight:900;font-size:16px;color:${onPrimary}">${escapeHtml(analysis.project.title)}</span>
+  <div style="display:flex;gap:20px;">${analysis.screenTypes.slice(0, 4).map((s) => `<a href="#" style="color:${onPrimaryMuted};text-decoration:none;font-size:13px;">${escapeHtml(s.name)}</a>`).join("")}</div>
+</nav>`;
+
+      const sidebarHtml = `<aside style="width:200px;background:${isLightColor(surface) ? "#f4f4f5" : "#18181b"};border-right:1px solid #e4e4e7;padding:16px;min-height:calc(100vh - 48px);">
+  ${analysis.screenTypes.slice(0, 6).map((s) => { const active = s.name === screen.name; return `<div style="padding:8px 12px;border-radius:6px;margin-bottom:4px;background:${active ? accent : "transparent"};color:${active ? "#fff" : "#71717a"};font-weight:${active ? 700 : 400};font-size:13px;">${escapeHtml(s.icon || "·")} ${escapeHtml(s.name)}</div>`; }).join("")}
+</aside>`;
+
+      const contentHtml =
+        layout === "dashboard"
+          ? `<div style="display:flex;"><div>${sidebarHtml}</div><main style="flex:1;padding:24px;"><h2 style="font-size:20px;font-weight:900;color:#09090b;margin-bottom:20px;">${escapeHtml(screen.name)}</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">${[["총 항목", "1,284"], ["활성", "342"], ["달성률", "87%"]].map(([l, v]) => `<div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;color:#71717a;font-weight:600;text-transform:uppercase;">${l}</div><div style="font-size:28px;font-weight:900;color:${accent};margin-top:8px;">${v}</div></div>`).join("")}</div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f4f4f5;">${["이름", "상태", "날짜", "작업"].map((h) => `<th style="text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#71717a;">${h}</th>`).join("")}</tr></thead><tbody>${[...Array(5)].map((_, i) => `<tr style="border-top:1px solid #f4f4f5;"><td style="padding:10px 16px;font-size:13px;">항목 ${i + 1}</td><td style="padding:10px 16px;"><span style="background:${accent}22;color:${accent};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">Active</span></td><td style="padding:10px 16px;font-size:13px;">2026-06-${String(i + 14).padStart(2, "0")}</td><td style="padding:10px 16px;"><button style="padding:6px 12px;background:#fff;border:1px solid #e4e4e7;border-radius:6px;font-size:12px;">보기</button></td></tr>`).join("")}</tbody></table></div></main></div>`
+          : layout === "list"
+          ? `<main style="padding:24px;"><div style="display:flex;justify-content:space-between;margin-bottom:20px;"><div style="display:flex;gap:8px;"><input placeholder="검색..." style="padding:8px 12px;border:1px solid #e4e4e7;border-radius:8px;font-size:13px;"/><button style="padding:8px 20px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">검색</button></div><button style="padding:8px 20px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">+ 추가</button></div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f4f4f5;">${["#", "이름", "카테고리", "상태", "날짜"].map((h) => `<th style="text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#71717a;">${h}</th>`).join("")}</tr></thead><tbody>${[...Array(8)].map((_, i) => `<tr style="border-top:1px solid #f4f4f5;"><td style="padding:10px 16px;">${i + 1}</td><td style="padding:10px 16px;">레코드 ${i + 1}</td><td style="padding:10px 16px;">카테고리 ${(i % 3) + 1}</td><td style="padding:10px 16px;"><span style="background:${accent}22;color:${accent};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">Active</span></td><td style="padding:10px 16px;">2026-06-${String(i + 10).padStart(2, "0")}</td></tr>`).join("")}</tbody></table></div></main>`
+          : `<main style="padding:24px;"><div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;font-size:13px;color:#71717a;"><span>목록</span><span>›</span><span style="color:${accent};font-weight:700;">${escapeHtml(screen.name)}</span></div><div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:16px;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:20px;"><h3 style="font-size:16px;font-weight:900;color:#09090b;margin-bottom:16px;">${escapeHtml(screen.name)} 상세</h3>${[["이름", "샘플 항목"], ["카테고리", "카테고리 A"], ["상태", "Active"], ["생성일", "2026-06-19"], ["설명", escapeHtml(screen.desc || "상세 내용")]].map(([l, v]) => `<div style="display:grid;grid-template-columns:120px 1fr;gap:8px;padding:10px 0;border-top:1px solid #f4f4f5;"><span style="font-size:12px;color:#71717a;font-weight:600;">${l}</span><span style="font-size:13px;color:#18181b;">${v}</span></div>`).join("")}</div><div style="display:grid;gap:12px;align-content:start;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;font-weight:700;color:#71717a;margin-bottom:8px;">상태</div><span style="background:${accent}22;color:${accent};padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;">Active</span></div><button style="width:100%;padding:10px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">저장</button><button style="width:100%;padding:10px;background:#fff;border:1px solid #e4e4e7;border-radius:8px;font-weight:700;cursor:pointer;">취소</button></div></div></main>`;
+
+      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; }</style>\n</head>\n<body>\n${navHtml}\n${contentHtml}\n</body>\n</html>`;
+    }
+
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${analysis.project.title}-${screen.name}.html`.replace(/\s+/g, "-");
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <WorkCard className="p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <SectionTitle label="Screen Preview" meta={`${screen.name} · ${mood.title}`} />
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="shrink-0 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-teal-300 hover:text-teal-800"
+        >
+          HTML 다운로드
+        </button>
+      </div>
+      {analysis.project.assetType === "mobile-app" ? (
+        <PreviewMobile colors={colors} screenName={screen.name} layout={layout} />
+      ) : ENTRY_LAYOUTS.includes(layout) ? (
+        <PreviewCentered colors={colors} screenName={screen.name} assetType={analysis.project.assetType} layout={layout} />
+      ) : (
+        <>
+          {layout === "dashboard" && <PreviewDashboard colors={colors} screenName={screen.name} assetType={analysis.project.assetType} />}
+          {layout === "list" && <PreviewList colors={colors} screenName={screen.name} assetType={analysis.project.assetType} />}
+          {layout === "detail" && <PreviewDetail colors={colors} screenName={screen.name} assetType={analysis.project.assetType} />}
+        </>
+      )}
     </WorkCard>
   );
 }
@@ -574,10 +1196,12 @@ function ImagePromptWorkshop({
   analysis,
   prompts,
   mood,
+  defaultCollapsed,
 }: {
   analysis: GeneratorAnalysis;
   prompts: string[];
   mood: GeneratorAnalysis["moods"][number];
+  defaultCollapsed: boolean;
 }) {
   const [selectedPromptIndex, setSelectedPromptIndex] = useState(0);
   const [images, setImages] = useState<MoodImage[]>([]);
@@ -585,10 +1209,15 @@ function ImagePromptWorkshop({
   const [imagesLoading, setImagesLoading] = useState(false);
   const [imagesError, setImagesError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<MoodImage | null>(null);
+  const [page, setPage] = useState(1);
+  const [expanded, setExpanded] = useState(!defaultCollapsed);
 
-  const query = useMemo(() => buildImageSearchQuery(analysis, mood), [analysis, mood]);
+  const queries = useMemo(() => buildImageSearchQueries(analysis, mood), [analysis, mood]);
+  const gainTerms = useMemo(() => buildRelevanceTerms(analysis), [analysis]);
+  const queryKey = queries.join("|");
 
   useEffect(() => {
+    if (!expanded) return;
     let cancelled = false;
 
     Promise.resolve()
@@ -599,7 +1228,7 @@ function ImagePromptWorkshop({
         return fetch("/api/mood-images", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query }),
+          body: JSON.stringify({ queries, gainTerms, page }),
         });
       })
       .then((res) => res.json())
@@ -621,46 +1250,94 @@ function ImagePromptWorkshop({
     return () => {
       cancelled = true;
     };
-  }, [query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey, page, expanded]);
 
+  const handleRegenerateImages = () => {
+    setSelectedImage(null);
+    setPage((current) => {
+      let next = Math.floor(Math.random() * 5) + 1;
+      if (next === current) next = next === 5 ? 1 : next + 1;
+      return next;
+    });
+  };
+
+  const promptsKo = analysis.imagePromptsKo ?? [];
   const selectedPrompt = prompts[selectedPromptIndex] || "";
+  const selectedPromptKo = promptsKo[selectedPromptIndex] || "";
   const basePromptVariants = selectedPrompt ? buildImagePromptVariants(selectedPrompt, mood.title, mood.colors) : [];
+  const basePromptVariantsKo = selectedPromptKo ? buildImagePromptVariantsKo(selectedPromptKo, mood.title, mood.colors) : [];
   const imagePromptVariants = selectedImage ? buildImagePromptsFromImage(analysis, mood, selectedImage) : [];
+  const imagePromptVariantsKo = selectedImage ? buildImagePromptsFromImageKo(analysis, mood, selectedImage) : [];
 
   if (!prompts.length) return null;
 
   return (
     <WorkCard className="p-5">
-      <SectionTitle label="Image Prompt Workshop" meta={query} />
-      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <SectionTitle label="Image Prompt Workshop" meta={queries.join(" · ")} />
+      <div className="grid gap-5">
         <div>
-          <h3 className="mb-3 text-sm font-bold text-zinc-700">레퍼런스 이미지</h3>
-          {providers.length === 0 && (
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-700">레퍼런스 이미지</h3>
+              {defaultCollapsed && (
+                <p className="mt-1 text-xs leading-5 text-zinc-400">
+                  이 산출물은 UI/레이아웃 레퍼런스가 우선입니다. 실사 이미지는 보조 소재입니다.
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {expanded && providers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleRegenerateImages}
+                  disabled={imagesLoading}
+                  className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-teal-300 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {imagesLoading ? "불러오는 중..." : "다른 이미지 보기"}
+                </button>
+              )}
+              {defaultCollapsed && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((current) => !current)}
+                  className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-teal-300 hover:text-teal-800"
+                >
+                  {expanded ? "접기" : "보조 이미지 소재 보기"}
+                </button>
+              )}
+            </div>
+          </div>
+          {expanded && providers.length === 0 && (
             <p className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs leading-5 text-zinc-500">
               Pexels/Unsplash API 키가 설정되지 않아 레퍼런스 이미지를 불러올 수 없습니다. .env.local에 PEXELS_API_KEY 또는 UNSPLASH_ACCESS_KEY를 추가하면 이 영역에 검색 결과 이미지가 표시됩니다.
             </p>
           )}
-          {providers.length > 0 && imagesLoading && <p className="text-xs text-zinc-400">이미지를 불러오는 중...</p>}
-          {imagesError && <p className="text-xs text-red-600">{imagesError}</p>}
-          {providers.length > 0 && !imagesLoading && !imagesError && images.length === 0 && (
+          {expanded && providers.length > 0 && imagesLoading && <p className="text-xs text-zinc-400">이미지를 불러오는 중...</p>}
+          {expanded && imagesError && <p className="text-xs text-red-600">{imagesError}</p>}
+          {expanded && providers.length > 0 && !imagesLoading && !imagesError && images.length === 0 && (
             <p className="text-xs text-zinc-400">이 키워드로 이미지를 찾지 못했습니다.</p>
           )}
-          <div className="grid grid-cols-2 gap-2">
+          {expanded && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {images.map((image, index) => (
               <button
                 key={`${image.link}-${index}`}
                 type="button"
                 onClick={() => setSelectedImage(image)}
+                title={image.description || undefined}
                 className={`overflow-hidden rounded-lg border text-left transition-colors ${
                   selectedImage?.link === image.link ? "border-amber-300 ring-2 ring-amber-200" : "border-zinc-200 hover:border-zinc-400"
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image.src} alt={image.credit} className="h-28 w-full object-cover" />
-                <span className="block truncate px-2 py-1 text-xs text-zinc-500">{image.credit}</span>
+                <img src={image.src} alt={image.credit} className="h-40 w-full object-cover" />
+                <span className="block truncate px-2 pt-1 text-xs text-zinc-500">{image.credit}</span>
+                <span className="block truncate px-2 pb-1 font-mono text-[11px] text-zinc-400">query: {image.query}</span>
               </button>
             ))}
           </div>
+          )}
         </div>
         <div>
           {selectedImage ? (
@@ -672,9 +1349,12 @@ function ImagePromptWorkshop({
                 </button>
               </div>
               <div className="grid gap-3">
-                {imagePromptVariants.map((prompt) => (
+                {imagePromptVariants.map((prompt, index) => (
                   <p key={prompt} className="rounded-lg border border-amber-200 bg-amber-50 p-4 font-mono text-sm leading-7 text-amber-950">
                     {prompt}
+                    {imagePromptVariantsKo[index] && (
+                      <span className="mt-2 block font-sans text-xs leading-6 text-amber-700">{imagePromptVariantsKo[index]}</span>
+                    )}
                   </p>
                 ))}
               </div>
@@ -694,13 +1374,19 @@ function ImagePromptWorkshop({
                       }`}
                     >
                       {prompt}
+                      {promptsKo[index] && (
+                        <span className="mt-2 block font-sans text-xs leading-6 text-zinc-500">{promptsKo[index]}</span>
+                      )}
                     </button>
                   ))}
                 </div>
                 <div className="grid gap-3">
-                  {basePromptVariants.map((prompt) => (
+                  {basePromptVariants.map((prompt, index) => (
                     <p key={prompt} className="rounded-lg border border-zinc-200 bg-white p-4 font-mono text-sm leading-7 text-zinc-700">
                       {prompt}
+                      {basePromptVariantsKo[index] && (
+                        <span className="mt-2 block font-sans text-xs leading-6 text-zinc-500">{basePromptVariantsKo[index]}</span>
+                      )}
                     </p>
                   ))}
                 </div>
@@ -729,6 +1415,11 @@ function Result({
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [regenerateNote, setRegenerateNote] = useState<string | null>(null);
   const selectedMood = analysis.moods[selectedMoodIndex] || analysis.moods[0];
+  const [selectedScreenIndex, setSelectedScreenIndex] = useState(0);
+  const selectedScreen = analysis.screenTypes[selectedScreenIndex] || analysis.screenTypes[0];
+  const [referenceFilter, setReferenceFilter] = useState<"all" | "layout" | "image">("all");
+  const showImageWorkshop = analysis.referenceNeeds.image && Boolean(selectedMood) && referenceFilter !== "layout";
+  const defaultCollapsed = shouldPrioritizeUi(analysis) && referenceFilter !== "image";
 
   const handleRegenerate = async () => {
     setRegenerating(true);
@@ -819,35 +1510,17 @@ function Result({
         </div>
       </WorkCard>
 
-      <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-        <WorkCard className="p-5">
-          <SectionTitle label="Deliverables" meta={`${analysis.screenTypes.length} items`} />
-          <div className="grid gap-3">
-            {analysis.screenTypes.map((item) => (
-              <div key={item.name} className="grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <span className="grid h-10 w-10 place-items-center rounded-md bg-white text-base font-black text-teal-700">{item.icon || "□"}</span>
-                <div className="min-w-0">
-                  <p className="font-bold text-zinc-950">{item.name}</p>
-                  <p className="mt-1 text-sm leading-6 text-zinc-600">{item.desc}</p>
-                </div>
-                <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-zinc-500">{item.count}</span>
-              </div>
-            ))}
-          </div>
-        </WorkCard>
-
-        <WorkCard className="p-5">
-          <SectionTitle label="Design Criteria" />
-          <div className="grid gap-3">
-            {analysis.directions.map((direction, index) => (
-              <div key={direction} className="grid grid-cols-[56px_1fr] gap-3 rounded-lg border border-zinc-200 bg-white p-4">
-                <span className="font-mono text-lg font-black text-zinc-300">{String(index + 1).padStart(2, "0")}</span>
-                <p className="text-sm leading-6 text-zinc-700">{direction}</p>
-              </div>
-            ))}
-          </div>
-        </WorkCard>
-      </div>
+      <WorkCard className="p-5">
+        <SectionTitle label="Design Criteria" />
+        <div className="grid gap-3 md:grid-cols-2">
+          {analysis.directions.map((direction, index) => (
+            <div key={direction} className="grid grid-cols-[56px_1fr] gap-3 rounded-lg border border-zinc-200 bg-white p-4">
+              <span className="font-mono text-lg font-black text-zinc-300">{String(index + 1).padStart(2, "0")}</span>
+              <p className="text-sm leading-6 text-zinc-700">{direction}</p>
+            </div>
+          ))}
+        </div>
+      </WorkCard>
 
       <div className="grid gap-4 xl:grid-cols-4">
         {keywordGroups.map(([title, keywords, tone]) => (
@@ -870,11 +1543,50 @@ function Result({
           regenerateNote={regenerateNote}
         />
       )}
-      {selectedMood && <ImplementationSample analysis={analysis} mood={selectedMood} />}
-      <References analysis={analysis} />
 
-      {analysis.referenceNeeds.image && selectedMood && (
-        <ImagePromptWorkshop key={selectedMood.title} analysis={analysis} prompts={analysis.imagePrompts} mood={selectedMood} />
+      <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+        <WorkCard className="p-5">
+          <SectionTitle label="Deliverables" meta="화면 선택 → 오른쪽 미리보기에 반영" />
+          <div className="grid gap-2">
+            {analysis.screenTypes.map((item, index) => (
+              <button
+                key={item.name}
+                type="button"
+                onClick={() => setSelectedScreenIndex(index)}
+                className={`grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                  selectedScreenIndex === index
+                    ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100"
+                    : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                }`}
+              >
+                <span className={`grid h-10 w-10 place-items-center rounded-md text-base font-black ${selectedScreenIndex === index ? "bg-teal-600 text-white" : "bg-white text-teal-700"}`}>
+                  {item.icon || "□"}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-bold text-zinc-950">{item.name}</p>
+                  <p className="mt-1 text-sm leading-6 text-zinc-600">{item.desc}</p>
+                </div>
+                <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-zinc-500">{item.count}</span>
+              </button>
+            ))}
+          </div>
+        </WorkCard>
+
+        {selectedMood && selectedScreen && (
+          <ImplementationSample analysis={analysis} mood={selectedMood} screen={selectedScreen} />
+        )}
+      </div>
+
+      <References analysis={analysis} filter={referenceFilter} onFilterChange={setReferenceFilter} />
+
+      {showImageWorkshop && selectedMood && (
+        <ImagePromptWorkshop
+          key={selectedMood.title}
+          analysis={analysis}
+          prompts={analysis.imagePrompts}
+          mood={selectedMood}
+          defaultCollapsed={defaultCollapsed}
+        />
       )}
     </section>
   );

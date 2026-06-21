@@ -9,7 +9,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 레퍼런스 수�
 
 필수 JSON 구조:
 {
-  "project": {"title": "프로젝트명", "description": "한 줄 설명", "domain": "도메인", "target": "주요 사용자", "assetType": "dashboard|webpage|web-app|landing|event-page|brochure|proposal|poster|report|image|other", "tags": ["태그"]},
+  "project": {"title": "프로젝트명", "description": "한 줄 설명", "domain": "도메인", "target": "주요 사용자", "assetType": "dashboard|webpage|web-app|landing|event-page|mobile-app|brochure|proposal|poster|report|image|other", "tags": ["태그"]},
   "referenceNeeds": {"layout": true, "image": true, "reason": "레이아웃/UI와 이미지 레퍼런스가 각각 필요한지 판단한 이유"},
   "referencePurposes": [{"value": "ui-reference|image-reference", "label": "UI/레이아웃 또는 이미지/키비주얼", "reason": "그 목적이 필요한 이유"}],
   "themeRecommendation": {"preferred": "light|dark|both", "reason": "테마 제안 이유", "alternatives": ["고려사항"]},
@@ -22,22 +22,30 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 레퍼런스 수�
   "referenceKeywords": ["english reference search keyword"],
   "platformKeywords": {"Dribbble": ["keyword"], "Behance": ["keyword"], "Mobbin": ["keyword"], "Pinterest": ["keyword"], "Figma Community": ["keyword"], "GDWEB": ["keyword"], "Land-book": ["keyword"], "Page Flows": ["keyword"]},
   "imageKeywords": ["english image search keyword"],
-  "imagePrompts": ["english image generation prompt"]
+  "imagePrompts": ["english image generation prompt"],
+  "imagePromptsKo": ["imagePrompts와 같은 순서로, 무슨 이미지인지 한국어로 한 줄 요약"],
+  "stockImageQueries": ["Pexels/Unsplash 실사 검색용 2~4단어 영어 명사구"]
 }
 
 규칙:
 - 레퍼런스 목적은 하나만 고르지 말고 referenceNeeds.layout과 referenceNeeds.image를 각각 판단하세요.
 - referencePurposes에는 필요한 목적을 모두 넣으세요. 둘 다 필요하면 ui-reference와 image-reference를 모두 넣으세요.
 - UI/레이아웃 레퍼런스는 대시보드, 홈페이지, 랜딩페이지, 이벤트페이지, 제안서 UI, 운영 화면, 앱 화면, 브로셔 표지/내지/인포그래픽 편집 레이아웃을 포함합니다.
+- 문서가 "모바일 전용 UI", iPhone/Android 화면비, 네이티브 앱 화면 구성을 명시하면 assetType을 mobile-app으로 판단하세요. 단순 반응형 웹(모바일 대응)은 webpage/web-app으로 유지하세요.
 - 이미지 레퍼런스는 제안서 표지, 로그인 이미지, 홈페이지 히어로 이미지, 삽입 비주얼, 추상 배경을 포함합니다.
 - 브로슈어, 제안서, 보고서, 포스터는 기본적으로 layout과 image를 모두 true로 판단하세요. 표지/내지/인포그래픽 구성은 UI/레이아웃 레퍼런스이고, 표지 키비주얼/삽입 비주얼/배경 소재는 이미지 레퍼런스입니다.
 - 기술자료 추천은 만들지 마세요.
 - keywordGroups는 산출물형태, 컬러무드, 디자인키워드, 도메인키워드 네 묶음으로 분리하세요.
 - keywordGroups와 platformKeywords는 너무 추상적인 한 단어를 피하고, 산출물 유형과 도메인을 조합한 2~5단어 검색어로 작성하세요.
-- 홈페이지/랜딩/이벤트 페이지/기업 사이트이면 GDWEB과 Land-book 키워드를 반드시 포함하세요.
-- 대시보드/어드민/B2B 화면이면 Page Flows 키워드를 유저 플로우 단위(예: onboarding flow, checkout flow, settings flow)로 포함하세요.
+- 홈페이지/랜딩/이벤트 페이지/기업 사이트이면 GDWEB, Land-book, Awwwards, Lapa Ninja처럼 웹사이트/랜딩에 강한 플랫폼 키워드를 포함하세요.
+- 대시보드/어드민/B2B 제품 화면이면 GDWEB/Land-book/Awwwards/Lapa Ninja 같은 마케팅 웹사이트 플랫폼은 피하세요. Figma Community/Dribbble/Behance는 UI 구조와 템플릿, Pinterest는 무드와 시각 방향, Mobbin/Page Flows는 실제 제품 플로우 보조 레퍼런스로 사용하세요.
+- 모바일 앱 화면이면 Mobbin, AppShots, UI Bowl, Figma Community 중심으로 키워드를 작성하세요.
 - image가 true이면 imagePrompts를 Freepik, Gemini Image 등에 넣을 수 있는 영문 프롬프트 3개로 작성하세요.
 - image가 false일 때만 imagePrompts를 빈 배열로 두세요.
+- 문서 내용에 로그인/인증 화면 요구가 있으면 imagePrompts 3개 중 최소 1개는 로그인 화면 사이드 비주얼에 적합한 플랫/아이소메트릭 일러스트 스타일로 작성하세요.
+- imagePromptsKo는 imagePrompts 각 문장을 빠짐없이 직역한 한국어 문장이어야 합니다. 구도/조명/크롭/스타일 등 세부 묘사를 생략하거나 한 줄로 뭉뚱그려 요약하지 마세요. imagePrompts와 같은 개수, 같은 순서여야 합니다.
+- stockImageQueries는 imagePrompts/imageKeywords와 다른 목적입니다. Freepik 같은 생성형 이미지가 아니라 Pexels/Unsplash 실제 사진 검색에 쓰입니다.
+- stockImageQueries는 3~4개를 만들고, 각 항목은 abstract/background/futuristic/digital 같은 추상 표현만으로 구성하지 말고 실제로 사진에 찍힐 수 있는 구체적인 장면/장소/사물(예: smart city control room, gis dashboard map, hospital reception desk, factory production line)을 프로젝트 도메인 및 화면 맥락과 결합해 작성하세요.
 - 홈페이지/랜딩/이벤트/기업 사이트는 유사 기업 웹사이트, 히어로 이미지 레퍼런스, UI 섹션 레퍼런스를 모두 제안하세요.
 - 대시보드/관리자 화면은 로그인 이미지 레퍼런스와 실제 제품 UI 레퍼런스를 분리해서 제안하세요.
 - 제안서/브로셔/보고서는 표지 이미지 레퍼런스와 제안서/브로셔 레이아웃 UI 레퍼런스를 분리해서 제안하세요.
@@ -145,8 +153,16 @@ function isWebAsset(assetType: string): boolean {
   return /web|landing|homepage|event/i.test(assetType);
 }
 
+function isMarketingWebAsset(assetType: string): boolean {
+  return /webpage|website|homepage|landing|event-page/i.test(assetType);
+}
+
 function isDashboardAsset(assetType: string): boolean {
-  return /dashboard|admin|data|console/i.test(assetType);
+  return /dashboard|admin|data|console|web-app/i.test(assetType);
+}
+
+function isMobileAsset(assetType: string): boolean {
+  return /mobile-app/i.test(assetType);
 }
 
 function normalizeReferenceNeeds(data: Partial<GeneratorAnalysis>, assetType: string): GeneratorAnalysis["referenceNeeds"] {
@@ -205,6 +221,9 @@ function normalizeAnalysis(raw: unknown): GeneratorAnalysis {
   const referencePurposes = normalizePurposes(data, referenceNeeds);
   const purpose = referencePurposes[0]?.value || "ui-reference";
   const platformKeywords = normalizePlatformKeywords(data.platformKeywords, referenceNeeds, String(project.domain || "service"), assetType);
+  const imagePromptResult = referenceNeeds.image
+    ? normalizeImagePrompts(data, String(project.domain || "service"), assetType)
+    : { en: [], ko: [] };
   const analysis: GeneratorAnalysis = {
     project: {
       title: project.title || "Untitled Project",
@@ -235,7 +254,11 @@ function normalizeAnalysis(raw: unknown): GeneratorAnalysis {
     referenceKeywords: asStringArray(data.referenceKeywords),
     platformKeywords,
     imageKeywords: asStringArray(data.imageKeywords),
-    imagePrompts: referenceNeeds.image ? normalizeImagePrompts(data, String(project.domain || "service"), assetType) : [],
+    imagePrompts: imagePromptResult.en,
+    imagePromptsKo: imagePromptResult.ko,
+    stockImageQueries: referenceNeeds.image
+      ? normalizeStockImageQueries(data, String(project.domain || "service"), assetType)
+      : [],
     references: [],
   };
 
@@ -274,44 +297,108 @@ function normalizePlatformKeywords(
   let keywords = raw || {};
   if (needs.layout) keywords = mergeKeywords(keywords, buildLayoutPlatformKeywords(domain, assetType));
   if (needs.image) keywords = mergeKeywords(keywords, buildImagePlatformKeywords(domain, assetType));
-  return keywords;
+  return filterPlatformKeywords(keywords, needs, assetType);
+}
+
+function allowedPlatformsFor(assetType: string, needs: GeneratorAnalysis["referenceNeeds"]): Set<string> {
+  const allowed = new Set<string>();
+  const add = (items: string[]) => items.forEach((item) => allowed.add(item));
+  const marketingWeb = isMarketingWebAsset(assetType);
+  const dashboard = isDashboardAsset(assetType);
+  const mobile = isMobileAsset(assetType);
+  const document = isDocumentAsset(assetType);
+
+    if (needs.layout) {
+    if (marketingWeb) {
+      add(["Dribbble", "Behance", "Pinterest", "Figma Community", "Google", "GDWEB", "Land-book", "Awwwards", "Lapa Ninja", "DBDIC", "DBCUT"]);
+    } else if (dashboard) {
+      add(["Dribbble", "Behance", "Pinterest", "Figma Community", "Google", "Mobbin", "Page Flows"]);
+    } else if (mobile) {
+      add(["Dribbble", "Behance", "Mobbin", "Pinterest", "Figma Community", "Page Flows", "AppShots", "UI Bowl"]);
+    } else if (document) {
+      add(["Dribbble", "Behance", "Pinterest", "Figma Community", "Brand New", "BrandB", "Fonts in Use"]);
+    } else {
+      add(["Dribbble", "Behance", "Pinterest", "Figma Community"]);
+    }
+  }
+
+  if (needs.image) {
+    add(["Dribbble", "Behance", "Pinterest", "Figma Community"]);
+    if (marketingWeb) add(["Google", "GDWEB", "Land-book"]);
+    if (document) add(["World Brand Design", "Brand Archive", "Brand New", "BrandB", "Fonts in Use"]);
+    if (dashboard) add(["Mobbin"]);
+    if (mobile) add(["Mobbin", "AppShots", "UI Bowl"]);
+  }
+
+  return allowed;
+}
+
+function filterPlatformKeywords(
+  keywords: Record<string, string[]>,
+  needs: GeneratorAnalysis["referenceNeeds"],
+  assetType: string,
+): Record<string, string[]> {
+  const allowed = allowedPlatformsFor(assetType, needs);
+  return Object.fromEntries(
+    Object.entries(keywords)
+      .filter(([platform]) => allowed.has(platform))
+      .map(([platform, values]) => [platform, values.filter(Boolean)]),
+  );
 }
 
 function buildLayoutPlatformKeywords(domain: string, assetType: string): Record<string, string[]> {
-  const isWeb = isWebAsset(assetType);
+  const isWeb = isMarketingWebAsset(assetType);
   const isDashboard = isDashboardAsset(assetType);
-  const documentTemplate = isDocumentAsset(assetType) ? `${domain} ${assetType} layout` : `${domain} UI design`;
+  const isMobile = isMobileAsset(assetType);
+  const isDocument = isDocumentAsset(assetType);
+  const primaryLayoutKeyword = isDocument
+    ? `${domain} ${assetType} layout`
+    : isDashboard
+    ? `${domain} dashboard UI`
+    : `${domain} UI design`;
+  const secondaryLayoutKeyword = isDocument
+    ? `${domain} editorial layout`
+    : isDashboard
+    ? `${domain} admin dashboard`
+    : `${domain} interface design`;
   return {
-    Dribbble: [documentTemplate, `${domain} editorial layout`],
-    Behance: [`${domain} ${assetType} case study`, "enterprise brochure layout"],
-    Mobbin: isWeb ? ["marketing website screen", "SaaS landing page"] : [],
-    Pinterest: [`${domain} layout inspiration`, "editorial design moodboard"],
-    "Figma Community": [isDocumentAsset(assetType) ? "proposal brochure layout template" : "dashboard UI kit", "landing page template", "component library"],
-    Google: isWeb ? [`${domain} company website`, `${domain} service homepage reference`, `${domain} competitor website`] : [],
+    Dribbble: [primaryLayoutKeyword, secondaryLayoutKeyword],
+    Behance: [`${domain} ${assetType} case study`, isDocument ? "enterprise brochure layout" : "enterprise dashboard case study"],
+    Mobbin: isMobile ? ["mobile onboarding flow", "mobile profile setup"] : isDashboard ? ["dashboard app screen", "admin settings flow"] : [],
+    Pinterest: [`${domain} layout inspiration`, isDocument ? "editorial design moodboard" : "dashboard UI inspiration"],
+    "Figma Community": [isDocument ? "proposal brochure layout template" : "dashboard UI kit", isWeb ? "landing page template" : "admin dashboard template", "component library"],
+    Google: isWeb
+      ? [`${domain} company website`, `${domain} service homepage reference`, `${domain} competitor website`]
+      : isDashboard
+      ? [`${domain} dashboard UI reference`, `${domain} admin dashboard example`]
+      : [],
     GDWEB: isWeb ? [`${domain} 홈페이지`, `${domain} 이벤트페이지`, "기업 홈페이지"] : [],
     "Land-book": isWeb ? [`${domain} landing page`, "SaaS landing page design"] : [],
-    "Page Flows": isDashboard ? ["onboarding flow", "settings flow", "dashboard navigation flow"] : [],
+    "Page Flows": isDashboard || isMobile ? ["onboarding flow", "settings flow", "account setup flow"] : [],
     Awwwards: isWeb ? [`${domain} corporate website`, "agency website design"] : [],
     "Lapa Ninja": isWeb ? [`${domain} landing page`, "SaaS homepage design"] : [],
     DBDIC: isWeb ? [`${domain} 홈페이지 레이아웃`, "GNB 구조 레퍼런스"] : [],
     DBCUT: isWeb ? [`${domain} 홈페이지 리뉴얼`, "기업사이트 트렌드"] : [],
-    AppShots: isDashboard || /login/i.test(assetType) ? ["dashboard app screen", "login UI flow"] : [],
-    "UI Bowl": isDashboard ? ["탭 컴포넌트", "카드 컴포넌트", "폼 컴포넌트"] : [],
+    AppShots: isMobile ? ["mobile app screen", "profile setup screen"] : /login/i.test(assetType) ? ["login UI flow"] : [],
+    "UI Bowl": isMobile ? ["탭 컴포넌트", "카드 컴포넌트", "폼 컴포넌트"] : [],
     "Brand New": isDocumentAsset(assetType) ? [`${domain} rebrand case study`, "identity redesign"] : [],
     BrandB: isDocumentAsset(assetType) ? [`${domain} CI BI 디자인`, "브랜드 리뉴얼"] : [],
   };
 }
 
 function buildImagePlatformKeywords(domain: string, assetType: string): Record<string, string[]> {
+  const isMarketingWeb = isMarketingWebAsset(assetType);
+  const isDashboard = isDashboardAsset(assetType);
+  const isMobile = isMobileAsset(assetType);
   return {
     Dribbble: [`${domain} cover visual`, `${domain} hero visual`],
     Behance: [`${domain} brand visual case study`, `${assetType} cover visual design`],
-    Mobbin: /login/i.test(assetType) ? ["login screen visual", "authentication screen illustration"] : [],
+    Mobbin: isDashboard || isMobile || /login/i.test(assetType) ? ["login screen visual", "authentication screen illustration"] : [],
     Pinterest: [`${domain} key visual`, "technology abstract background"],
     "Figma Community": ["hero section visual template", "proposal cover template"],
-    Google: isWebAsset(assetType) ? [`${domain} hero image website`, `${domain} landing page hero visual`] : [],
-    GDWEB: isWebAsset(assetType) ? [`${domain} 홈페이지 비주얼`, `${domain} 랜딩페이지 히어로`] : [],
-    "Land-book": isWebAsset(assetType) ? [`${domain} landing page`] : [],
+    Google: isMarketingWeb ? [`${domain} hero image website`, `${domain} landing page hero visual`] : [],
+    GDWEB: isMarketingWeb ? [`${domain} 홈페이지 비주얼`, `${domain} 랜딩페이지 히어로`] : [],
+    "Land-book": isMarketingWeb ? [`${domain} landing page`] : [],
     "Page Flows": [],
     "World Brand Design": isDocumentAsset(assetType) ? [`${domain} brand identity`, "corporate branding visual"] : [],
     "Brand Archive": isDocumentAsset(assetType) ? ["art direction reference", "brand application visual"] : [],
@@ -319,9 +406,13 @@ function buildImagePlatformKeywords(domain: string, assetType: string): Record<s
   };
 }
 
-function normalizeImagePrompts(data: Partial<GeneratorAnalysis>, domain: string, assetType: string): string[] {
+function normalizeImagePrompts(data: Partial<GeneratorAnalysis>, domain: string, assetType: string): { en: string[]; ko: string[] } {
   const prompts = asStringArray(data.imagePrompts).slice(0, 3);
-  return prompts.length ? prompts : defaultImagePrompts(domain, assetType);
+  const promptsKo = asStringArray(data.imagePromptsKo).slice(0, 3);
+
+  if (prompts.length && promptsKo.length === prompts.length) return { en: prompts, ko: promptsKo };
+  if (prompts.length) return { en: prompts, ko: prompts.map(() => "") };
+  return { en: defaultImagePrompts(domain, assetType), ko: defaultImagePromptsKo(domain, assetType) };
 }
 
 function defaultImagePrompts(domain: string, assetType: string): string[] {
@@ -330,6 +421,56 @@ function defaultImagePrompts(domain: string, assetType: string): string[] {
     `modern ${domain} brand visual for ${assetType}, product and infrastructure concept, clean lighting, professional presentation cover, no office meeting scene`,
     `sophisticated ${domain} hero image, geometric data-inspired forms, subtle texture, high-end corporate brochure visual, minimal and credible`,
   ];
+}
+
+function defaultImagePromptsKo(domain: string, assetType: string): string[] {
+  return [
+    `프리미엄 ${domain} ${assetType} 표지 키 비주얼, 추상적인 기술 배경, 레이어드 뎁스, 정제된 에디토리얼 구성, 인물 없음, 악수 장면 없음`,
+    `${assetType}를 위한 모던한 ${domain} 브랜드 비주얼, 제품 및 인프라 컨셉, 깔끔한 조명, 전문적인 발표용 표지, 사무실 회의 장면 없음`,
+    `정교한 ${domain} 히어로 이미지, 데이터에서 영감을 받은 기하학적 형태, 섬세한 텍스처, 고급 기업 브로셔용 비주얼, 미니멀하고 신뢰감 있는 톤`,
+  ];
+}
+
+// Pexels/Unsplash는 한국어 도메인명을 이해하지 못하므로 스톡 검색 전용 영문 표기를 따로 둔다.
+const DOMAIN_EN_MAP: Record<string, string> = {
+  "AI 솔루션": "AI technology",
+  헬스케어: "healthcare",
+  금융: "finance",
+  교육: "education",
+  커머스: "ecommerce",
+  제조: "manufacturing",
+  공공: "public sector",
+  물류: "logistics",
+  부동산: "real estate",
+};
+
+function domainToEnglish(domain: string): string {
+  return DOMAIN_EN_MAP[domain] || domain;
+}
+
+// assetType별로 실제로 사진에 찍힐 수 있는 구체적 장면(scene)을 붙여서, "abstract background"류의
+// 범용 표현 대신 도메인 + 장면 조합으로 스톡 검색이 가능하게 한다.
+const ASSET_SCENE_NOUNS: Record<string, string[]> = {
+  dashboard: ["control room", "operations center", "monitoring center"],
+  webpage: ["technology workspace", "modern office team"],
+  "web-app": ["technology workspace", "modern office team"],
+  landing: ["technology workspace", "modern office team"],
+  "event-page": ["event venue", "conference stage"],
+  brochure: ["infrastructure facility", "technology center"],
+  proposal: ["infrastructure facility", "technology center"],
+  report: ["infrastructure facility", "technology center"],
+  poster: ["city skyline", "architecture exterior"],
+};
+
+function buildFallbackStockQueries(domain: string, assetType: string): string[] {
+  const domainEn = domainToEnglish(domain);
+  const scenes = ASSET_SCENE_NOUNS[assetType] || ["control room", "technology center"];
+  return scenes.map((scene) => `${domainEn} ${scene}`);
+}
+
+function normalizeStockImageQueries(data: Partial<GeneratorAnalysis>, domain: string, assetType: string): string[] {
+  const queries = asStringArray(data.stockImageQueries).slice(0, 4);
+  return queries.length ? queries : buildFallbackStockQueries(domain, assetType);
 }
 
 function defaultScreenTypes(assetType: string): GeneratorAnalysis["screenTypes"] {
@@ -366,6 +507,7 @@ function defaultMoods(): GeneratorAnalysis["moods"] {
 }
 
 const ASSET_TYPE_RULES: Array<{ pattern: RegExp; assetType: string }> = [
+  { pattern: /모바일\s*(앱|전용|화면)|네이티브\s*앱|iOS\s*앱|안드로이드\s*앱|mobile\s*app|iPhone\s*\d/i, assetType: "mobile-app" },
   { pattern: /브로셔|리플렛|brochure|leaflet/i, assetType: "brochure" },
   { pattern: /제안서|proposal/i, assetType: "proposal" },
   { pattern: /보고서|report/i, assetType: "report" },

@@ -56,6 +56,8 @@ export type GeneratorAnalysis = {
   platformKeywords: Record<string, string[]>;
   imageKeywords: string[];
   imagePrompts: string[];
+  imagePromptsKo: string[];
+  stockImageQueries: string[];
   references: ReferenceGroup[];
 };
 
@@ -97,10 +99,11 @@ export type MoodImage = {
   credit: string;
   query: string;
   provider: MoodImageProvider;
+  description?: string;
 };
 
 export type MoodImagesResponse = {
   images: MoodImage[];
-  query: string;
+  queries: string[];
   providers: MoodImageProvider[];
 };

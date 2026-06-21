@@ -53,9 +53,8 @@ const PLATFORMS: Record<string, PlatformConfig> = {
   },
   GDWEB: {
     siteUrl: "https://www.gdweb.co.kr",
-    note: "Google site search로 GDWEB 선정작 탐색",
+    note: "국내 홈페이지/랜딩/이벤트 선정작 - 키워드 복사 후 사이트에서 직접 검색",
     purpose: "both",
-    searchUrl: (q) => `https://www.google.com/search?q=${makeQuery(`site:gdweb.co.kr ${q}`)}`,
   },
   "Land-book": {
     siteUrl: "https://land-book.com",
