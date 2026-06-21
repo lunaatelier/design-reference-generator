@@ -100,6 +100,24 @@ Write-Output "$weekStart ~ $weekEnd"
 
 폴더가 없으면 생성 후 파일을 새로 만들고, 있으면 기존 파일에 누적 추가합니다.
 
+## 안전한 쓰기 절차 (필수 — 데이터 손실 방지)
+
+과거에 경로 혼동(`design-reference-generator\work-log\...`라는 프로젝트 내부 경로에 잘못 저장)과 전체 덮어쓰기가 겹쳐 기존 세션 6개가 통째로 사라진 사고가 있었습니다. 세션 로그 파일에 쓰기 전 반드시 아래 순서를 지킵니다.
+
+1. **경로 검증**: 대상 경로에 `design-reference-generator\work-log\`가 포함되면(프로젝트 폴더 내부) 금지 경로이므로 즉시 중단하고 사용자에게 알립니다. 올바른 경로는 `$workspace\work-log\design-reference-generator\session_[weekStart].md`처럼 workspace 루트(프로젝트 폴더의 부모 폴더) 기준이어야 합니다.
+2. **파일이 이미 존재하면**:
+   - 먼저 `Get-Content`로 전체 내용을 읽어 기존 세션 개수와 내용을 확인합니다.
+   - 같은 폴더에 `session_[weekStart].md.bak`으로 현재 내용을 백업합니다 (매번 최신 상태로 덮어써도 됩니다).
+   - **`Set-Content`로 전체를 다시 쓰지 않습니다.** 읽어온 기존 내용 뒤에 새 세션 블록만 이어붙인 결과를 써야 합니다 — "추가"는 허용하지만 "전체 교체"는 절대 금지합니다.
+3. **파일이 없으면** 새로 생성합니다 (헤더 + 첫 세션만 포함). 이 경우에만 전체 쓰기가 허용됩니다.
+4. **쓰기 후 검증**: 파일을 다시 읽어 (a) 쓰기 전에 있던 세션 항목 수가 줄지 않았는지, (b) 새 세션이 끝에 추가됐는지 확인합니다. 항목이 줄었으면 즉시 `.bak`에서 복구하고 사용자에게 알립니다.
+5. **검증 통과 시에만 커밋**: 4번 검증을 통과한 경우에만 `work-log` 저장소에 커밋합니다. 검증에 실패했으면 커밋하지 않습니다 — 잘못된 상태가 git 기록에 남지 않도록 합니다.
+   ```powershell
+   git -C "$workspace\work-log" add "design-reference-generator/session_[weekStart].md"
+   git -C "$workspace\work-log" commit -m "log: design-reference-generator [YYYY-MM-DD] 세션 기록"
+   ```
+   커밋된 내용은 이후 다시 잘못 쓰여도 `git log`/`git show`로 언제든 이전 정상 상태를 복구할 수 있는 영구 기록이 됩니다.
+
 ## 7. 세션 로그 파일에 기록
 
 파일이 없으면 헤더를 먼저 작성합니다:

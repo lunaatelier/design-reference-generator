@@ -3,12 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import FileDropzone from "@/components/FileDropzone";
 import { buildImageSearchQueries, buildRelevanceTerms } from "@/lib/moodImageQuery";
-import type { AnalyzeResponse, GeneratorAnalysis, MoodImage } from "@/types";
-
-const purposeTone = {
-  "ui-reference": "bg-teal-100 text-teal-900 border-teal-200",
-  "image-reference": "bg-amber-100 text-amber-950 border-amber-200",
-};
+import { buildReferenceGroups } from "@/lib/references";
+import type {
+  AnalyzeResponse,
+  AssetProfile,
+  DesignDirection,
+  GeneratorAnalysis,
+  ImageDirection,
+  LayoutModule,
+  LayoutVariant,
+  Mood,
+  MoodImage,
+} from "@/types";
 
 const paletteAdjustmentOptions = [
   {
@@ -42,16 +48,12 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-function isDocumentStyleAsset(assetType: string): boolean {
-  return /brochure|proposal|report|poster/i.test(assetType);
-}
-
 // 실제 UI(대시보드/웹앱/모바일 등) 콘텐츠 영역 배경은 거의 항상 무채색이다 - 채도 높은 팔레트
 // 컬러를 그대로 까는 건 표지 디자인이 있는 제안서/포스터류에서만 자연스럽다. mood.colors는
 // 색 개수가 일정하지 않아 고정 인덱스(예: colors[3])로 "surface"를 집어내면 실제로는 비비드한
 // 포인트 컬러가 배경 전체에 깔리는 사고가 난다.
-function pickSurfaceColor(colors: string[], assetType: string, themeIsLight: boolean): string {
-  if (isDocumentStyleAsset(assetType)) {
+function pickSurfaceColor(colors: string[], domainHint: AssetProfile["domainHint"], themeIsLight: boolean): string {
+  if (domainHint === "document") {
     return colors[3] || (themeIsLight ? "#f8fafc" : "#18181b");
   }
   return themeIsLight ? "#f8fafc" : "#0b1220";
@@ -77,54 +79,54 @@ function buildImagePromptVariantsKo(promptKo: string, moodTitle: string, colors:
   ];
 }
 
-function buildImagePromptsFromImage(analysis: GeneratorAnalysis, mood: GeneratorAnalysis["moods"][number], image: MoodImage): string[] {
-  const { title, assetType } = analysis.project;
+function buildImagePromptsFromImage(projectTitle: string, imageDirection: ImageDirection, mood: Mood, image: MoodImage): string[] {
   const colors = mood.colors.slice(0, 4).join(", ");
   const query = image.query;
+  const directionText = `${imageDirection.title} ${imageDirection.id}`;
 
-  if (/login/i.test(assetType)) {
+  if (/login|로그인|인증/i.test(directionText)) {
     return [
-      `Login hero image for ${title}, inspired by ${query}, ${mood.title} mood, colors ${colors}, clean secure service atmosphere, no text`,
-      `Authentication background visual for ${title}, ${query}, soft depth, trustworthy digital product style, spacious composition, no text`,
+      `Login hero image for ${projectTitle}, inspired by ${query}, ${mood.title} mood, colors ${colors}, clean secure service atmosphere, no text`,
+      `Authentication background visual for ${projectTitle}, ${query}, soft depth, trustworthy digital product style, spacious composition, no text`,
       `Cropped login-side image for a web app, ${query}, refined brand visual, room for form panel on one side, no text`,
     ];
   }
-  if (/landing|web|homepage|event/i.test(assetType)) {
+  if (/landing|web|homepage|hero|event|홈페이지|랜딩|히어로/i.test(directionText)) {
     return [
-      `Homepage hero image for ${title}, inspired by ${query}, ${mood.title} mood, colors ${colors}, strong focal point, no text`,
-      `Landing page support visual for ${title}, ${query}, premium digital service mood, clean composition with copy space, no text`,
+      `Homepage hero image for ${projectTitle}, inspired by ${query}, ${mood.title} mood, colors ${colors}, strong focal point, no text`,
+      `Landing page support visual for ${projectTitle}, ${query}, premium digital service mood, clean composition with copy space, no text`,
       `Wide web hero background, ${query}, modern brand direction, polished realistic/abstract blend, no text, no logos`,
     ];
   }
   return [
-    `Proposal cover image for ${title}, inspired by ${query}, ${mood.title} mood, colors ${colors}, editorial composition, no text`,
-    `Brochure cover visual for ${title}, ${query}, refined technology abstract background, strong but uncluttered focal area, no text`,
+    `Proposal cover image for ${projectTitle}, inspired by ${query}, ${mood.title} mood, colors ${colors}, editorial composition, no text`,
+    `Brochure cover visual for ${projectTitle}, ${query}, refined technology abstract background, strong but uncluttered focal area, no text`,
     `Document section background image, ${query}, professional brand mood, subtle depth, suitable for overlaying headings, no text`,
   ];
 }
 
-function buildImagePromptsFromImageKo(analysis: GeneratorAnalysis, mood: GeneratorAnalysis["moods"][number], image: MoodImage): string[] {
-  const { title, assetType } = analysis.project;
+function buildImagePromptsFromImageKo(projectTitle: string, imageDirection: ImageDirection, mood: Mood, image: MoodImage): string[] {
   const colors = mood.colors.slice(0, 4).join(", ");
   const query = image.query;
+  const directionText = `${imageDirection.title} ${imageDirection.id}`;
 
-  if (/login/i.test(assetType)) {
+  if (/login|로그인|인증/i.test(directionText)) {
     return [
-      `${title} 로그인 히어로 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 깔끔하고 안전한 서비스 느낌, 텍스트 없음`,
-      `${title} 인증 화면 배경 — "${query}" 기반, 부드러운 깊이감, 신뢰감 있는 디지털 제품 스타일, 여유로운 구성, 텍스트 없음`,
+      `${projectTitle} 로그인 히어로 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 깔끔하고 안전한 서비스 느낌, 텍스트 없음`,
+      `${projectTitle} 인증 화면 배경 — "${query}" 기반, 부드러운 깊이감, 신뢰감 있는 디지털 제품 스타일, 여유로운 구성, 텍스트 없음`,
       `웹앱 로그인 분할형 이미지 — "${query}" 참고, 정제된 브랜드 비주얼, 한쪽에 폼 패널 들어갈 공간 확보, 텍스트 없음`,
     ];
   }
-  if (/landing|web|homepage|event/i.test(assetType)) {
+  if (/landing|web|homepage|hero|event|홈페이지|랜딩|히어로/i.test(directionText)) {
     return [
-      `${title} 홈페이지 히어로 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 강한 포컬 포인트, 텍스트 없음`,
-      `${title} 랜딩페이지 보조 비주얼 — "${query}" 기반, 프리미엄 디지털 서비스 느낌, 카피 들어갈 여백 포함, 텍스트 없음`,
+      `${projectTitle} 홈페이지 히어로 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 강한 포컬 포인트, 텍스트 없음`,
+      `${projectTitle} 랜딩페이지 보조 비주얼 — "${query}" 기반, 프리미엄 디지털 서비스 느낌, 카피 들어갈 여백 포함, 텍스트 없음`,
       `와이드 웹 히어로 배경 — "${query}" 참고, 모던 브랜드 방향, 사실적·추상 혼합 톤, 텍스트·로고 없음`,
     ];
   }
   return [
-    `${title} 제안서 표지 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 에디토리얼 구성, 텍스트 없음`,
-    `${title} 브로셔 표지 비주얼 — "${query}" 기반, 정제된 기술 추상 배경, 강하지만 정돈된 포컬 영역, 텍스트 없음`,
+    `${projectTitle} 제안서 표지 이미지 — "${query}" 참고, ${mood.title} 무드, 컬러 ${colors}, 에디토리얼 구성, 텍스트 없음`,
+    `${projectTitle} 브로셔 표지 비주얼 — "${query}" 기반, 정제된 기술 추상 배경, 강하지만 정돈된 포컬 영역, 텍스트 없음`,
     `문서 섹션 배경 이미지 — "${query}" 참고, 전문적인 브랜드 무드, 미세한 깊이감, 제목 얹기 적합, 텍스트 없음`,
   ];
 }
@@ -349,6 +351,7 @@ function MoodCards({
 
 function SelectedMoodBoard({
   analysis,
+  direction,
   mood,
   colorBrief,
   primaryColor,
@@ -359,7 +362,8 @@ function SelectedMoodBoard({
   regenerateNote,
 }: {
   analysis: GeneratorAnalysis;
-  mood: GeneratorAnalysis["moods"][number];
+  direction: DesignDirection;
+  mood: Mood;
   colorBrief: string;
   primaryColor: string;
   onBriefChange: (brief: string) => void;
@@ -373,7 +377,8 @@ function SelectedMoodBoard({
   const primary = colors[1] || "#2563eb";
   const accent = colors[2] || "#06b6d4";
   const bgIsLight = isLightColor(bg);
-  const surface = pickSurfaceColor(colors, analysis.project.assetType, bgIsLight);
+  const surface = pickSurfaceColor(colors, analysis.assetProfile.domainHint, bgIsLight);
+  const previewLabels = direction.ui?.screenTypes.slice(0, 3) || [];
 
   return (
     <WorkCard className="p-5">
@@ -383,12 +388,12 @@ function SelectedMoodBoard({
           <div className="grid min-h-[360px] grid-cols-[0.9fr_1.1fr] max-md:grid-cols-1">
             <div className={`flex flex-col justify-between p-6 ${bgIsLight ? "text-zinc-900" : "text-white"}`} style={{ background: bg }}>
               <div>
-                <p className={`text-xs font-bold uppercase tracking-[0.14em] ${bgIsLight ? "text-zinc-500" : "text-white/60"}`}>{analysis.project.assetType}</p>
-                <h3 className="mt-4 text-2xl font-black">{analysis.project.title}</h3>
+                <p className={`text-xs font-bold uppercase tracking-[0.14em] ${bgIsLight ? "text-zinc-500" : "text-white/60"}`}>{direction.label}</p>
+                <h3 className="mt-4 text-2xl font-black">{analysis.projectIntent.title}</h3>
                 <p className={`mt-4 max-w-sm text-sm leading-6 ${bgIsLight ? "text-zinc-600" : "text-white/75"}`}>{mood.desc}</p>
               </div>
               <div className="grid gap-2">
-                {analysis.screenTypes.slice(0, 3).map((item) => (
+                {previewLabels.map((item) => (
                   <div key={item.name} className={`rounded-md px-3 py-2 text-sm font-bold ${bgIsLight ? "bg-black/10 text-zinc-800" : "bg-white/12 text-white/90"}`}>
                     {item.name}
                   </div>
@@ -492,18 +497,17 @@ const referenceFilterOptions = [
 ];
 
 function References({
-  analysis,
+  direction,
   filter,
   onFilterChange,
 }: {
-  analysis: GeneratorAnalysis;
+  direction: DesignDirection;
   filter: "all" | "layout" | "image";
   onFilterChange: (filter: "all" | "layout" | "image") => void;
 }) {
-  const showFilter = analysis.referenceNeeds.layout && analysis.referenceNeeds.image;
-  const visibleGroups = showFilter
-    ? analysis.references.filter((group) => filter === "all" || group.purpose === "both" || group.purpose === filter)
-    : analysis.references;
+  const groups = useMemo(() => buildReferenceGroups(direction), [direction]);
+  const showFilter = Boolean(direction.ui) && Boolean(direction.visual);
+  const visibleGroups = showFilter ? groups.filter((group) => filter === "all" || group.purpose === "both" || group.purpose === filter) : groups;
 
   return (
     <WorkCard className="p-5">
@@ -626,7 +630,7 @@ function buildEntryScreenFragment({
   textMuted,
 }: {
   layout: ScreenLayout;
-  screen: GeneratorAnalysis["screenTypes"][number];
+  screen: { icon: string; name: string; count: number; desc: string };
   primary: string;
   accent: string;
   cardBg: string;
@@ -700,16 +704,8 @@ function buildEntryScreenFragment({
 </div>`;
 }
 
-function hasLoginScreen(analysis: GeneratorAnalysis): boolean {
-  return analysis.screenTypes.some((screen) => LOGIN_SCREEN_PATTERN.test(`${screen.name} ${screen.desc}`));
-}
-
-// 대시보드/관리자/웹앱 + 로그인 화면 없음 → 실사 이미지보다 UI 레퍼런스가 핵심이라
-// 레퍼런스 이미지 워크숍을 기본 접힘으로 둔다(완전히 숨기지는 않음).
-const UI_FIRST_ASSET_PATTERN = /dashboard|web-app|mobile-app|admin|other/i;
-
-function shouldPrioritizeUi(analysis: GeneratorAnalysis): boolean {
-  return analysis.referenceNeeds.layout && UI_FIRST_ASSET_PATTERN.test(analysis.project.assetType) && !hasLoginScreen(analysis);
+function hasLoginScreen(screenTypes: Array<{ name: string; desc: string }>): boolean {
+  return screenTypes.some((screen) => LOGIN_SCREEN_PATTERN.test(`${screen.name} ${screen.desc}`));
 }
 
 function PreviewNav({ primary }: { primary: string }) {
@@ -726,10 +722,10 @@ function PreviewNav({ primary }: { primary: string }) {
   );
 }
 
-function PreviewDashboard({ colors, screenName, assetType }: { colors: string[]; screenName: string; assetType: string }) {
+function PreviewDashboard({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
   const primary = colors[0] || "#111827";
   const accent = colors[1] || "#2563eb";
-  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
   const surfaceLight = isLightColor(surface);
 
   return (
@@ -778,10 +774,10 @@ function PreviewDashboard({ colors, screenName, assetType }: { colors: string[];
   );
 }
 
-function PreviewList({ colors, screenName, assetType }: { colors: string[]; screenName: string; assetType: string }) {
+function PreviewList({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
   const primary = colors[0] || "#111827";
   const accent = colors[1] || "#2563eb";
-  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
   const surfaceLight = isLightColor(surface);
 
   return (
@@ -810,10 +806,10 @@ function PreviewList({ colors, screenName, assetType }: { colors: string[]; scre
   );
 }
 
-function PreviewDetail({ colors, screenName, assetType }: { colors: string[]; screenName: string; assetType: string }) {
+function PreviewDetail({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
   const primary = colors[0] || "#111827";
   const accent = colors[1] || "#2563eb";
-  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
   const surfaceLight = isLightColor(surface);
 
   return (
@@ -858,17 +854,17 @@ function PreviewDetail({ colors, screenName, assetType }: { colors: string[]; sc
 function PreviewCentered({
   colors,
   screenName,
-  assetType,
+  domainHint,
   layout,
 }: {
   colors: string[];
   screenName: string;
-  assetType: string;
+  domainHint: AssetProfile["domainHint"];
   layout: ScreenLayout;
 }) {
   const primary = colors[0] || "#111827";
   const accent = colors[1] || "#2563eb";
-  const surface = pickSurfaceColor(colors, assetType, isLightColor(colors[0] || "#111827"));
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
   const surfaceLight = isLightColor(surface);
   const lineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
   const dotInactive = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.2)";
@@ -1033,22 +1029,295 @@ function PreviewMobile({ colors, screenName, layout }: { colors: string[]; scree
   );
 }
 
+function modulesByWeight(modules: LayoutModule[], weight: LayoutModule["weight"]): LayoutModule[] {
+  return modules.filter((module) => module.weight === weight);
+}
+
+function PreviewMapCentric({ colors, screenName, domainHint, modules }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; modules: LayoutModule[] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const mapModule = modulesByWeight(modules, "primary")[0] || { id: "map", label: "지도 캔버스", weight: "primary" as const };
+  const sidePanels = [...modulesByWeight(modules, "secondary"), ...modulesByWeight(modules, "support")];
+  const panels = sidePanels.length ? sidePanels : [{ id: "panel-1", label: "필터", weight: "secondary" as const }, { id: "panel-2", label: "목록", weight: "support" as const }];
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="flex min-h-72" style={{ background: surface }}>
+        <div className="relative flex-1 overflow-hidden" style={{ background: surfaceLight ? "#e4e4e7" : "#1f2937" }}>
+          <div className="absolute left-3 top-3 rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-zinc-700 shadow-sm">{mapModule.label}</div>
+          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: `linear-gradient(120deg, ${accent}33 0%, transparent 40%, ${accent}22 70%)` }} />
+          {[...Array(6)].map((_, i) => (
+            <span
+              key={i}
+              className="absolute h-2.5 w-2.5 rounded-full border-2 border-white"
+              style={{ background: i % 2 === 0 ? accent : "#ef4444", left: `${15 + i * 13}%`, top: `${20 + ((i * 17) % 60)}%` }}
+            />
+          ))}
+        </div>
+        <div className="w-56 shrink-0 border-l border-zinc-200 p-3" style={{ background: surfaceLight ? "#ffffff" : "#18181b" }}>
+          <h4 className={`mb-3 truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          {panels.map((panel) => (
+            <div key={panel.id} className="mb-3 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5">
+              <div className="mb-2 text-xs font-bold text-zinc-500">{panel.label}</div>
+              <div className="grid gap-1.5">
+                {[...Array(3)].map((_, i) => <div key={i} className="h-2 rounded bg-zinc-200" />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewCommandCenter({ colors, screenName, domainHint, modules, density }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; modules: LayoutModule[]; density: LayoutVariant["density"] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const gap = density === "compact" ? "gap-1.5" : density === "spacious" ? "gap-4" : "gap-2.5";
+  const labels = modules.length ? modules.map((m) => m.label) : ["지도/CCTV", "KPI", "알림 피드", "상태"];
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className={`grid grid-cols-2 ${gap} p-3`} style={{ background: surface }}>
+        <h4 className={`col-span-2 truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+        <div className="col-span-2 grid grid-cols-3 gap-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-lg border border-zinc-200 bg-white p-2">
+              <div className="h-1.5 w-8 rounded bg-zinc-200" />
+              <div className="mt-2 h-5 w-10 rounded" style={{ background: i === 1 ? accent : "#e4e4e7" }} />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border border-zinc-200 p-2.5" style={{ background: surfaceLight ? "#e4e4e7" : "#1f2937" }}>
+          <div className="text-xs font-bold text-zinc-500">{labels[0]}</div>
+          <div className="mt-2 h-20 rounded" style={{ background: `${accent}33` }} />
+        </div>
+        <div className="grid gap-2">
+          <div className="flex-1 rounded-lg border border-zinc-200 bg-white p-2">
+            <div className="text-xs font-bold text-zinc-500">{labels[2] || "알림 피드"}</div>
+            <div className="mt-1.5 grid gap-1">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: i === 0 ? "#ef4444" : accent }} />
+                  <div className="h-1.5 flex-1 rounded bg-zinc-100" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewKpiWall({ colors, screenName, domainHint, modules, density }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; modules: LayoutModule[]; density: LayoutVariant["density"] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const tiles = modules.length ? modules : [{ id: "t1", label: "지표 1", weight: "primary" as const }, { id: "t2", label: "지표 2", weight: "primary" as const }, { id: "t3", label: "지표 3", weight: "primary" as const }, { id: "t4", label: "지표 4", weight: "primary" as const }];
+  const padding = density === "compact" ? "p-3" : density === "spacious" ? "p-6" : "p-4";
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className={padding} style={{ background: surface }}>
+        <h4 className={`mb-3 truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+        <div className="grid grid-cols-2 gap-3">
+          {tiles.slice(0, 4).map((tile, i) => (
+            <div key={tile.id} className="rounded-xl border border-zinc-200 bg-white p-4 text-center">
+              <div className="text-xs font-bold text-zinc-500">{tile.label}</div>
+              <div className="mt-2 text-2xl font-black" style={{ color: i % 2 === 0 ? accent : "#18181b" }}>
+                {[284, 92, 1284, 12][i % 4]}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewIncidentFocused({ colors, screenName, domainHint, modules }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; modules: LayoutModule[] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const detailLabel = modulesByWeight(modules, "secondary")[0]?.label || "상세/대응";
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="grid gap-3 p-4 md:grid-cols-[0.55fr_0.45fr]" style={{ background: surface }}>
+        <div className="rounded-lg border border-zinc-200 bg-white p-3">
+          <h4 className={`mb-2 truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          {[...Array(5)].map((_, i) => {
+            const severity = i === 0 ? "#ef4444" : i === 1 ? "#f59e0b" : accent;
+            return (
+              <div key={i} className="flex items-center gap-2.5 border-t border-zinc-100 py-2 first:border-t-0">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: severity }} />
+                <div className="h-2 flex-1 rounded bg-zinc-200" />
+                <div className="h-2 w-10 rounded bg-zinc-100" />
+              </div>
+            );
+          })}
+        </div>
+        <div className="rounded-lg border border-zinc-200 bg-white p-3">
+          <div className="text-xs font-bold text-zinc-500">{detailLabel}</div>
+          <div className="mt-2 h-20 rounded-lg" style={{ background: `${accent}33` }} />
+          <div className="mt-3 grid gap-1.5">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-2 rounded bg-zinc-100" />)}
+          </div>
+          <div className="mt-3 h-8 rounded-lg" style={{ background: accent }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewSplitMonitoring({ colors, screenName, domainHint, modules }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; modules: LayoutModule[] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const tileCount = Math.max(4, Math.min(6, modules.length || 4));
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="flex min-h-72" style={{ background: surface }}>
+        <div className="grid flex-1 grid-cols-2 gap-1.5 p-2">
+          {[...Array(tileCount)].map((_, i) => (
+            <div key={i} className="relative flex items-center justify-center rounded" style={{ background: surfaceLight ? "#d4d4d8" : "#27272a" }}>
+              <span className="text-[10px] font-bold text-zinc-500">CAM {i + 1}</span>
+              {i === 0 && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-red-500" />}
+            </div>
+          ))}
+        </div>
+        <div className="w-44 shrink-0 border-l border-zinc-200 p-3" style={{ background: surfaceLight ? "#ffffff" : "#18181b" }}>
+          <h4 className={`mb-3 truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="mb-2 flex items-center justify-between rounded-md bg-zinc-50 px-2 py-1.5">
+              <span className="text-xs text-zinc-500">상태 {i + 1}</span>
+              <span className="h-2 w-2 rounded-full" style={{ background: i === 0 ? "#22c55e" : accent }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LayoutVariantPreview({ variant, colors, screenName, domainHint }: { variant: LayoutVariant; colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  switch (variant.structure) {
+    case "map-centric":
+      return <PreviewMapCentric colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} />;
+    case "command-center":
+      return <PreviewCommandCenter colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} density={variant.density} />;
+    case "kpi-wall":
+      return <PreviewKpiWall colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} density={variant.density} />;
+    case "incident-focused":
+      return <PreviewIncidentFocused colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} />;
+    case "split-monitoring":
+      return <PreviewSplitMonitoring colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} />;
+    case "generic-list":
+      return <PreviewList colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "generic-detail":
+      return <PreviewDetail colors={colors} screenName={screenName} domainHint={domainHint} />;
+    default:
+      return <PreviewDashboard colors={colors} screenName={screenName} domainHint={domainHint} />;
+  }
+}
+
+function LayoutVariantPicker({
+  variants,
+  selectedId,
+  onSelect,
+}: {
+  variants: LayoutVariant[];
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+}) {
+  if (variants.length <= 1) return null;
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      {variants.map((variant) => (
+        <button
+          key={variant.id}
+          type="button"
+          onClick={() => onSelect(variant.id)}
+          className={`rounded-lg border p-3 text-left transition-colors ${
+            selectedId === variant.id ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100" : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+          }`}
+        >
+          <p className="font-bold text-zinc-950">{variant.title}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">{variant.structure}</p>
+          {variant.description && <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600">{variant.description}</p>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DirectionTabs({
+  directions,
+  selectedId,
+  onSelect,
+}: {
+  directions: DesignDirection[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  if (directions.length <= 1) return null;
+  return (
+    <div className="flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-zinc-50 p-1.5">
+      {directions.map((direction) => (
+        <button
+          key={direction.id}
+          type="button"
+          onClick={() => onSelect(direction.id)}
+          className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+            selectedId === direction.id ? "bg-zinc-950 text-white" : "text-zinc-600 hover:text-zinc-950"
+          }`}
+        >
+          {direction.label}
+          {direction.appliesTo && <span className="ml-2 text-xs font-medium opacity-70">{direction.appliesTo}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type ScreenTypeItem = { icon: string; name: string; count: number; desc: string };
+
 function ImplementationSample({
   analysis,
+  direction,
   mood,
+  variant,
   screen,
 }: {
   analysis: GeneratorAnalysis;
-  mood: GeneratorAnalysis["moods"][number];
-  screen: GeneratorAnalysis["screenTypes"][number];
+  direction: DesignDirection;
+  mood: Mood;
+  variant: LayoutVariant;
+  screen: ScreenTypeItem;
 }) {
   const colors = mood.colors.length ? mood.colors : analysis.palette.map((item) => item.hex);
   const layout = detectScreenLayout(screen.name, screen.desc);
+  const projectTitle = analysis.projectIntent.title;
+  const screenTypes = direction.ui?.screenTypes || [];
 
   const handleDownload = () => {
     const primary = colors[0] || "#111827";
     const accent = colors[1] || "#2563eb";
-    const surface = pickSurfaceColor(colors, analysis.project.assetType, isLightColor(colors[0] || "#111827"));
+    const surface = pickSurfaceColor(colors, analysis.assetProfile.domainHint, isLightColor(colors[0] || "#111827"));
     const surfaceLight = isLightColor(surface);
     const onSurface = surfaceLight ? "#18181b" : "#ffffff";
     const textMuted = surfaceLight ? "#71717a" : "rgba(255,255,255,0.6)";
@@ -1056,7 +1325,7 @@ function ImplementationSample({
     const cardLine = surfaceLight ? "#f4f4f5" : "rgba(255,255,255,0.08)";
     const onPrimary = isLightColor(primary) ? "#18181b" : "#ffffff";
     const onPrimaryMuted = isLightColor(primary) ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
-    const isMobile = analysis.project.assetType === "mobile-app";
+    const isMobile = analysis.assetProfile.domainHint === "mobile-app";
 
     let html: string;
 
@@ -1064,15 +1333,18 @@ function ImplementationSample({
       const fragment = buildEntryScreenFragment({ layout, screen, primary, accent, cardBg, cardLine, onSurface, textMuted });
 
       html = isMobile
-        ? `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #18181b; display: flex; justify-content: center; padding: 32px 0; }</style>\n</head>\n<body>\n<div style="width:375px;border-radius:36px;overflow:hidden;background:${surface};box-shadow:0 20px 60px rgba(0,0,0,0.35);">\n  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px 4px;font-size:12px;font-weight:700;color:${onSurface};">\n    <span>9:41</span><span>●●●</span>\n  </div>\n  <div style="min-height:600px;padding:24px 20px;display:flex;flex-direction:column;justify-content:center;">\n    ${fragment}\n  </div>\n</div>\n</body>\n</html>`
-        : `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 40px; }</style>\n</head>\n<body>\n<div style="width:100%;max-width:400px;">${fragment}</div>\n</body>\n</html>`;
+        ? `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #18181b; display: flex; justify-content: center; padding: 32px 0; }</style>\n</head>\n<body>\n<div style="width:375px;border-radius:36px;overflow:hidden;background:${surface};box-shadow:0 20px 60px rgba(0,0,0,0.35);">\n  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px 4px;font-size:12px;font-weight:700;color:${onSurface};">\n    <span>9:41</span><span>●●●</span>\n  </div>\n  <div style="min-height:600px;padding:24px 20px;display:flex;flex-direction:column;justify-content:center;">\n    ${fragment}\n  </div>\n</div>\n</body>\n</html>`
+        : `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 40px; }</style>\n</head>\n<body>\n<div style="width:100%;max-width:400px;">${fragment}</div>\n</body>\n</html>`;
     } else if (isMobile) {
       const onPrimaryLocal = onPrimary;
       const onAccent = isLightColor(accent) ? "#18181b" : "#ffffff";
       const screenDesc = escapeHtml(screen.desc || "화면 설명이 등록되지 않았습니다.");
+      // 모바일은 모바일 전용 프레임(상태바/탭바)이 핵심이라 5개 구조별 모바일 템플릿을 따로 만들지
+      // 않고, 구조를 가장 가까운 기존 3종(대시보드형/목록형/상세형) 중 하나로 매핑한다.
+      const mobileVariantKind = variant.structure === "generic-list" ? "list" : variant.structure === "generic-detail" ? "detail" : "dashboard";
 
       const mobileBodyHtml =
-        layout === "dashboard"
+        mobileVariantKind === "dashboard"
           ? `<div style="border-radius:18px;padding:18px;background:${primary};color:${onPrimaryLocal};margin-bottom:12px;">
   <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;opacity:0.75;">${escapeHtml(screen.name)}</div>
   <div style="font-size:28px;font-weight:900;margin-top:8px;">1,284</div>
@@ -1097,7 +1369,7 @@ function ImplementationSample({
     )
     .join("")}
 </div>`
-          : layout === "list"
+          : mobileVariantKind === "list"
           ? `<div style="display:flex;gap:8px;margin-bottom:12px;">
   <div style="flex:1;border-radius:10px;padding:9px 12px;background:${cardBg};font-size:12.5px;color:${textMuted};">검색</div>
   <div style="border-radius:10px;padding:9px 16px;background:${accent};color:#fff;font-size:12.5px;font-weight:700;">+ 추가</div>
@@ -1126,11 +1398,11 @@ function ImplementationSample({
 <div style="height:46px;border-radius:12px;background:${cardBg};color:${onSurface};display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;">취소</div>`;
 
       const mobileHeaderHtml =
-        layout === "list"
+        mobileVariantKind === "list"
           ? `<h2 style="font-size:15px;font-weight:900;color:${onSurface};margin-bottom:14px;">${escapeHtml(screen.name)}</h2>`
           : "";
 
-      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #18181b; display: flex; justify-content: center; padding: 32px 0; }</style>\n</head>\n<body>\n<div style="width:375px;border-radius:36px;overflow:hidden;background:${surface};box-shadow:0 20px 60px rgba(0,0,0,0.35);">\n  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px 4px;font-size:12px;font-weight:700;color:${onSurface};">\n    <span>9:41</span><span>●●●</span>\n  </div>\n  <div style="min-height:600px;padding:16px;">\n    ${mobileHeaderHtml}${mobileBodyHtml}\n  </div>\n  <div style="display:flex;justify-content:space-around;padding:14px 0;border-top:1px solid rgba(255,255,255,0.08);">\n    ${[...Array(4)]
+      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #18181b; display: flex; justify-content: center; padding: 32px 0; }</style>\n</head>\n<body>\n<div style="width:375px;border-radius:36px;overflow:hidden;background:${surface};box-shadow:0 20px 60px rgba(0,0,0,0.35);">\n  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px 4px;font-size:12px;font-weight:700;color:${onSurface};">\n    <span>9:41</span><span>●●●</span>\n  </div>\n  <div style="min-height:600px;padding:16px;">\n    ${mobileHeaderHtml}${mobileBodyHtml}\n  </div>\n  <div style="display:flex;justify-content:space-around;padding:14px 0;border-top:1px solid rgba(255,255,255,0.08);">\n    ${[...Array(4)]
         .map(
           (_, i) =>
             `<div style="width:20px;height:20px;border-radius:6px;background:${i === 0 ? accent : surfaceLight ? "#a1a1aa" : "#71717a"};opacity:${i === 0 ? 1 : 0.5};"></div>`,
@@ -1138,29 +1410,52 @@ function ImplementationSample({
         .join("")}\n  </div>\n</div>\n</body>\n</html>`;
     } else {
       const navHtml = `<nav style="background:${primary};padding:12px 24px;display:flex;align-items:center;justify-content:space-between;">
-  <span style="font-weight:900;font-size:16px;color:${onPrimary}">${escapeHtml(analysis.project.title)}</span>
-  <div style="display:flex;gap:20px;">${analysis.screenTypes.slice(0, 4).map((s) => `<a href="#" style="color:${onPrimaryMuted};text-decoration:none;font-size:13px;">${escapeHtml(s.name)}</a>`).join("")}</div>
+  <span style="font-weight:900;font-size:16px;color:${onPrimary}">${escapeHtml(projectTitle)}</span>
+  <div style="display:flex;gap:20px;">${screenTypes.slice(0, 4).map((s) => `<a href="#" style="color:${onPrimaryMuted};text-decoration:none;font-size:13px;">${escapeHtml(s.name)}</a>`).join("")}</div>
 </nav>`;
 
       const sidebarHtml = `<aside style="width:200px;background:${isLightColor(surface) ? "#f4f4f5" : "#18181b"};border-right:1px solid #e4e4e7;padding:16px;min-height:calc(100vh - 48px);">
-  ${analysis.screenTypes.slice(0, 6).map((s) => { const active = s.name === screen.name; return `<div style="padding:8px 12px;border-radius:6px;margin-bottom:4px;background:${active ? accent : "transparent"};color:${active ? "#fff" : "#71717a"};font-weight:${active ? 700 : 400};font-size:13px;">${escapeHtml(s.icon || "·")} ${escapeHtml(s.name)}</div>`; }).join("")}
+  ${screenTypes.slice(0, 6).map((s) => { const active = s.name === screen.name; return `<div style="padding:8px 12px;border-radius:6px;margin-bottom:4px;background:${active ? accent : "transparent"};color:${active ? "#fff" : "#71717a"};font-weight:${active ? 700 : 400};font-size:13px;">${escapeHtml(s.icon || "·")} ${escapeHtml(s.name)}</div>`; }).join("")}
 </aside>`;
 
-      const contentHtml =
-        layout === "dashboard"
-          ? `<div style="display:flex;"><div>${sidebarHtml}</div><main style="flex:1;padding:24px;"><h2 style="font-size:20px;font-weight:900;color:#09090b;margin-bottom:20px;">${escapeHtml(screen.name)}</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">${[["총 항목", "1,284"], ["활성", "342"], ["달성률", "87%"]].map(([l, v]) => `<div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;color:#71717a;font-weight:600;text-transform:uppercase;">${l}</div><div style="font-size:28px;font-weight:900;color:${accent};margin-top:8px;">${v}</div></div>`).join("")}</div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f4f4f5;">${["이름", "상태", "날짜", "작업"].map((h) => `<th style="text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#71717a;">${h}</th>`).join("")}</tr></thead><tbody>${[...Array(5)].map((_, i) => `<tr style="border-top:1px solid #f4f4f5;"><td style="padding:10px 16px;font-size:13px;">항목 ${i + 1}</td><td style="padding:10px 16px;"><span style="background:${accent}22;color:${accent};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">Active</span></td><td style="padding:10px 16px;font-size:13px;">2026-06-${String(i + 14).padStart(2, "0")}</td><td style="padding:10px 16px;"><button style="padding:6px 12px;background:#fff;border:1px solid #e4e4e7;border-radius:6px;font-size:12px;">보기</button></td></tr>`).join("")}</tbody></table></div></main></div>`
-          : layout === "list"
-          ? `<main style="padding:24px;"><div style="display:flex;justify-content:space-between;margin-bottom:20px;"><div style="display:flex;gap:8px;"><input placeholder="검색..." style="padding:8px 12px;border:1px solid #e4e4e7;border-radius:8px;font-size:13px;"/><button style="padding:8px 20px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">검색</button></div><button style="padding:8px 20px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">+ 추가</button></div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f4f4f5;">${["#", "이름", "카테고리", "상태", "날짜"].map((h) => `<th style="text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#71717a;">${h}</th>`).join("")}</tr></thead><tbody>${[...Array(8)].map((_, i) => `<tr style="border-top:1px solid #f4f4f5;"><td style="padding:10px 16px;">${i + 1}</td><td style="padding:10px 16px;">레코드 ${i + 1}</td><td style="padding:10px 16px;">카테고리 ${(i % 3) + 1}</td><td style="padding:10px 16px;"><span style="background:${accent}22;color:${accent};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">Active</span></td><td style="padding:10px 16px;">2026-06-${String(i + 10).padStart(2, "0")}</td></tr>`).join("")}</tbody></table></div></main>`
-          : `<main style="padding:24px;"><div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;font-size:13px;color:#71717a;"><span>목록</span><span>›</span><span style="color:${accent};font-weight:700;">${escapeHtml(screen.name)}</span></div><div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:16px;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:20px;"><h3 style="font-size:16px;font-weight:900;color:#09090b;margin-bottom:16px;">${escapeHtml(screen.name)} 상세</h3>${[["이름", "샘플 항목"], ["카테고리", "카테고리 A"], ["상태", "Active"], ["생성일", "2026-06-19"], ["설명", escapeHtml(screen.desc || "상세 내용")]].map(([l, v]) => `<div style="display:grid;grid-template-columns:120px 1fr;gap:8px;padding:10px 0;border-top:1px solid #f4f4f5;"><span style="font-size:12px;color:#71717a;font-weight:600;">${l}</span><span style="font-size:13px;color:#18181b;">${v}</span></div>`).join("")}</div><div style="display:grid;gap:12px;align-content:start;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;font-weight:700;color:#71717a;margin-bottom:8px;">상태</div><span style="background:${accent}22;color:${accent};padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;">Active</span></div><button style="width:100%;padding:10px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">저장</button><button style="width:100%;padding:10px;background:#fff;border:1px solid #e4e4e7;border-radius:8px;font-weight:700;cursor:pointer;">취소</button></div></div></main>`;
+      const dashboardContent = `<main style="flex:1;padding:24px;"><h2 style="font-size:20px;font-weight:900;color:#09090b;margin-bottom:20px;">${escapeHtml(screen.name)}</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">${[["총 항목", "1,284"], ["활성", "342"], ["달성률", "87%"]].map(([l, v]) => `<div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;color:#71717a;font-weight:600;text-transform:uppercase;">${l}</div><div style="font-size:28px;font-weight:900;color:${accent};margin-top:8px;">${v}</div></div>`).join("")}</div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f4f4f5;">${["이름", "상태", "날짜", "작업"].map((h) => `<th style="text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#71717a;">${h}</th>`).join("")}</tr></thead><tbody>${[...Array(5)].map((_, i) => `<tr style="border-top:1px solid #f4f4f5;"><td style="padding:10px 16px;font-size:13px;">항목 ${i + 1}</td><td style="padding:10px 16px;"><span style="background:${accent}22;color:${accent};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">Active</span></td><td style="padding:10px 16px;font-size:13px;">2026-06-${String(i + 14).padStart(2, "0")}</td><td style="padding:10px 16px;"><button style="padding:6px 12px;background:#fff;border:1px solid #e4e4e7;border-radius:6px;font-size:12px;">보기</button></td></tr>`).join("")}</tbody></table></div></main>`;
 
-      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(analysis.project.title)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; }</style>\n</head>\n<body>\n${navHtml}\n${contentHtml}\n</body>\n</html>`;
+      const listContent = `<main style="padding:24px;"><div style="display:flex;justify-content:space-between;margin-bottom:20px;"><div style="display:flex;gap:8px;"><input placeholder="검색..." style="padding:8px 12px;border:1px solid #e4e4e7;border-radius:8px;font-size:13px;"/><button style="padding:8px 20px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">검색</button></div><button style="padding:8px 20px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">+ 추가</button></div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f4f4f5;">${["#", "이름", "카테고리", "상태", "날짜"].map((h) => `<th style="text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#71717a;">${h}</th>`).join("")}</tr></thead><tbody>${[...Array(8)].map((_, i) => `<tr style="border-top:1px solid #f4f4f5;"><td style="padding:10px 16px;">${i + 1}</td><td style="padding:10px 16px;">레코드 ${i + 1}</td><td style="padding:10px 16px;">카테고리 ${(i % 3) + 1}</td><td style="padding:10px 16px;"><span style="background:${accent}22;color:${accent};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">Active</span></td><td style="padding:10px 16px;">2026-06-${String(i + 10).padStart(2, "0")}</td></tr>`).join("")}</tbody></table></div></main>`;
+
+      const detailContent = `<main style="padding:24px;"><div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;font-size:13px;color:#71717a;"><span>목록</span><span>›</span><span style="color:${accent};font-weight:700;">${escapeHtml(screen.name)}</span></div><div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:16px;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:20px;"><h3 style="font-size:16px;font-weight:900;color:#09090b;margin-bottom:16px;">${escapeHtml(screen.name)} 상세</h3>${[["이름", "샘플 항목"], ["카테고리", "카테고리 A"], ["상태", "Active"], ["생성일", "2026-06-19"], ["설명", escapeHtml(screen.desc || "상세 내용")]].map(([l, v]) => `<div style="display:grid;grid-template-columns:120px 1fr;gap:8px;padding:10px 0;border-top:1px solid #f4f4f5;"><span style="font-size:12px;color:#71717a;font-weight:600;">${l}</span><span style="font-size:13px;color:#18181b;">${v}</span></div>`).join("")}</div><div style="display:grid;gap:12px;align-content:start;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;font-weight:700;color:#71717a;margin-bottom:8px;">상태</div><span style="background:${accent}22;color:${accent};padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;">Active</span></div><button style="width:100%;padding:10px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">저장</button><button style="width:100%;padding:10px;background:#fff;border:1px solid #e4e4e7;border-radius:8px;font-weight:700;cursor:pointer;">취소</button></div></div></main>`;
+
+      const mapCentricContent = `<main style="flex:1;display:flex;"><div style="flex:1;background:#e4e4e7;position:relative;min-height:480px;"><div style="position:absolute;left:16px;top:16px;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;">${escapeHtml(variant.modules.find((m) => m.weight === "primary")?.label || "지도 캔버스")}</div></div><div style="width:260px;border-left:1px solid #e4e4e7;background:#fff;padding:16px;">${variant.modules.filter((m) => m.weight !== "primary").map((m) => `<div style="margin-bottom:12px;border:1px solid #e4e4e7;border-radius:10px;padding:12px;"><div style="font-size:12px;font-weight:700;color:#71717a;margin-bottom:8px;">${escapeHtml(m.label)}</div>${[1, 2, 3].map(() => `<div style="height:8px;border-radius:4px;background:#e4e4e7;margin-bottom:6px;"></div>`).join("")}</div>`).join("") || "<p style=\"font-size:12px;color:#a1a1aa;\">필터/목록 패널</p>"}</div></main>`;
+
+      const commandCenterContent = `<main style="flex:1;padding:20px;"><h2 style="font-size:18px;font-weight:900;color:#09090b;margin-bottom:16px;">${escapeHtml(screen.name)}</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px;">${[1, 2, 3].map((i) => `<div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:14px;"><div style="font-size:11px;color:#71717a;">지표 ${i}</div><div style="font-size:22px;font-weight:900;color:${accent};margin-top:6px;">${[284, 92, "87%"][i - 1]}</div></div>`).join("")}</div><div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:12px;"><div style="background:#1f2937;border-radius:10px;min-height:220px;"></div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:14px;"><div style="font-size:12px;font-weight:700;color:#71717a;margin-bottom:8px;">알림 피드</div>${[1, 2, 3].map((i) => `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><span style="width:8px;height:8px;border-radius:50%;background:${i === 1 ? "#ef4444" : accent};"></span><div style="flex:1;height:8px;border-radius:4px;background:#f4f4f5;"></div></div>`).join("")}</div></div></main>`;
+
+      const kpiWallContent = `<main style="flex:1;padding:24px;"><h2 style="font-size:18px;font-weight:900;color:#09090b;margin-bottom:20px;">${escapeHtml(screen.name)}</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">${(variant.modules.length ? variant.modules : [{ label: "지표 1" }, { label: "지표 2" }, { label: "지표 3" }, { label: "지표 4" }]).slice(0, 4).map((m, i) => `<div style="background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:24px;text-align:center;"><div style="font-size:12px;font-weight:700;color:#71717a;">${escapeHtml(m.label)}</div><div style="font-size:32px;font-weight:900;color:${i % 2 === 0 ? accent : "#18181b"};margin-top:10px;">${[284, 92, 1284, 12][i % 4]}</div></div>`).join("")}</div></main>`;
+
+      const incidentFocusedContent = `<main style="flex:1;padding:20px;display:grid;grid-template-columns:0.55fr 0.45fr;gap:16px;"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><h3 style="font-size:15px;font-weight:900;margin-bottom:10px;">${escapeHtml(screen.name)}</h3>${[1, 2, 3, 4, 5].map((i) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:${i === 1 ? "none" : "1px solid #f4f4f5"};"><span style="width:10px;height:10px;border-radius:50%;background:${i === 1 ? "#ef4444" : i === 2 ? "#f59e0b" : accent};"></span><div style="flex:1;height:8px;border-radius:4px;background:#f4f4f5;"></div></div>`).join("")}</div><div style="background:#fff;border:1px solid #e4e4e7;border-radius:10px;padding:16px;"><div style="font-size:12px;font-weight:700;color:#71717a;">상세/대응</div><div style="height:80px;border-radius:8px;background:${accent}33;margin-top:10px;"></div><button style="margin-top:12px;width:100%;padding:10px;background:${accent};color:#fff;border:none;border-radius:8px;font-weight:700;">대응 처리</button></div></main>`;
+
+      const splitMonitoringContent = `<main style="flex:1;display:flex;"><div style="flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;padding:8px;">${[1, 2, 3, 4].map((i) => `<div style="background:#27272a;border-radius:6px;min-height:120px;display:flex;align-items:center;justify-content:center;color:#a1a1aa;font-size:11px;">CAM ${i}</div>`).join("")}</div><div style="width:200px;border-left:1px solid #e4e4e7;background:#fff;padding:16px;">${[1, 2, 3].map((i) => `<div style="display:flex;justify-content:space-between;align-items:center;background:#f4f4f5;border-radius:8px;padding:8px 10px;margin-bottom:8px;"><span style="font-size:12px;color:#71717a;">상태 ${i}</span><span style="width:8px;height:8px;border-radius:50%;background:${i === 1 ? "#22c55e" : accent};"></span></div>`).join("")}</div></main>`;
+
+      const contentByStructure: Record<LayoutVariant["structure"], string> = {
+        "generic-dashboard": dashboardContent,
+        "generic-list": listContent,
+        "generic-detail": detailContent,
+        "map-centric": mapCentricContent,
+        "command-center": commandCenterContent,
+        "kpi-wall": kpiWallContent,
+        "incident-focused": incidentFocusedContent,
+        "split-monitoring": splitMonitoringContent,
+      };
+
+      const mainContent = contentByStructure[variant.structure] || dashboardContent;
+      const contentHtml = `<div style="display:flex;"><div>${sidebarHtml}</div>${mainContent}</div>`;
+
+      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; }</style>\n</head>\n<body>\n${navHtml}\n${contentHtml}\n</body>\n</html>`;
     }
 
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${analysis.project.title}-${screen.name}.html`.replace(/\s+/g, "-");
+    a.download = `${projectTitle}-${screen.name}.html`.replace(/\s+/g, "-");
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1177,16 +1472,12 @@ function ImplementationSample({
           HTML 다운로드
         </button>
       </div>
-      {analysis.project.assetType === "mobile-app" ? (
+      {analysis.assetProfile.domainHint === "mobile-app" ? (
         <PreviewMobile colors={colors} screenName={screen.name} layout={layout} />
       ) : ENTRY_LAYOUTS.includes(layout) ? (
-        <PreviewCentered colors={colors} screenName={screen.name} assetType={analysis.project.assetType} layout={layout} />
+        <PreviewCentered colors={colors} screenName={screen.name} domainHint={analysis.assetProfile.domainHint} layout={layout} />
       ) : (
-        <>
-          {layout === "dashboard" && <PreviewDashboard colors={colors} screenName={screen.name} assetType={analysis.project.assetType} />}
-          {layout === "list" && <PreviewList colors={colors} screenName={screen.name} assetType={analysis.project.assetType} />}
-          {layout === "detail" && <PreviewDetail colors={colors} screenName={screen.name} assetType={analysis.project.assetType} />}
-        </>
+        <LayoutVariantPreview variant={variant} colors={colors} screenName={screen.name} domainHint={analysis.assetProfile.domainHint} />
       )}
     </WorkCard>
   );
@@ -1194,13 +1485,15 @@ function ImplementationSample({
 
 function ImagePromptWorkshop({
   analysis,
-  prompts,
+  direction,
+  imageDirection,
   mood,
   defaultCollapsed,
 }: {
   analysis: GeneratorAnalysis;
-  prompts: string[];
-  mood: GeneratorAnalysis["moods"][number];
+  direction: DesignDirection;
+  imageDirection: ImageDirection;
+  mood: Mood;
   defaultCollapsed: boolean;
 }) {
   const [selectedPromptIndex, setSelectedPromptIndex] = useState(0);
@@ -1212,8 +1505,13 @@ function ImagePromptWorkshop({
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState(!defaultCollapsed);
 
-  const queries = useMemo(() => buildImageSearchQueries(analysis, mood), [analysis, mood]);
-  const gainTerms = useMemo(() => buildRelevanceTerms(analysis), [analysis]);
+  const visual = direction.visual;
+  const prompts = imageDirection.promptSeedIndexes.map((index) => visual?.promptSeeds[index]).filter((value): value is string => Boolean(value));
+  const promptsKo = imageDirection.promptSeedIndexes.map((index) => visual?.promptSeedsKo[index]).filter((value): value is string => Boolean(value));
+  const projectTitle = analysis.projectIntent.title;
+
+  const queries = useMemo(() => buildImageSearchQueries(imageDirection, mood, analysis.assetProfile, analysis.projectIntent.domain), [imageDirection, mood, analysis]);
+  const gainTerms = useMemo(() => buildRelevanceTerms(analysis, direction), [analysis, direction]);
   const queryKey = queries.join("|");
 
   useEffect(() => {
@@ -1262,13 +1560,12 @@ function ImagePromptWorkshop({
     });
   };
 
-  const promptsKo = analysis.imagePromptsKo ?? [];
   const selectedPrompt = prompts[selectedPromptIndex] || "";
   const selectedPromptKo = promptsKo[selectedPromptIndex] || "";
   const basePromptVariants = selectedPrompt ? buildImagePromptVariants(selectedPrompt, mood.title, mood.colors) : [];
   const basePromptVariantsKo = selectedPromptKo ? buildImagePromptVariantsKo(selectedPromptKo, mood.title, mood.colors) : [];
-  const imagePromptVariants = selectedImage ? buildImagePromptsFromImage(analysis, mood, selectedImage) : [];
-  const imagePromptVariantsKo = selectedImage ? buildImagePromptsFromImageKo(analysis, mood, selectedImage) : [];
+  const imagePromptVariants = selectedImage ? buildImagePromptsFromImage(projectTitle, imageDirection, mood, selectedImage) : [];
+  const imagePromptVariantsKo = selectedImage ? buildImagePromptsFromImageKo(projectTitle, imageDirection, mood, selectedImage) : [];
 
   if (!prompts.length) return null;
 
@@ -1409,17 +1706,33 @@ function Result({
   onAnalysisUpdate: (analysis: GeneratorAnalysis) => void;
 }) {
   const { analysis, documentText, analysisSource } = response;
+  const [selectedDirectionId, setSelectedDirectionId] = useState(analysis.directions[0]?.id);
+  const selectedDirection = analysis.directions.find((item) => item.id === selectedDirectionId) ?? analysis.directions[0];
   const [selectedMoodIndex, setSelectedMoodIndex] = useState(0);
   const [colorBrief, setColorBrief] = useState("");
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [regenerateNote, setRegenerateNote] = useState<string | null>(null);
   const selectedMood = analysis.moods[selectedMoodIndex] || analysis.moods[0];
+  const [selectedLayoutVariantId, setSelectedLayoutVariantId] = useState<string | undefined>(selectedDirection?.ui?.layoutVariants[0]?.id);
+  const [selectedImageDirectionId, setSelectedImageDirectionId] = useState<string | undefined>(selectedDirection?.visual?.imageDirections[0]?.id);
   const [selectedScreenIndex, setSelectedScreenIndex] = useState(0);
-  const selectedScreen = analysis.screenTypes[selectedScreenIndex] || analysis.screenTypes[0];
   const [referenceFilter, setReferenceFilter] = useState<"all" | "layout" | "image">("all");
-  const showImageWorkshop = analysis.referenceNeeds.image && Boolean(selectedMood) && referenceFilter !== "layout";
-  const defaultCollapsed = shouldPrioritizeUi(analysis) && referenceFilter !== "image";
+
+  const handleSelectDirection = (id: string) => {
+    setSelectedDirectionId(id);
+    const next = analysis.directions.find((item) => item.id === id);
+    setSelectedLayoutVariantId(next?.ui?.layoutVariants[0]?.id);
+    setSelectedImageDirectionId(next?.visual?.imageDirections[0]?.id);
+    setSelectedScreenIndex(0);
+  };
+
+  const selectedLayoutVariant = selectedDirection?.ui?.layoutVariants.find((item) => item.id === selectedLayoutVariantId) ?? selectedDirection?.ui?.layoutVariants[0];
+  const selectedImageDirection = selectedDirection?.visual?.imageDirections.find((item) => item.id === selectedImageDirectionId) ?? selectedDirection?.visual?.imageDirections[0];
+  const screenTypes = selectedDirection?.ui?.screenTypes || [];
+  const selectedScreen = screenTypes[selectedScreenIndex] || screenTypes[0];
+  const showImageWorkshop = Boolean(selectedDirection?.visual) && Boolean(selectedImageDirection) && Boolean(selectedMood) && referenceFilter !== "layout";
+  const defaultCollapsed = Boolean(selectedDirection?.ui) && Boolean(selectedDirection?.visual) && !hasLoginScreen(screenTypes) && referenceFilter !== "image";
 
   const handleRegenerate = async () => {
     setRegenerating(true);
@@ -1429,7 +1742,7 @@ function Result({
       const res = await fetch("/api/regenerate-mood", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentText, project: analysis.project, brief: colorBrief, primaryColor }),
+        body: JSON.stringify({ documentText, projectIntent: analysis.projectIntent, brief: colorBrief, primaryColor }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "재생성에 실패했습니다.");
@@ -1444,6 +1757,12 @@ function Result({
       setRegenerating(false);
     }
   };
+
+  const directionSummary = [
+    selectedDirection?.ui ? `레이아웃 변형 ${selectedDirection.ui.layoutVariants.length}개` : null,
+    selectedDirection?.visual ? `키비주얼 방향 ${selectedDirection.visual.imageDirections.length}개` : null,
+  ].filter((item): item is string => Boolean(item));
+
   const keywordGroups = useMemo(
     () =>
       [
@@ -1462,42 +1781,43 @@ function Result({
           Gemini 응답을 받지 못해 키워드 기반 추정 결과를 표시하고 있습니다. (예: API 할당량 초과)
         </div>
       )}
+
+      <DirectionTabs directions={analysis.directions} selectedId={selectedDirection?.id || ""} onSelect={handleSelectDirection} />
+
       <WorkCard className="overflow-hidden">
         <div className="grid grid-cols-[1.1fr_0.9fr] max-lg:grid-cols-1">
           <div className="p-6">
             <div className="flex flex-wrap items-center gap-2">
-              {analysis.referencePurposes.map((purpose) => (
-                <span key={purpose.value} className={`rounded-full border px-3 py-1 text-sm font-bold ${purposeTone[purpose.value]}`}>
-                  {purpose.label}
-                </span>
-              ))}
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm font-semibold text-zinc-700">
-                {analysis.project.assetType}
+                {analysis.assetProfile.assetType}
+              </span>
+              <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-sm font-bold text-teal-900">
+                {analysis.assetProfile.projectKind === "ui" ? "UI/레이아웃" : analysis.assetProfile.projectKind === "visual" ? "이미지/키비주얼" : "UI + 키비주얼"}
               </span>
             </div>
             <EditableText
               as="h1"
               className="mt-5 text-3xl font-black text-zinc-950 max-sm:text-2xl"
-              value={analysis.project.title}
-              onSave={(title) => onAnalysisUpdate({ ...analysis, project: { ...analysis.project, title } })}
+              value={analysis.projectIntent.title}
+              onSave={(title) => onAnalysisUpdate({ ...analysis, projectIntent: { ...analysis.projectIntent, title } })}
             />
             <EditableText
               as="p"
               multiline
               className="mt-3 max-w-3xl text-base leading-7 text-zinc-600"
-              value={analysis.project.description}
-              onSave={(description) => onAnalysisUpdate({ ...analysis, project: { ...analysis.project, description } })}
+              value={analysis.projectIntent.description}
+              onSave={(description) => onAnalysisUpdate({ ...analysis, projectIntent: { ...analysis.projectIntent, description } })}
             />
             <EditableTags
-              tags={analysis.project.tags}
-              onChange={(tags) => onAnalysisUpdate({ ...analysis, project: { ...analysis.project, tags } })}
+              tags={analysis.projectIntent.tags}
+              onChange={(tags) => onAnalysisUpdate({ ...analysis, projectIntent: { ...analysis.projectIntent, tags } })}
             />
           </div>
           <div className="border-l border-zinc-200 bg-zinc-50 p-6 max-lg:border-l-0 max-lg:border-t">
-            <SectionTitle label="Reference Plan" />
-            <p className="mb-4 text-sm leading-6 text-zinc-600">{analysis.referenceNeeds.reason}</p>
+            <SectionTitle label="Direction" meta={selectedDirection?.label} />
+            <p className="mb-4 text-sm leading-6 text-zinc-600">{selectedDirection?.appliesTo || "이 방향이 다루는 화면/영역"}</p>
             <ol className="grid gap-3">
-              {analysis.referencePlan.slice(0, 3).map((item, index) => (
+              {directionSummary.map((item, index) => (
                 <li key={item} className="flex gap-3">
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-zinc-900 text-xs font-bold text-white">
                     {index + 1}
@@ -1510,18 +1830,6 @@ function Result({
         </div>
       </WorkCard>
 
-      <WorkCard className="p-5">
-        <SectionTitle label="Design Criteria" />
-        <div className="grid gap-3 md:grid-cols-2">
-          {analysis.directions.map((direction, index) => (
-            <div key={direction} className="grid grid-cols-[56px_1fr] gap-3 rounded-lg border border-zinc-200 bg-white p-4">
-              <span className="font-mono text-lg font-black text-zinc-300">{String(index + 1).padStart(2, "0")}</span>
-              <p className="text-sm leading-6 text-zinc-700">{direction}</p>
-            </div>
-          ))}
-        </div>
-      </WorkCard>
-
       <div className="grid gap-4 xl:grid-cols-4">
         {keywordGroups.map(([title, keywords, tone]) => (
           <KeywordGroup key={title} title={title} keywords={keywords} tone={tone} />
@@ -1530,9 +1838,10 @@ function Result({
 
       <Palette analysis={analysis} />
       <MoodCards analysis={analysis} selectedMoodIndex={selectedMoodIndex} onSelectMood={setSelectedMoodIndex} />
-      {selectedMood && (
+      {selectedMood && selectedDirection && (
         <SelectedMoodBoard
           analysis={analysis}
+          direction={selectedDirection}
           mood={selectedMood}
           colorBrief={colorBrief}
           primaryColor={primaryColor}
@@ -1544,46 +1853,67 @@ function Result({
         />
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+      {selectedDirection?.ui && (
         <WorkCard className="p-5">
-          <SectionTitle label="Deliverables" meta="화면 선택 → 오른쪽 미리보기에 반영" />
-          <div className="grid gap-2">
-            {analysis.screenTypes.map((item, index) => (
-              <button
-                key={item.name}
-                type="button"
-                onClick={() => setSelectedScreenIndex(index)}
-                className={`grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                  selectedScreenIndex === index
-                    ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100"
-                    : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
-                }`}
-              >
-                <span className={`grid h-10 w-10 place-items-center rounded-md text-base font-black ${selectedScreenIndex === index ? "bg-teal-600 text-white" : "bg-white text-teal-700"}`}>
-                  {item.icon || "□"}
-                </span>
-                <div className="min-w-0">
-                  <p className="font-bold text-zinc-950">{item.name}</p>
-                  <p className="mt-1 text-sm leading-6 text-zinc-600">{item.desc}</p>
-                </div>
-                <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-zinc-500">{item.count}</span>
-              </button>
-            ))}
-          </div>
+          <SectionTitle label="Layout Variants" meta={`${selectedDirection.ui.layoutVariants.length} variants`} />
+          <LayoutVariantPicker
+            variants={selectedDirection.ui.layoutVariants}
+            selectedId={selectedLayoutVariantId}
+            onSelect={setSelectedLayoutVariantId}
+          />
+          {selectedLayoutVariant && selectedLayoutVariant.notes.length > 0 && (
+            <ul className="mt-4 grid gap-1.5 text-sm leading-6 text-zinc-600">
+              {selectedLayoutVariant.notes.map((note) => (
+                <li key={note}>· {note}</li>
+              ))}
+            </ul>
+          )}
         </WorkCard>
+      )}
 
-        {selectedMood && selectedScreen && (
-          <ImplementationSample analysis={analysis} mood={selectedMood} screen={selectedScreen} />
-        )}
-      </div>
+      {selectedDirection?.ui && (
+        <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+          <WorkCard className="p-5">
+            <SectionTitle label="Deliverables" meta="화면 선택 → 오른쪽 미리보기에 반영" />
+            <div className="grid gap-2">
+              {screenTypes.map((item, index) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => setSelectedScreenIndex(index)}
+                  className={`grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                    selectedScreenIndex === index
+                      ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100"
+                      : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                  }`}
+                >
+                  <span className={`grid h-10 w-10 place-items-center rounded-md text-base font-black ${selectedScreenIndex === index ? "bg-teal-600 text-white" : "bg-white text-teal-700"}`}>
+                    {item.icon || "□"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-bold text-zinc-950">{item.name}</p>
+                    <p className="mt-1 text-sm leading-6 text-zinc-600">{item.desc}</p>
+                  </div>
+                  <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-zinc-500">{item.count}</span>
+                </button>
+              ))}
+            </div>
+          </WorkCard>
 
-      <References analysis={analysis} filter={referenceFilter} onFilterChange={setReferenceFilter} />
+          {selectedMood && selectedScreen && selectedLayoutVariant && (
+            <ImplementationSample analysis={analysis} direction={selectedDirection} mood={selectedMood} variant={selectedLayoutVariant} screen={selectedScreen} />
+          )}
+        </div>
+      )}
 
-      {showImageWorkshop && selectedMood && (
+      {selectedDirection && <References direction={selectedDirection} filter={referenceFilter} onFilterChange={setReferenceFilter} />}
+
+      {showImageWorkshop && selectedDirection && selectedImageDirection && selectedMood && (
         <ImagePromptWorkshop
-          key={selectedMood.title}
+          key={`${selectedDirection.id}-${selectedImageDirection.id}-${selectedMood.title}`}
           analysis={analysis}
-          prompts={analysis.imagePrompts}
+          direction={selectedDirection}
+          imageDirection={selectedImageDirection}
           mood={selectedMood}
           defaultCollapsed={defaultCollapsed}
         />

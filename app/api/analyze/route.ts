@@ -14,8 +14,8 @@ export async function POST(request: Request) {
 
   try {
     const text = await extractText(file);
-    const { analysis, source } = await analyzeDocument(text, typeof primaryColor === "string" && primaryColor.trim() ? primaryColor.trim() : undefined);
-    const response: AnalyzeResponse = { analysis, extractedTextLength: text.length, documentText: text, analysisSource: source };
+    const { analysis, source, documentText } = await analyzeDocument(text, typeof primaryColor === "string" && primaryColor.trim() ? primaryColor.trim() : undefined);
+    const response: AnalyzeResponse = { analysis, extractedTextLength: text.length, documentText, analysisSource: source };
     return NextResponse.json(response);
   } catch (error) {
     console.error("analyze 실패:", error);

@@ -1,4 +1,4 @@
-import type { GeneratorAnalysis, ReferenceGroup } from "@/types";
+import type { AssetProfile, DesignDirection, ReferenceGroup, ReferenceQuery } from "@/types";
 
 function makeQuery(query: string): string {
   return encodeURIComponent(query).replace(/%20/g, "+");
@@ -7,8 +7,7 @@ function makeQuery(query: string): string {
 type PlatformConfig = {
   siteUrl: string;
   note: string;
-  /** layout(UI/구조) 전용, image(키비주얼) 전용, 또는 둘 다 다루는 플랫폼인지. lib/generatorAnalysis.ts의
-   * buildLayoutPlatformKeywords / buildImagePlatformKeywords 배정과 일치시켜 둡니다. */
+  /** layout(UI/구조) 전용, image(키비주얼) 전용, 또는 둘 다 다루는 플랫폼인지. */
   purpose: "layout" | "image" | "both";
   /** 검증된 검색 URL이 있을 때만 설정. 없으면 사이트 방문 링크 + 키워드 복사 UX로 표시됩니다. */
   searchUrl?: (query: string) => string;
@@ -87,21 +86,140 @@ const PLATFORMS: Record<string, PlatformConfig> = {
   "Fonts in Use": { siteUrl: "https://fontsinuse.com", note: "실제 사용된 서체 레퍼런스 — 키워드 복사 후 사이트에서 직접 검색", purpose: "image" },
 };
 
-export function buildReferences(analysis: GeneratorAnalysis): ReferenceGroup[] {
-  return Object.entries(PLATFORMS)
-    .map(([name, config]) => {
-      const keywords = analysis.platformKeywords[name] || [];
-      return {
-        name,
+type DomainHint = AssetProfile["domainHint"];
+
+function allowedLayoutPlatforms(domainHint: DomainHint): Set<string> {
+  if (domainHint === "marketing-web") return new Set(["Dribbble", "Behance", "Pinterest", "Figma Community", "Google", "GDWEB", "Land-book", "Awwwards", "Lapa Ninja", "DBDIC", "DBCUT"]);
+  if (domainHint === "dashboard-ops") return new Set(["Dribbble", "Behance", "Pinterest", "Figma Community", "Google", "Mobbin", "Page Flows"]);
+  if (domainHint === "mobile-app") return new Set(["Dribbble", "Behance", "Mobbin", "Pinterest", "Figma Community", "Page Flows", "AppShots", "UI Bowl"]);
+  if (domainHint === "document") return new Set(["Dribbble", "Behance", "Pinterest", "Figma Community", "Brand New", "BrandB", "Fonts in Use"]);
+  return new Set(["Dribbble", "Behance", "Pinterest", "Figma Community"]);
+}
+
+function allowedImagePlatforms(domainHint: DomainHint): Set<string> {
+  const allowed = new Set(["Dribbble", "Behance", "Pinterest", "Figma Community"]);
+  if (domainHint === "marketing-web") ["Google", "GDWEB", "Land-book"].forEach((p) => allowed.add(p));
+  if (domainHint === "document") ["World Brand Design", "Brand Archive", "Brand New", "BrandB", "Fonts in Use"].forEach((p) => allowed.add(p));
+  if (domainHint === "dashboard-ops") allowed.add("Mobbin");
+  if (domainHint === "mobile-app") ["Mobbin", "AppShots", "UI Bowl"].forEach((p) => allowed.add(p));
+  return allowed;
+}
+
+function buildLayoutKeywordsByPlatform(domain: string, assetType: string, domainHint: DomainHint): Record<string, string[]> {
+  const isWeb = domainHint === "marketing-web";
+  const isDashboard = domainHint === "dashboard-ops";
+  const isMobile = domainHint === "mobile-app";
+  const isDocument = domainHint === "document";
+  const primaryLayoutKeyword = isDocument ? `${domain} ${assetType} layout` : isDashboard ? `${domain} dashboard UI` : `${domain} UI design`;
+  const secondaryLayoutKeyword = isDocument ? `${domain} editorial layout` : isDashboard ? `${domain} admin dashboard` : `${domain} interface design`;
+  return {
+    Dribbble: [primaryLayoutKeyword, secondaryLayoutKeyword],
+    Behance: [`${domain} ${assetType} case study`, isDocument ? "enterprise brochure layout" : "enterprise dashboard case study"],
+    Mobbin: isMobile ? ["mobile onboarding flow", "mobile profile setup"] : isDashboard ? ["dashboard app screen", "admin settings flow"] : [],
+    Pinterest: [`${domain} layout inspiration`, isDocument ? "editorial design moodboard" : "dashboard UI inspiration"],
+    "Figma Community": [isDocument ? "proposal brochure layout template" : "dashboard UI kit", isWeb ? "landing page template" : "admin dashboard template", "component library"],
+    Google: isWeb
+      ? [`${domain} company website`, `${domain} service homepage reference`, `${domain} competitor website`]
+      : isDashboard
+        ? [`${domain} dashboard UI reference`, `${domain} admin dashboard example`]
+        : [],
+    GDWEB: isWeb ? [`${domain} 홈페이지`, `${domain} 이벤트페이지`, "기업 홈페이지"] : [],
+    "Land-book": isWeb ? [`${domain} landing page`, "SaaS landing page design"] : [],
+    "Page Flows": isDashboard || isMobile ? ["onboarding flow", "settings flow", "account setup flow"] : [],
+    Awwwards: isWeb ? [`${domain} corporate website`, "agency website design"] : [],
+    "Lapa Ninja": isWeb ? [`${domain} landing page`, "SaaS homepage design"] : [],
+    DBDIC: isWeb ? [`${domain} 홈페이지 레이아웃`, "GNB 구조 레퍼런스"] : [],
+    DBCUT: isWeb ? [`${domain} 홈페이지 리뉴얼`, "기업사이트 트렌드"] : [],
+    AppShots: isMobile ? ["mobile app screen", "profile setup screen"] : /login/i.test(assetType) ? ["login UI flow"] : [],
+    "UI Bowl": isMobile ? ["탭 컴포넌트", "카드 컴포넌트", "폼 컴포넌트"] : [],
+    "Brand New": isDocument ? [`${domain} rebrand case study`, "identity redesign"] : [],
+    BrandB: isDocument ? [`${domain} CI BI 디자인`, "브랜드 리뉴얼"] : [],
+  };
+}
+
+function buildImageKeywordsByPlatform(domain: string, assetType: string, domainHint: DomainHint): Record<string, string[]> {
+  const isMarketingWeb = domainHint === "marketing-web";
+  const isDashboard = domainHint === "dashboard-ops";
+  const isMobile = domainHint === "mobile-app";
+  const isDocument = domainHint === "document";
+  return {
+    Dribbble: [`${domain} cover visual`, `${domain} hero visual`],
+    Behance: [`${domain} brand visual case study`, `${assetType} cover visual design`],
+    Mobbin: isDashboard || isMobile || /login/i.test(assetType) ? ["login screen visual", "authentication screen illustration"] : [],
+    Pinterest: [`${domain} key visual`, "technology abstract background"],
+    "Figma Community": ["hero section visual template", "proposal cover template"],
+    Google: isMarketingWeb ? [`${domain} hero image website`, `${domain} landing page hero visual`] : [],
+    GDWEB: isMarketingWeb ? [`${domain} 홈페이지 비주얼`, `${domain} 랜딩페이지 히어로`] : [],
+    "Land-book": isMarketingWeb ? [`${domain} landing page`] : [],
+    "Page Flows": [],
+    "World Brand Design": isDocument ? [`${domain} brand identity`, "corporate branding visual"] : [],
+    "Brand Archive": isDocument ? ["art direction reference", "brand application visual"] : [],
+    "Fonts in Use": isDocument ? ["editorial typography", "report typography reference"] : [],
+  };
+}
+
+function toReferenceQueries(keywordsByPlatform: Record<string, string[]>, allowed: Set<string>): ReferenceQuery[] {
+  return Object.entries(keywordsByPlatform)
+    .filter(([platform, keywords]) => allowed.has(platform) && keywords.filter(Boolean).length > 0)
+    .map(([platform, keywords]) => ({ platform, keywords: keywords.filter(Boolean) }));
+}
+
+function mergeReferenceQueries(base: ReferenceQuery[], extra: ReferenceQuery[]): ReferenceQuery[] {
+  const byPlatform = new Map<string, Set<string>>();
+  for (const query of [...base, ...extra]) {
+    const set = byPlatform.get(query.platform) || new Set<string>();
+    query.keywords.forEach((keyword) => keyword && set.add(keyword));
+    byPlatform.set(query.platform, set);
+  }
+  return Array.from(byPlatform.entries()).map(([platform, keywords]) => ({ platform, keywords: Array.from(keywords) }));
+}
+
+/**
+ * Builds the default per-direction reference queries (used by lib/generatorAnalysis.ts'
+ * normalizeAnalysis when Gemini's referenceKeywordsByPlatform is sparse/empty for a direction),
+ * merges them with whatever Gemini provided, and filters the result to platforms applicable to
+ * this direction's needs.
+ */
+export function resolveDirectionReferenceQueries(
+  geminiQueries: ReferenceQuery[] | undefined,
+  assetProfile: AssetProfile,
+  domain: string,
+  needsLayout: boolean,
+  needsImage: boolean,
+): ReferenceQuery[] {
+  const allowed = new Set<string>();
+  let defaults: ReferenceQuery[] = [];
+
+  if (needsLayout) {
+    allowedLayoutPlatforms(assetProfile.domainHint).forEach((p) => allowed.add(p));
+    defaults = defaults.concat(toReferenceQueries(buildLayoutKeywordsByPlatform(domain, assetProfile.assetType, assetProfile.domainHint), allowedLayoutPlatforms(assetProfile.domainHint)));
+  }
+  if (needsImage) {
+    allowedImagePlatforms(assetProfile.domainHint).forEach((p) => allowed.add(p));
+    defaults = defaults.concat(toReferenceQueries(buildImageKeywordsByPlatform(domain, assetProfile.assetType, assetProfile.domainHint), allowedImagePlatforms(assetProfile.domainHint)));
+  }
+
+  const merged = mergeReferenceQueries(defaults, geminiQueries || []);
+  return merged.filter((query) => allowed.has(query.platform) && query.keywords.length > 0);
+}
+
+export function buildReferenceGroups(direction: DesignDirection): ReferenceGroup[] {
+  return direction.references
+    .map((query) => {
+      const config = PLATFORMS[query.platform];
+      if (!config) return null;
+      const group: ReferenceGroup = {
+        name: query.platform,
         note: config.note,
         siteUrl: config.siteUrl,
         searchable: Boolean(config.searchUrl),
         purpose: config.purpose,
-        items: keywords.map((keyword) => ({
+        items: query.keywords.map((keyword) => ({
           label: keyword,
           url: config.searchUrl ? config.searchUrl(keyword) : config.siteUrl,
         })),
       };
+      return group;
     })
-    .filter((group) => group.items.length);
+    .filter((group): group is ReferenceGroup => group !== null && group.items.length > 0);
 }
