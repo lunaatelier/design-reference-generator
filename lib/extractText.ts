@@ -29,3 +29,9 @@ export async function extractText(file: File): Promise<string> {
   if (!text) throw new Error("문서에서 텍스트를 추출할 수 없습니다.");
   return text.slice(0, MAX_TEXT_LENGTH);
 }
+
+/** 확장자를 뗀 파일명. 브로셔/제안서 같은 산출물 유형 시그널이 본문보다 파일명에 더 명확히 들어있는 경우가 많아 프롬프트에 함께 전달한다. */
+export function getFileTitle(fileName: string): string {
+  const dot = fileName.lastIndexOf(".");
+  return dot === -1 ? fileName : fileName.slice(0, dot);
+}

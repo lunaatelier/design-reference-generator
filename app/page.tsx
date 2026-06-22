@@ -1214,6 +1214,18 @@ function PreviewSplitMonitoring({ colors, screenName, domainHint, modules }: { c
   );
 }
 
+// 내부 enum 이름을 화면에 그대로 노출하면 "generic-dashboard"가 실제 관제 대시보드처럼 보여 혼동을 준다.
+const STRUCTURE_LABELS: Record<LayoutVariant["structure"], string> = {
+  "command-center": "관제 센터형",
+  "map-centric": "지도 중심형",
+  "kpi-wall": "KPI 월형",
+  "incident-focused": "장애 대응형",
+  "split-monitoring": "분할 모니터링형",
+  "generic-dashboard": "정보형 콘텐츠 레이아웃",
+  "generic-list": "목록형 레이아웃",
+  "generic-detail": "상세형 레이아웃",
+};
+
 function LayoutVariantPreview({ variant, colors, screenName, domainHint }: { variant: LayoutVariant; colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
   switch (variant.structure) {
     case "map-centric":
@@ -1257,7 +1269,7 @@ function LayoutVariantPicker({
           }`}
         >
           <p className="font-bold text-zinc-950">{variant.title}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">{variant.structure}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">{STRUCTURE_LABELS[variant.structure]}</p>
           {variant.description && <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600">{variant.description}</p>}
         </button>
       ))}

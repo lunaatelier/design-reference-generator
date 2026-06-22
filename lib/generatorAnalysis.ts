@@ -64,6 +64,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 }
 
 규칙:
+- assetTypeRaw는 "이 문서 자체가 최종적으로 어떤 산출물로 제작되는가"를 기준으로 판단하세요. 문서 본문이 설명하는 대상 제품/서비스가 어떤 UI를 갖추면 좋겠는지를 기준으로 판단하지 마세요. 예를 들어 회사소개서/브로셔 문서 안에 "우리 플랫폼은 홈페이지, 모듈 소개, 데모 신청 화면이 있다"는 내용이 있어도, 이 문서 자체는 웹사이트가 아니라 브로셔이므로 assetTypeRaw는 "brochure"여야 합니다. 파일명(아래 "문서 파일명")에 브로셔/제안서/보고서/포스터 등의 단어가 있으면 강한 우선 신호로 사용하세요.
 - 이 프로젝트에 UI 레이아웃 방향과 비주얼/키비주얼 방향이 모두 필요하면 directions 배열에 각각 별도의 항목을 만드세요. 하나의 direction에 ui와 visual을 동시에 넣지 말고 분리하세요 (예: 관제 대시보드 프로젝트라면 "관제 대시보드" ui-only 방향 1개 + "로그인 키비주얼" visual-only 방향 1개).
 - needsUi가 true인 direction은 ui 필드를 반드시 채우고, needsVisual이 true인 direction은 visual 필드를 반드시 채우세요. 반대 필드는 생략하세요.
 - 대시보드/관리자/운영 화면이면 ui-only 방향을 만들고, layoutVariants를 정확히 다른 구조로 2~4개 작성하세요. 문서 내용이 관제실/지도/교통/장애대응/CCTV/모니터링과 관련 있으면 command-center, map-centric, kpi-wall, incident-focused, split-monitoring 중 어울리는 구조를 우선 사용하세요. 그렇지 않으면 generic-dashboard/generic-list/generic-detail을 사용하세요.
@@ -78,6 +79,8 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - 기술자료 추천은 만들지 마세요.
 - palette는 5~6개, moods는 정확히 3개를 제안하세요.
 {{PRIMARY_COLOR_RULE}}
+
+문서 파일명: {{FILE_TITLE}}
 
 문서 내용:
 """
@@ -106,11 +109,13 @@ const REGENERATE_PROMPT = `당신은 디자인 방향 생성기의 컬러 보정
 {{DOCUMENT}}
 """`;
 
-function buildPrompt(documentText: string, primaryColor?: string): string {
+function buildPrompt(documentText: string, primaryColor?: string, fileTitle?: string): string {
   const primaryColorRule = primaryColor
     ? `- 사용자가 지정한 Primary Color는 "${primaryColor}"입니다. palette와 moods 전체를 이 컬러를 중심으로 구성하세요.`
     : "";
-  return PROMPT.replace("{{DOCUMENT}}", documentText).replace("{{PRIMARY_COLOR_RULE}}", primaryColorRule);
+  return PROMPT.replace("{{DOCUMENT}}", documentText)
+    .replace("{{PRIMARY_COLOR_RULE}}", primaryColorRule)
+    .replace("{{FILE_TITLE}}", fileTitle || "(파일명 없음)");
 }
 
 function buildRegeneratePrompt(documentText: string, projectIntent: ProjectIntent, brief?: string, primaryColor?: string): string {
@@ -481,9 +486,11 @@ function extractDescription(documentText: string, title: string): string {
   return line.length > 120 ? `${line.slice(0, 120)}...` : line;
 }
 
-function buildFallbackAnalysis(documentText: string, primaryColor?: string): GeneratorAnalysis {
-  const assetType = detectAssetType(documentText);
-  const domain = detectDomain(documentText);
+function buildFallbackAnalysis(documentText: string, primaryColor?: string, fileTitle?: string): GeneratorAnalysis {
+  // 파일명을 본문보다 먼저 두어 "브로셔/제안서" 같은 산출물 유형 신호가 정규식 매칭에서 우선되게 한다.
+  const detectionText = fileTitle ? `${fileTitle}\n${documentText}` : documentText;
+  const assetType = detectAssetType(detectionText);
+  const domain = detectDomain(detectionText);
   const title = extractTitle(documentText);
   const description = extractDescription(documentText, title);
 
@@ -592,6 +599,7 @@ function buildFallbackRegenerate(brief?: string, primaryColor?: string): Regener
 export async function analyzeDocument(
   documentText: string,
   primaryColor?: string,
+  fileTitle?: string,
 ): Promise<{ analysis: GeneratorAnalysis; source: AnalysisSource; documentText: string }> {
   const { masked } = maskSensitiveText(documentText);
   const apiKey = process.env.GEMINI_API_KEY;
@@ -599,14 +607,14 @@ export async function analyzeDocument(
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-      const result = await model.generateContent(buildPrompt(masked, primaryColor));
+      const result = await model.generateContent(buildPrompt(masked, primaryColor, fileTitle));
       const json = extractJson(result.response.text());
       return { analysis: normalizeAnalysis(JSON.parse(json)), source: "gemini", documentText: masked };
     } catch (error) {
       console.error("Gemini 분석 실패, 키워드 기반 추정 결과로 대체합니다.", error);
     }
   }
-  return { analysis: buildFallbackAnalysis(masked, primaryColor), source: "fallback", documentText: masked };
+  return { analysis: buildFallbackAnalysis(masked, primaryColor, fileTitle), source: "fallback", documentText: masked };
 }
 
 export async function regenerateMoods(

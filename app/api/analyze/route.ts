@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { extractText } from "@/lib/extractText";
+import { extractText, getFileTitle } from "@/lib/extractText";
 import { analyzeDocument } from "@/lib/generatorAnalysis";
 import type { AnalyzeResponse } from "@/types";
 
@@ -14,7 +14,11 @@ export async function POST(request: Request) {
 
   try {
     const text = await extractText(file);
-    const { analysis, source, documentText } = await analyzeDocument(text, typeof primaryColor === "string" && primaryColor.trim() ? primaryColor.trim() : undefined);
+    const { analysis, source, documentText } = await analyzeDocument(
+      text,
+      typeof primaryColor === "string" && primaryColor.trim() ? primaryColor.trim() : undefined,
+      getFileTitle(file.name),
+    );
     const response: AnalyzeResponse = { analysis, extractedTextLength: text.length, documentText, analysisSource: source };
     return NextResponse.json(response);
   } catch (error) {
