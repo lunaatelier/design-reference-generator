@@ -14,8 +14,10 @@ Get-Date -Format "yyyy-MM-dd HH:mm:ss (ddd)"
 $workspace = @("D:\workspace", "C:\workspace", "$env:USERPROFILE\workspace") |
     Where-Object { Test-Path $_ } | Select-Object -First 1
 
-# Claude Code JSONL
-$encoded = $workspace -replace ":", "-" -replace "\\", "-"
+# Claude Code JSONL — 프로젝트 폴더 경로(workspace 루트가 아니라)를 인코딩해야 한다.
+# workspace 루트만 인코딩하면 다른 날/다른 프로젝트의 stale 파일을 잘못 골라 도구 판정이 틀어진다.
+$projectPath = "$workspace\design-reference-generator"
+$encoded = $projectPath -replace ":", "-" -replace "\\", "-"
 $claudeFile = Get-ChildItem "$env:USERPROFILE\.claude\projects\$encoded" -Filter "*.jsonl" -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 

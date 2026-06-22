@@ -457,7 +457,10 @@ const DOMAIN_RULES: Array<{ pattern: RegExp; domain: string }> = [
 
 function detectAssetType(documentText: string): string {
   const rule = ASSET_TYPE_RULES.find((item) => item.pattern.test(documentText));
-  return rule?.assetType || "dashboard";
+  // No keyword matched: don't default to "dashboard" — that silently pulls every
+  // unclassified document (e.g. a brochure with no recognizable keyword) toward a
+  // dashboard-shaped result. "other" instead surfaces as "needs review" to the user.
+  return rule?.assetType || "other";
 }
 
 function detectDomain(documentText: string): string {
@@ -644,4 +647,29 @@ export async function regenerateMoods(
     }
   }
   return { result: buildFallbackRegenerate(brief, primaryColor), source: "fallback" };
+}
+
+/**
+ * AI(또는 키워드 휴리스틱)가 추정한 assetType이 틀렸을 때, 사용자가 직접 고른 값으로
+ * UI/비주얼 블록 존재 여부와 레퍼런스 검색어를 다시 계산한다. Gemini를 다시 호출하지
+ * 않는 순수 로컬 재계산이라 결과는 즉시 반영되고 quota를 쓰지 않는다.
+ */
+export function applyAssetTypeOverride(analysis: GeneratorAnalysis, assetTypeOverride: string): GeneratorAnalysis {
+  const assetProfile = buildAssetProfile({ assetType: assetTypeOverride });
+  const domain = analysis.projectIntent.domain;
+
+  const directions = analysis.directions.map((direction) => {
+    const ui = assetProfile.needsLayoutVariants ? direction.ui || normalizeUiDirection(undefined, assetProfile.domainHint) : undefined;
+    const visual = assetProfile.needsImageDirections
+      ? direction.visual || normalizeVisualDirection(undefined, domain, assetProfile.assetType)
+      : undefined;
+    return {
+      ...direction,
+      ui,
+      visual,
+      references: resolveDirectionReferenceQueries(direction.references, assetProfile, domain, Boolean(ui), Boolean(visual)),
+    };
+  });
+
+  return { ...analysis, assetProfile, directions };
 }

@@ -19,7 +19,9 @@ const ASSET_PROFILE_RULES: AssetTypeRule[] = [
 
 function classifyAssetType(assetType: string): { projectKind: ProjectKind; domainHint: AssetProfile["domainHint"] } {
   const rule = ASSET_PROFILE_RULES.find((item) => item.pattern.test(assetType));
-  return rule ? { projectKind: rule.projectKind, domainHint: rule.domainHint } : { projectKind: "ui", domainHint: "generic" };
+  // Unknown assetType: assume both UI and visual might be needed rather than silently
+  // biasing toward UI-only (which previously made unclassified docs look like dashboards).
+  return rule ? { projectKind: rule.projectKind, domainHint: rule.domainHint } : { projectKind: "mixed", domainHint: "generic" };
 }
 
 function referenceModeFor(needsLayoutVariants: boolean, needsImageDirections: boolean): AssetProfile["referenceMode"] {
@@ -30,7 +32,7 @@ function referenceModeFor(needsLayoutVariants: boolean, needsImageDirections: bo
 }
 
 export function buildAssetProfile(input: { assetType?: string }): AssetProfile {
-  const assetType = input.assetType || "dashboard";
+  const assetType = input.assetType || "other";
   const { projectKind, domainHint } = classifyAssetType(assetType);
   const needsLayoutVariants = projectKind === "ui" || projectKind === "mixed";
   const needsImageDirections = projectKind === "visual" || projectKind === "mixed";

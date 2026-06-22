@@ -18,6 +18,7 @@
   - 실제 저장 경로 형식: `[workspace]\work-log\design-reference-generator\`
   - 금지 경로 형식: `[workspace]\design-reference-generator\work-log\`
 - `/time`, `/w-note` 실행 전 저장/읽기 대상 경로가 프로젝트 내부 `work-log`가 아닌지 확인한다.
+- Claude Code JSONL 세션 파일 위치(`~/.claude/projects/<encoded>`)를 찾을 때 `<encoded>`는 **workspace 루트가 아니라 현재 프로젝트 폴더 전체 경로**(`[workspace]\design-reference-generator`)를 인코딩한 값이다(`:` → `-`, `\` → `-`). workspace 루트만 인코딩하면 다른 프로젝트/날짜의 stale 파일을 잘못 골라 도구 판정(Claude Code vs Codex)이 틀어진다 — 실제로 이 버그로 한 세션이 Codex로 오판된 적이 있다.
 
 ## `/timestart`
 

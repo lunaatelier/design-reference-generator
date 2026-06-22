@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import FileDropzone from "@/components/FileDropzone";
 import { buildImageSearchQueries, buildRelevanceTerms } from "@/lib/moodImageQuery";
-import { buildReferenceGroups } from "@/lib/references";
+import { buildReferenceGroups, mergeReferenceQueries } from "@/lib/references";
 import type {
   AnalyzeResponse,
   AssetProfile,
@@ -14,7 +14,24 @@ import type {
   LayoutVariant,
   Mood,
   MoodImage,
+  ReferenceQuery,
 } from "@/types";
+
+// Matches the assetTypeRaw enum in lib/generatorAnalysis.ts's Gemini prompt — keep in sync.
+const assetTypeOptions = [
+  { value: "dashboard", label: "대시보드" },
+  { value: "webpage", label: "웹사이트" },
+  { value: "web-app", label: "웹 앱" },
+  { value: "landing", label: "랜딩 페이지" },
+  { value: "event-page", label: "이벤트 페이지" },
+  { value: "mobile-app", label: "모바일 앱" },
+  { value: "brochure", label: "브로셔/리플렛" },
+  { value: "proposal", label: "제안서" },
+  { value: "poster", label: "포스터" },
+  { value: "report", label: "보고서" },
+  { value: "image", label: "이미지/키비주얼" },
+  { value: "other", label: "기타(확인 필요)" },
+];
 
 const paletteAdjustmentOptions = [
   {
@@ -136,6 +153,18 @@ function SectionTitle({ label, meta }: { label: string; meta?: string }) {
     <div className="mb-4 flex items-center justify-between gap-3">
       <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-zinc-500">{label}</h2>
       {meta && <span className="text-xs font-medium text-zinc-400">{meta}</span>}
+    </div>
+  );
+}
+
+// UI 방향과 비주얼 방향을 탭으로 전환하지 않고 한 화면에 같이 보여주는 대신, 어디까지가
+// 공통이고 어디부터 UI/비주얼 전용인지 구분되도록 섹션 사이에 표시하는 구분선.
+function GroupDivider({ label, detail }: { label: string; detail?: string }) {
+  return (
+    <div className="mt-2 flex items-center gap-3">
+      <span className="whitespace-nowrap text-xs font-black uppercase tracking-[0.16em] text-teal-700">{label}</span>
+      {detail && <span className="whitespace-nowrap text-xs font-semibold text-zinc-400">{detail}</span>}
+      <div className="h-px flex-1 bg-zinc-200" />
     </div>
   );
 }
@@ -490,48 +519,20 @@ function ReferenceKeywordChip({ label }: { label: string }) {
   );
 }
 
-const referenceFilterOptions = [
-  { value: "all" as const, label: "전체" },
-  { value: "layout" as const, label: "UI" },
-  { value: "image" as const, label: "이미지" },
-];
-
-function References({
-  direction,
-  filter,
-  onFilterChange,
-}: {
-  direction: DesignDirection;
-  filter: "all" | "layout" | "image";
-  onFilterChange: (filter: "all" | "layout" | "image") => void;
-}) {
-  const groups = useMemo(() => buildReferenceGroups(direction), [direction]);
-  const showFilter = Boolean(direction.ui) && Boolean(direction.visual);
-  const visibleGroups = showFilter ? groups.filter((group) => filter === "all" || group.purpose === "both" || group.purpose === filter) : groups;
+// Dribbble/Behance처럼 레이아웃과 이미지 양쪽에 다 쓸모 있는 플랫폼(purpose: "both")은
+// "공통" 섹션에서 한 번만 보여주고, UI/비주얼 섹션은 각자 전용(purpose: "layout"/"image")
+// 플랫폼만 배타적으로 보여준다 — 같은 그룹이 두 섹션에 중복 노출되지 않게 한다.
+function References({ references, mode, title }: { references: ReferenceQuery[]; mode: "layout" | "image" | "both"; title: string }) {
+  const groups = useMemo(() => buildReferenceGroups(references).filter((group) => group.purpose === mode), [references, mode]);
+  if (groups.length === 0) return null;
 
   return (
     <WorkCard className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle label="Reference Platforms" meta={`${visibleGroups.length} groups`} />
-        {showFilter && (
-          <div className="flex gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1">
-            {referenceFilterOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onFilterChange(option.value)}
-                className={`rounded-full px-3 py-1 text-xs font-bold ${
-                  filter === option.value ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-zinc-900"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <SectionTitle label={title} meta={`${groups.length} groups`} />
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {visibleGroups.map((group) => (
+        {groups.map((group) => (
           <div key={group.name} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1277,35 +1278,6 @@ function LayoutVariantPicker({
   );
 }
 
-function DirectionTabs({
-  directions,
-  selectedId,
-  onSelect,
-}: {
-  directions: DesignDirection[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  if (directions.length <= 1) return null;
-  return (
-    <div className="flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-zinc-50 p-1.5">
-      {directions.map((direction) => (
-        <button
-          key={direction.id}
-          type="button"
-          onClick={() => onSelect(direction.id)}
-          className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${
-            selectedId === direction.id ? "bg-zinc-950 text-white" : "text-zinc-600 hover:text-zinc-950"
-          }`}
-        >
-          {direction.label}
-          {direction.appliesTo && <span className="ml-2 text-xs font-medium opacity-70">{direction.appliesTo}</span>}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 type ScreenTypeItem = { icon: string; name: string; count: number; desc: string };
 
 function ImplementationSample({
@@ -1718,33 +1690,55 @@ function Result({
   onAnalysisUpdate: (analysis: GeneratorAnalysis) => void;
 }) {
   const { analysis, documentText, analysisSource } = response;
-  const [selectedDirectionId, setSelectedDirectionId] = useState(analysis.directions[0]?.id);
-  const selectedDirection = analysis.directions.find((item) => item.id === selectedDirectionId) ?? analysis.directions[0];
+  // 탭으로 "UI냐 비주얼이냐"를 고르게 하지 않고, 이 산출물에 필요한 UI 방향과 비주얼 방향을
+  // 둘 다 찾아서 한 화면에 동시에 보여준다. 스키마상 한 프로젝트에 ui 방향과 visual 방향은
+  // 각각 최대 1개씩만 나오므로(같은 direction에 둘 다 있는 mixed 케이스 포함) find()로 충분하다.
+  const uiDirection = analysis.directions.find((item) => item.ui);
+  const visualDirection = analysis.directions.find((item) => item.visual);
+  const moodBoardDirection = uiDirection || visualDirection || analysis.directions[0];
   const [selectedMoodIndex, setSelectedMoodIndex] = useState(0);
   const [colorBrief, setColorBrief] = useState("");
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [regenerateNote, setRegenerateNote] = useState<string | null>(null);
   const selectedMood = analysis.moods[selectedMoodIndex] || analysis.moods[0];
-  const [selectedLayoutVariantId, setSelectedLayoutVariantId] = useState<string | undefined>(selectedDirection?.ui?.layoutVariants[0]?.id);
-  const [selectedImageDirectionId, setSelectedImageDirectionId] = useState<string | undefined>(selectedDirection?.visual?.imageDirections[0]?.id);
+  const [selectedLayoutVariantId, setSelectedLayoutVariantId] = useState<string | undefined>(uiDirection?.ui?.layoutVariants[0]?.id);
+  const [selectedImageDirectionId, setSelectedImageDirectionId] = useState<string | undefined>(visualDirection?.visual?.imageDirections[0]?.id);
   const [selectedScreenIndex, setSelectedScreenIndex] = useState(0);
-  const [referenceFilter, setReferenceFilter] = useState<"all" | "layout" | "image">("all");
+  const [reclassifying, setReclassifying] = useState(false);
+  const [reclassifyError, setReclassifyError] = useState<string | null>(null);
 
-  const handleSelectDirection = (id: string) => {
-    setSelectedDirectionId(id);
-    const next = analysis.directions.find((item) => item.id === id);
-    setSelectedLayoutVariantId(next?.ui?.layoutVariants[0]?.id);
-    setSelectedImageDirectionId(next?.visual?.imageDirections[0]?.id);
-    setSelectedScreenIndex(0);
+  const handleAssetTypeChange = async (assetType: string) => {
+    setReclassifying(true);
+    setReclassifyError(null);
+    try {
+      const res = await fetch("/api/reclassify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis, assetType }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "재분류에 실패했습니다.");
+      const updated = data.analysis as GeneratorAnalysis;
+      onAnalysisUpdate(updated);
+      const nextUi = updated.directions.find((item) => item.ui);
+      const nextVisual = updated.directions.find((item) => item.visual);
+      setSelectedLayoutVariantId(nextUi?.ui?.layoutVariants[0]?.id);
+      setSelectedImageDirectionId(nextVisual?.visual?.imageDirections[0]?.id);
+      setSelectedScreenIndex(0);
+    } catch (err) {
+      setReclassifyError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+    } finally {
+      setReclassifying(false);
+    }
   };
 
-  const selectedLayoutVariant = selectedDirection?.ui?.layoutVariants.find((item) => item.id === selectedLayoutVariantId) ?? selectedDirection?.ui?.layoutVariants[0];
-  const selectedImageDirection = selectedDirection?.visual?.imageDirections.find((item) => item.id === selectedImageDirectionId) ?? selectedDirection?.visual?.imageDirections[0];
-  const screenTypes = selectedDirection?.ui?.screenTypes || [];
+  const selectedLayoutVariant = uiDirection?.ui?.layoutVariants.find((item) => item.id === selectedLayoutVariantId) ?? uiDirection?.ui?.layoutVariants[0];
+  const selectedImageDirection = visualDirection?.visual?.imageDirections.find((item) => item.id === selectedImageDirectionId) ?? visualDirection?.visual?.imageDirections[0];
+  const screenTypes = uiDirection?.ui?.screenTypes || [];
   const selectedScreen = screenTypes[selectedScreenIndex] || screenTypes[0];
-  const showImageWorkshop = Boolean(selectedDirection?.visual) && Boolean(selectedImageDirection) && Boolean(selectedMood) && referenceFilter !== "layout";
-  const defaultCollapsed = Boolean(selectedDirection?.ui) && Boolean(selectedDirection?.visual) && !hasLoginScreen(screenTypes) && referenceFilter !== "image";
+  const showImageWorkshop = Boolean(visualDirection?.visual) && Boolean(selectedImageDirection) && Boolean(selectedMood);
+  const defaultCollapsed = Boolean(uiDirection) && Boolean(visualDirection) && !hasLoginScreen(screenTypes);
 
   const handleRegenerate = async () => {
     setRegenerating(true);
@@ -1770,10 +1764,19 @@ function Result({
     }
   };
 
-  const directionSummary = [
-    selectedDirection?.ui ? `레이아웃 변형 ${selectedDirection.ui.layoutVariants.length}개` : null,
-    selectedDirection?.visual ? `키비주얼 방향 ${selectedDirection.visual.imageDirections.length}개` : null,
-  ].filter((item): item is string => Boolean(item));
+  const compositionSummary = [
+    uiDirection?.ui
+      ? { tag: "UI", title: uiDirection.label, detail: uiDirection.appliesTo || "레이아웃/화면 구성", meta: `레이아웃 변형 ${uiDirection.ui.layoutVariants.length}개` }
+      : null,
+    visualDirection?.visual
+      ? { tag: "비주얼", title: visualDirection.label, detail: visualDirection.appliesTo || "키비주얼/이미지 방향", meta: `키비주얼 방향 ${visualDirection.visual.imageDirections.length}개` }
+      : null,
+  ].filter((item): item is { tag: string; title: string; detail: string; meta: string } => Boolean(item));
+
+  // UI/비주얼 양쪽에 다 쓸모 있는 플랫폼(Dribbble 등, purpose: "both")을 공통 섹션에서 한 번만
+  // 보여주기 위해, 두 direction의 references를 합친다. 같은 direction(mixed)이면 자기 자신과
+  // 합치는 셈이라 no-op이다.
+  const commonReferences = mergeReferenceQueries(uiDirection?.references || [], visualDirection?.references || []);
 
   const keywordGroups = useMemo(
     () =>
@@ -1794,19 +1797,31 @@ function Result({
         </div>
       )}
 
-      <DirectionTabs directions={analysis.directions} selectedId={selectedDirection?.id || ""} onSelect={handleSelectDirection} />
-
       <WorkCard className="overflow-hidden">
         <div className="grid grid-cols-[1.1fr_0.9fr] max-lg:grid-cols-1">
           <div className="p-6">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm font-semibold text-zinc-700">
-                {analysis.assetProfile.assetType}
-              </span>
+              <select
+                value={analysis.assetProfile.assetType}
+                disabled={reclassifying}
+                onChange={(event) => handleAssetTypeChange(event.target.value)}
+                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm font-semibold text-zinc-700 disabled:opacity-60"
+              >
+                {!assetTypeOptions.some((option) => option.value === analysis.assetProfile.assetType) && (
+                  <option value={analysis.assetProfile.assetType}>{analysis.assetProfile.assetType}</option>
+                )}
+                {assetTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
               <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-sm font-bold text-teal-900">
                 {analysis.assetProfile.projectKind === "ui" ? "UI/레이아웃" : analysis.assetProfile.projectKind === "visual" ? "이미지/키비주얼" : "UI + 키비주얼"}
               </span>
+              {reclassifying && <span className="text-xs font-semibold text-zinc-400">반영 중...</span>}
             </div>
+            {reclassifyError && <p className="mt-1 text-xs font-semibold text-red-600">{reclassifyError}</p>}
             <EditableText
               as="h1"
               className="mt-5 text-3xl font-black text-zinc-950 max-sm:text-2xl"
@@ -1826,21 +1841,25 @@ function Result({
             />
           </div>
           <div className="border-l border-zinc-200 bg-zinc-50 p-6 max-lg:border-l-0 max-lg:border-t">
-            <SectionTitle label="Direction" meta={selectedDirection?.label} />
-            <p className="mb-4 text-sm leading-6 text-zinc-600">{selectedDirection?.appliesTo || "이 방향이 다루는 화면/영역"}</p>
+            <SectionTitle label="이 산출물의 구성" meta={`${compositionSummary.length}개`} />
             <ol className="grid gap-3">
-              {directionSummary.map((item, index) => (
-                <li key={item} className="flex gap-3">
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-zinc-900 text-xs font-bold text-white">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm leading-6 text-zinc-700">{item}</span>
+              {compositionSummary.map((item) => (
+                <li key={item.tag} className="flex gap-3">
+                  <span className="grid h-7 w-12 shrink-0 place-items-center rounded-md bg-zinc-900 text-xs font-bold text-white">{item.tag}</span>
+                  <div className="text-sm leading-6 text-zinc-700">
+                    <p className="font-bold text-zinc-900">{item.title}</p>
+                    <p className="text-zinc-600">{item.detail}</p>
+                    <p className="text-xs font-semibold text-zinc-400">{item.meta}</p>
+                  </div>
                 </li>
               ))}
+              {compositionSummary.length === 0 && <li className="text-sm text-zinc-500">UI/비주얼 방향이 아직 없습니다.</li>}
             </ol>
           </div>
         </div>
       </WorkCard>
+
+      <GroupDivider label="공통" detail="모든 방향에 같이 적용되는 키워드/팔레트/무드" />
 
       <div className="grid gap-4 xl:grid-cols-4">
         {keywordGroups.map(([title, keywords, tone]) => (
@@ -1850,10 +1869,10 @@ function Result({
 
       <Palette analysis={analysis} />
       <MoodCards analysis={analysis} selectedMoodIndex={selectedMoodIndex} onSelectMood={setSelectedMoodIndex} />
-      {selectedMood && selectedDirection && (
+      {selectedMood && moodBoardDirection && (
         <SelectedMoodBoard
           analysis={analysis}
-          direction={selectedDirection}
+          direction={moodBoardDirection}
           mood={selectedMood}
           colorBrief={colorBrief}
           primaryColor={primaryColor}
@@ -1865,70 +1884,82 @@ function Result({
         />
       )}
 
-      {selectedDirection?.ui && (
-        <WorkCard className="p-5">
-          <SectionTitle label="Layout Variants" meta={`${selectedDirection.ui.layoutVariants.length} variants`} />
-          <LayoutVariantPicker
-            variants={selectedDirection.ui.layoutVariants}
-            selectedId={selectedLayoutVariantId}
-            onSelect={setSelectedLayoutVariantId}
-          />
-          {selectedLayoutVariant && selectedLayoutVariant.notes.length > 0 && (
-            <ul className="mt-4 grid gap-1.5 text-sm leading-6 text-zinc-600">
-              {selectedLayoutVariant.notes.map((note) => (
-                <li key={note}>· {note}</li>
-              ))}
-            </ul>
-          )}
-        </WorkCard>
-      )}
+      <References references={commonReferences} mode="both" title="공통 Reference Platforms" />
 
-      {selectedDirection?.ui && (
-        <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+      {uiDirection?.ui && (
+        <>
+          <GroupDivider label="UI 방향" detail={uiDirection.label} />
+
           <WorkCard className="p-5">
-            <SectionTitle label="Deliverables" meta="화면 선택 → 오른쪽 미리보기에 반영" />
-            <div className="grid gap-2">
-              {screenTypes.map((item, index) => (
-                <button
-                  key={item.name}
-                  type="button"
-                  onClick={() => setSelectedScreenIndex(index)}
-                  className={`grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                    selectedScreenIndex === index
-                      ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100"
-                      : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
-                  }`}
-                >
-                  <span className={`grid h-10 w-10 place-items-center rounded-md text-base font-black ${selectedScreenIndex === index ? "bg-teal-600 text-white" : "bg-white text-teal-700"}`}>
-                    {item.icon || "□"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-bold text-zinc-950">{item.name}</p>
-                    <p className="mt-1 text-sm leading-6 text-zinc-600">{item.desc}</p>
-                  </div>
-                  <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-zinc-500">{item.count}</span>
-                </button>
-              ))}
-            </div>
+            <SectionTitle label="Layout Variants" meta={`${uiDirection.ui.layoutVariants.length} variants`} />
+            <LayoutVariantPicker
+              variants={uiDirection.ui.layoutVariants}
+              selectedId={selectedLayoutVariantId}
+              onSelect={setSelectedLayoutVariantId}
+            />
+            {selectedLayoutVariant && selectedLayoutVariant.notes.length > 0 && (
+              <ul className="mt-4 grid gap-1.5 text-sm leading-6 text-zinc-600">
+                {selectedLayoutVariant.notes.map((note) => (
+                  <li key={note}>· {note}</li>
+                ))}
+              </ul>
+            )}
           </WorkCard>
 
-          {selectedMood && selectedScreen && selectedLayoutVariant && (
-            <ImplementationSample analysis={analysis} direction={selectedDirection} mood={selectedMood} variant={selectedLayoutVariant} screen={selectedScreen} />
-          )}
-        </div>
+          <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+            <WorkCard className="p-5">
+              <SectionTitle label="Deliverables" meta="화면 선택 → 오른쪽 미리보기에 반영" />
+              <div className="grid gap-2">
+                {screenTypes.map((item, index) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => setSelectedScreenIndex(index)}
+                    className={`grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                      selectedScreenIndex === index
+                        ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100"
+                        : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                    }`}
+                  >
+                    <span className={`grid h-10 w-10 place-items-center rounded-md text-base font-black ${selectedScreenIndex === index ? "bg-teal-600 text-white" : "bg-white text-teal-700"}`}>
+                      {item.icon || "□"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-zinc-950">{item.name}</p>
+                      <p className="mt-1 text-sm leading-6 text-zinc-600">{item.desc}</p>
+                    </div>
+                    <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-zinc-500">{item.count}</span>
+                  </button>
+                ))}
+              </div>
+            </WorkCard>
+
+            {selectedMood && selectedScreen && selectedLayoutVariant && (
+              <ImplementationSample analysis={analysis} direction={uiDirection} mood={selectedMood} variant={selectedLayoutVariant} screen={selectedScreen} />
+            )}
+          </div>
+
+          <References references={uiDirection.references} mode="layout" title="UI Reference Platforms" />
+        </>
       )}
 
-      {selectedDirection && <References direction={selectedDirection} filter={referenceFilter} onFilterChange={setReferenceFilter} />}
+      {visualDirection?.visual && (
+        <>
+          <GroupDivider label="비주얼 방향" detail={visualDirection.label} />
 
-      {showImageWorkshop && selectedDirection && selectedImageDirection && selectedMood && (
-        <ImagePromptWorkshop
-          key={`${selectedDirection.id}-${selectedImageDirection.id}-${selectedMood.title}`}
-          analysis={analysis}
-          direction={selectedDirection}
-          imageDirection={selectedImageDirection}
-          mood={selectedMood}
-          defaultCollapsed={defaultCollapsed}
-        />
+          {showImageWorkshop && selectedImageDirection && selectedMood && (
+            <ImagePromptWorkshop
+              key={`${visualDirection.id}-${selectedImageDirection.id}-${selectedMood.title}`}
+              analysis={analysis}
+              direction={visualDirection}
+              imageDirection={selectedImageDirection}
+              mood={selectedMood}
+              defaultCollapsed={defaultCollapsed}
+            />
+          )}
+
+          <References references={visualDirection.references} mode="image" title="비주얼 Reference Platforms" />
+        </>
       )}
     </section>
   );
@@ -1952,8 +1983,13 @@ export default function Home() {
       formData.append("file", file);
       if (primaryColor.trim()) formData.append("primaryColor", primaryColor.trim());
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "분석에 실패했습니다.");
+      let data: { error?: string } | AnalyzeResponse;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`서버 응답을 읽을 수 없습니다 (status ${res.status}). 잠시 후 다시 시도해주세요.`);
+      }
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? "분석에 실패했습니다.");
       setResult(data as AnalyzeResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");

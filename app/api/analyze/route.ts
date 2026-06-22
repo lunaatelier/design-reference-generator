@@ -4,15 +4,15 @@ import { analyzeDocument } from "@/lib/generatorAnalysis";
 import type { AnalyzeResponse } from "@/types";
 
 export async function POST(request: Request) {
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const primaryColor = formData.get("primaryColor");
-
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "파일이 업로드되지 않았습니다." }, { status: 400 });
-  }
-
   try {
+    const formData = await request.formData();
+    const file = formData.get("file");
+    const primaryColor = formData.get("primaryColor");
+
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: "파일이 업로드되지 않았습니다." }, { status: 400 });
+    }
+
     const text = await extractText(file);
     const { analysis, source, documentText } = await analyzeDocument(
       text,

@@ -1,4 +1,4 @@
-import type { AssetProfile, DesignDirection, ReferenceGroup, ReferenceQuery } from "@/types";
+import type { AssetProfile, ReferenceGroup, ReferenceQuery } from "@/types";
 
 function makeQuery(query: string): string {
   return encodeURIComponent(query).replace(/%20/g, "+");
@@ -164,7 +164,7 @@ function toReferenceQueries(keywordsByPlatform: Record<string, string[]>, allowe
     .map(([platform, keywords]) => ({ platform, keywords: keywords.filter(Boolean) }));
 }
 
-function mergeReferenceQueries(base: ReferenceQuery[], extra: ReferenceQuery[]): ReferenceQuery[] {
+export function mergeReferenceQueries(base: ReferenceQuery[], extra: ReferenceQuery[]): ReferenceQuery[] {
   const byPlatform = new Map<string, Set<string>>();
   for (const query of [...base, ...extra]) {
     const set = byPlatform.get(query.platform) || new Set<string>();
@@ -203,8 +203,8 @@ export function resolveDirectionReferenceQueries(
   return merged.filter((query) => allowed.has(query.platform) && query.keywords.length > 0);
 }
 
-export function buildReferenceGroups(direction: DesignDirection): ReferenceGroup[] {
-  return direction.references
+export function buildReferenceGroups(references: ReferenceQuery[]): ReferenceGroup[] {
+  return references
     .map((query) => {
       const config = PLATFORMS[query.platform];
       if (!config) return null;
