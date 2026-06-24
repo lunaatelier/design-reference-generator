@@ -54,11 +54,28 @@ $userTimes = @()
 foreach ($line in $lines) {
     try {
         $obj = $line | ConvertFrom-Json
-        # Claude Code: type="user", message.role="user"
-        # Codex:       type="event_msg", payload.type="user_message"
-        $isUser = ($obj.type -eq "user" -and $obj.message.role -eq "user") -or
-                  ($obj.type -eq "event_msg" -and $obj.payload.type -eq "user_message")
-        if ($isUser) {
+        # Claude Code: type="user", message.role="user" — 주의: Anthropic API 스펙상
+        # tool_result 콘텐츠 블록도 user role 메시지로 감싸져서 동일하게 기록되므로,
+        # message.content가 배열이면 tool_result가 아닌 블록이 최소 하나 있어야
+        # "실제 사람 입력"으로 인정한다 (그냥 type/role만 보면 도구 실행 결과까지
+        # 사람 메시지로 잘못 집계되어 능동시간이 크게 과대 산정된다 — 실측 사례:
+        # 필터링 전 335개 중 실제 사람 입력 22개, 잘못 계산하면 2.9배 과대 집계됨).
+        # Codex: type="event_msg", payload.type="user_message"는 사람 입력 전용
+        # 이벤트라 이 문제가 없음(tool 결과는 다른 payload.type으로 기록됨).
+        if ($obj.type -eq "user" -and $obj.message.role -eq "user") {
+            $content = $obj.message.content
+            $isRealUser = $false
+            if ($content -is [string]) {
+                $isRealUser = $true
+            } elseif ($content -is [array]) {
+                $hasNonToolResult = $content | Where-Object { $_.type -ne "tool_result" }
+                if ($hasNonToolResult) { $isRealUser = $true }
+            }
+            if ($isRealUser) {
+                $kst = [datetime]::Parse($obj.timestamp).AddHours(9)
+                $userTimes += $kst
+            }
+        } elseif ($obj.type -eq "event_msg" -and $obj.payload.type -eq "user_message") {
             $kst = [datetime]::Parse($obj.timestamp).AddHours(9)
             $userTimes += $kst
         }
