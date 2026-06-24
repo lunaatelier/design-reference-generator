@@ -1,5 +1,7 @@
 export type ProjectKind = "ui" | "visual" | "mixed";
 
+export type ScreenLayout = "splash" | "onboarding" | "terms" | "login" | "form" | "dashboard" | "list" | "detail";
+
 export type AssetProfile = {
   /** Raw Gemini-provided or fallback-detected assetType string, kept for display only. */
   assetType: string;
@@ -71,6 +73,19 @@ export type LayoutVariant = {
   notes: string[];
 };
 
+// Verbatim content extracted from the (masked) source document for one Deliverable — not a
+// summary. Optional because Gemini may not find matching text for every screenType, and
+// fallback-mode analyses never populate it. Powers Phase 2 of
+// memory/project_deliverable-scoped-layouts.md (real-data preview), unused by Phase 1's
+// structural wireframes.
+export type DeliverableContent = {
+  title: string;
+  /** Paragraphs, in source order, copied as-is from the masked document text. */
+  body: string[];
+  /** Description of what image/visual belongs here — not a generated image. */
+  imageHint: string;
+};
+
 export type UiDirection = {
   // layoutVariants live per-screenType (not a single direction-wide pool) so picking a
   // different Deliverable actually changes which structural candidates are offered, instead
@@ -81,6 +96,7 @@ export type UiDirection = {
     count: number;
     desc: string;
     layoutVariants: LayoutVariant[];
+    content?: DeliverableContent;
   }>;
 };
 
@@ -187,4 +203,21 @@ export type MoodImagesResponse = {
   images: MoodImage[];
   queries: string[];
   providers: MoodImageProvider[];
+};
+
+// What "새 탭에서 보기" writes to sessionStorage for app/preview/[id]/page.tsx to read. Kept
+// deliberately small (just what LayoutVariantPreview needs) — Phase 2 step 3 adds `content` once
+// the route renders real extracted text instead of the structural wireframe. See
+// memory/project_deliverable-scoped-layouts.md.
+export type PreviewPayload = {
+  projectTitle: string;
+  screenName: string;
+  domainHint: AssetProfile["domainHint"];
+  /** Precomputed by the writer (detectScreenLayout) so the route doesn't need to re-derive it
+   * from screenName/desc — only matters for mobile-app/entry-layout screens, see ENTRY_LAYOUTS. */
+  layout: ScreenLayout;
+  colors: string[];
+  variant: LayoutVariant;
+  /** Phase 2 step 3: when present, the route shows this verbatim instead of the bare wireframe. */
+  content?: DeliverableContent;
 };

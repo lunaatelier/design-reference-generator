@@ -5,6 +5,7 @@ import { resolveDirectionReferenceQueries } from "@/lib/references";
 import type {
   AnalysisSource,
   AssetProfile,
+  DeliverableContent,
   DesignDirection,
   GeneratorAnalysis,
   ImageDirection,
@@ -52,7 +53,8 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
                 "modules": [{"id": "module-id", "label": "모듈 이름", "weight": "primary|secondary|support"}],
                 "notes": ["이 변형에 대한 판단 근거"]
               }
-            ]
+            ],
+            "content": {"title": "이 화면에 해당하는 문서 원문 제목/헤딩", "body": ["문서 원문 단락 그대로"], "imageHint": "이 화면에 들어갈 이미지/비주얼 설명"}
           }
         ]
       },
@@ -90,6 +92,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - 표지/표지 키비주얼은 악수, 회의 장면, 사무실 사람 사진을 피하고 기술 추상 배경, 제품/인프라 컨셉, 브랜드 비주얼 소재를 우선하세요.
 - keywordGroups는 산출물형태, 컬러무드, 디자인키워드, 도메인키워드 네 묶음으로 분리하세요. 너무 추상적인 한 단어를 피하고 산출물 유형과 도메인을 조합한 2~5단어 검색어로 작성하세요.
 - screenTypes의 icon은 이모지나 □▣◇▦◫ 같은 기호 1글자만 쓰세요. "Document", "Cover" 같은 단어를 icon 자리에 쓰지 마세요(그건 name 자리에 씁니다).
+- screenTypes의 content는 아래 "문서 내용"(이미 마스킹 처리된 텍스트)에서 그 화면에 해당하는 부분을 찾아 **원문 그대로** 옮기세요. 요약하거나 다른 말로 바꾸지 마세요. title/body에 들어가는 문장은 문서에 실제로 있는 문장이어야 합니다. 문서에 해당 화면에 대응하는 내용이 명확히 없으면 content 자체를 생략하세요(빈 문자열로 추측해서 채우지 마세요). imageHint는 원문에 없을 수 있으므로 화면 성격에 맞게 새로 작성해도 됩니다.
 - referenceKeywordsByPlatform은 direction마다 그 direction에 어울리는 플랫폼만 채우세요(예: ui-only 방향이면 Dribbble/Figma Community/Mobbin 등, visual-only 방향이면 Pinterest/Behance 등).
 - referenceKeywordsByPlatform 키워드는 플랫폼 성격에 맞게 작성하세요. Behance/Pinterest/Dribbble/Figma Community와 브랜드 계열 플랫폼(Brand New, BrandB, World Brand Design, Brand Archive, Fonts in Use)에는 기술 용어를 나열하지 마세요(예: "AI 빅데이터 지식그래프 온톨로지" 금지). 대신 산출물 종류 + 디자인 스타일 중심의 짧은 구문 2~4단어로 쓰세요(예: "technology brochure design", "editorial case study", "dashboard UI inspiration"). Mobbin/Page Flows/AppShots는 화면·플로우 명사 1~3단어만 쓰세요(예: "onboarding flow", "login screen"). Google과 GDWEB/DBDIC/DBCUT처럼 실제 서비스·홈페이지를 찾는 플랫폼에는 도메인 기술 용어를 그대로 써도 됩니다(최대 7단어).
 - 기술자료 추천은 만들지 마세요.
@@ -324,8 +327,20 @@ function defaultScreenTypes(domainHint: AssetProfile["domainHint"]): UiDirection
   ];
 }
 
+// Gemini is told to omit `content` rather than guess when the document has no matching text,
+// so an empty/missing title+body means "not found", not "found but empty" — both should result
+// in no content rather than a DeliverableContent with blank fields.
+function normalizeDeliverableContent(raw: unknown): DeliverableContent | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const data = raw as Partial<{ title: string; body: unknown; imageHint: string }>;
+  const title = typeof data.title === "string" ? data.title.trim() : "";
+  const body = asStringArray(data.body);
+  if (!title && body.length === 0) return undefined;
+  return { title, body, imageHint: typeof data.imageHint === "string" ? data.imageHint.trim() : "" };
+}
+
 function normalizeScreenType(raw: unknown, index: number, domainHint: AssetProfile["domainHint"]): UiDirection["screenTypes"][number] {
-  const data = (raw || {}) as Partial<{ icon: string; name: string; count: number; desc: string; layoutVariants: unknown[] }>;
+  const data = (raw || {}) as Partial<{ icon: string; name: string; count: number; desc: string; layoutVariants: unknown[]; content: unknown }>;
   const name = data.name || `화면 ${index + 1}`;
   const desc = data.desc || "";
   const archetype = detectDeliverableArchetype(domainHint, name, desc);
@@ -337,6 +352,7 @@ function normalizeScreenType(raw: unknown, index: number, domainHint: AssetProfi
     count: typeof data.count === "number" && data.count > 0 ? data.count : 1,
     desc,
     layoutVariants: variants.length ? variants : defaultLayoutVariantsForArchetype(archetype),
+    content: normalizeDeliverableContent(data.content),
   };
 }
 
