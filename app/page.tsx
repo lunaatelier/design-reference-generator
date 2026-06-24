@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import FileDropzone from "@/components/FileDropzone";
 import { buildImageSearchQueries, buildRelevanceTerms } from "@/lib/moodImageQuery";
-import { buildReferenceGroups, mergeReferenceQueries } from "@/lib/references";
+import { buildReferenceGroups } from "@/lib/references";
 import type {
   AnalyzeResponse,
   AssetProfile,
@@ -519,11 +519,26 @@ function ReferenceKeywordChip({ label }: { label: string }) {
   );
 }
 
-// Dribbble/Behance처럼 레이아웃과 이미지 양쪽에 다 쓸모 있는 플랫폼(purpose: "both")은
-// "공통" 섹션에서 한 번만 보여주고, UI/비주얼 섹션은 각자 전용(purpose: "layout"/"image")
-// 플랫폼만 배타적으로 보여준다 — 같은 그룹이 두 섹션에 중복 노출되지 않게 한다.
-function References({ references, mode, title }: { references: ReferenceQuery[]; mode: "layout" | "image" | "both"; title: string }) {
-  const groups = useMemo(() => buildReferenceGroups(references).filter((group) => group.purpose === mode), [references, mode]);
+// Dribbble/Behance/Pinterest/Figma Community처럼 양쪽에 다 쓸모 있는 플랫폼(purpose: "both")은
+// UI/비주얼 섹션에서 각자 자기 direction의 키워드로 보여준다 — 브로셔처럼 ui-only/visual-only
+// 방향이 분리된 경우 같은 플랫폼이 layout 의도 키워드와 image 의도 키워드로 각각 다르게 나오는
+// 게 자연스럽다. 단, ui와 visual이 같은 direction(분리되지 않은 fallback 케이스)이면 동일한
+// 키워드 목록이 두 섹션에 그대로 중복 노출되므로 그때만 includeBoth=false로 한쪽을 끈다.
+function References({
+  references,
+  mode,
+  title,
+  includeBoth = true,
+}: {
+  references: ReferenceQuery[];
+  mode: "layout" | "image";
+  title: string;
+  includeBoth?: boolean;
+}) {
+  const groups = useMemo(
+    () => buildReferenceGroups(references).filter((group) => group.purpose === mode || (includeBoth && group.purpose === "both")),
+    [references, mode, includeBoth],
+  );
   if (groups.length === 0) return null;
 
   return (
@@ -1215,6 +1230,344 @@ function PreviewSplitMonitoring({ colors, screenName, domainHint, modules }: { c
   );
 }
 
+// 문서형(브로셔/제안서/보고서/포스터) 미리보기는 웹/앱 화면이 아니라 인쇄물 한 장이므로, 다른
+// Preview*가 공유하는 PreviewNav(상단 웹 nav바)를 쓰지 않고 종이 한 장처럼 보이는 프레임을 쓴다.
+function DocumentPageFrame({ surface, children }: { surface: string; children: React.ReactNode }) {
+  return (
+    <div className="flex justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 p-5 select-none">
+      <div className="aspect-[3/4] w-full max-w-[260px] overflow-hidden rounded-sm shadow-lg" style={{ background: surface }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// 표지 archetype의 3가지 후보(로고/타이포 중심형, 풀블리드 이미지형, 미니멀 텍스트형)를 한
+// 컴포넌트로 묶었다 — 같은 표지 후보 풀 안에서 서로 시각적으로 뚜렷하게 구분돼야 하기 때문에
+// variant마다 구도를 완전히 다르게 그린다.
+function PreviewCoverVariant({
+  colors,
+  screenName,
+  domainHint,
+  variant,
+}: {
+  colors: string[];
+  screenName: string;
+  domainHint: AssetProfile["domainHint"];
+  variant: "logotype" | "full-bleed" | "minimal-text";
+}) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const onSurfaceMuted = surfaceLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.65)";
+
+  if (variant === "full-bleed") {
+    return (
+      <DocumentPageFrame surface={surface}>
+        <div className="flex h-full flex-col gap-4 p-6">
+          <div className="h-1.5 w-10 rounded-full" style={{ background: accent }} />
+          <div className="flex-1 rounded-md" style={{ background: `linear-gradient(135deg, ${primary}, ${accent})` }} />
+          <h4 className="truncate text-lg font-black leading-tight" style={{ color: onSurface }}>{screenName}</h4>
+          <div className="h-1.5 w-16 rounded-full" style={{ background: onSurfaceMuted }} />
+        </div>
+      </DocumentPageFrame>
+    );
+  }
+
+  if (variant === "minimal-text") {
+    return (
+      <DocumentPageFrame surface={surface}>
+        <div className="flex h-full flex-col items-center justify-center gap-4 p-10 text-center">
+          <div className="h-px w-10" style={{ background: onSurfaceMuted }} />
+          <h4 className="text-lg font-black leading-tight" style={{ color: onSurface }}>{screenName}</h4>
+          <p className="text-xs leading-5" style={{ color: onSurfaceMuted }}>여백을 살린 절제된 표지 카피</p>
+          <div className="h-px w-10" style={{ background: onSurfaceMuted }} />
+        </div>
+      </DocumentPageFrame>
+    );
+  }
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="flex h-full flex-col p-6">
+        <div className="grid h-10 w-24 place-items-center rounded-sm border" style={{ borderColor: onSurfaceMuted }}>
+          <div className="h-2 w-14 rounded-full" style={{ background: accent }} />
+        </div>
+        <div className="flex-1" />
+        <h4 className="truncate text-xl font-black leading-tight" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="mt-3 h-1.5 w-16 rounded-full" style={{ background: accent }} />
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewEditorialSpread({ colors, screenName, domainHint, dense = false }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; dense?: boolean }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
+  const tileBg = surfaceLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="grid h-full grid-rows-[auto_1fr] gap-4 p-6">
+        <h4 className="truncate text-base font-black" style={{ color: onSurface }}>{screenName}</h4>
+        {dense ? (
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="grid gap-1.5 rounded-md p-2.5" style={{ background: tileBg }}>
+                <div className="h-10 rounded" style={{ background: i % 2 === 0 ? accent : primary, opacity: 0.7 }} />
+                <div className={`h-1.5 w-3/4 rounded ${lineBg}`} />
+                <div className={`h-1.5 w-1/2 rounded ${lineBg}`} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-md" style={{ background: `${accent}33` }} />
+            <div className="grid content-start gap-2">
+              {[80, 100, 90, 60].map((w, i) => (
+                <div key={i} className={`h-1.5 rounded ${lineBg}`} style={{ width: `${w}%` }} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewInfographicPage({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineColor = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.15)";
+  const tileBg = surfaceLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="grid h-full grid-rows-[auto_auto_1fr] gap-4 p-6">
+        <h4 className="truncate text-base font-black" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="grid place-items-center gap-1.5 rounded-md p-2.5" style={{ background: tileBg }}>
+              <div className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-black text-white" style={{ background: accent }}>{i}</div>
+              <div className="h-1.5 w-10 rounded" style={{ background: lineColor }} />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-end gap-1.5 rounded-md p-3" style={{ background: tileBg }}>
+          {[30, 55, 40, 70, 50].map((h, i) => (
+            <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: i === 3 ? accent : lineColor }} />
+          ))}
+        </div>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewProposalSection({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
+  const tileBg = surfaceLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="flex h-full flex-col gap-4 p-6">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-black text-white" style={{ background: accent }}>1</span>
+          <h4 className="truncate text-sm font-black" style={{ color: onSurface }}>{screenName}</h4>
+        </div>
+        <div className="grid gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: accent }} />
+              <div className={`h-2 w-full rounded ${lineBg}`} />
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 rounded-md" style={{ background: tileBg }} />
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewReportPage({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const textMuted = surfaceLight ? "#71717a" : "rgba(255,255,255,0.6)";
+  const lineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
+  const tileBg = surfaceLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)";
+  const borderColor = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.12)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="flex h-full flex-col gap-3 p-6">
+        <div className="flex items-center justify-between border-b pb-2" style={{ borderColor }}>
+          <h4 className="truncate text-sm font-black" style={{ color: onSurface }}>{screenName}</h4>
+          <span className="text-[10px] font-bold" style={{ color: textMuted }}>p.01</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-md p-2" style={{ background: tileBg }}>
+              <div className={`h-1.5 w-8 rounded ${lineBg}`} />
+              <div className="mt-1.5 text-xs font-black" style={{ color: i === 1 ? accent : onSurface }}>{[284, "87%", 12][i - 1]}</div>
+            </div>
+          ))}
+        </div>
+        <div className="grid flex-1 content-start gap-1.5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-2 border-b pb-1.5" style={{ borderColor: surfaceLight ? "#f4f4f5" : "rgba(255,255,255,0.08)" }}>
+              <div className={`h-1.5 flex-1 rounded ${lineBg}`} />
+              <div className={`h-1.5 w-8 rounded ${lineBg}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewNumberedList({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineBg = surfaceLight ? "bg-zinc-200" : "bg-white/15";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="grid h-full grid-rows-[auto_1fr] gap-4 p-6">
+        <h4 className="truncate text-base font-black" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="grid content-start gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-black text-white" style={{ background: accent }}>{i}</span>
+              <div className={`h-2 flex-1 rounded ${lineBg}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewTimeline({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineColor = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.15)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="flex h-full flex-col gap-6 p-6">
+        <h4 className="truncate text-base font-black" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="relative mt-4">
+          <div className="absolute left-0 right-0 top-[5px] h-px" style={{ background: lineColor }} />
+          <div className="relative flex justify-between">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="grid justify-items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: i === 1 ? accent : lineColor }} />
+                <div className="h-1.5 w-8 rounded" style={{ background: lineColor }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewPageSpread({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineColor = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.15)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="grid h-full grid-rows-[auto_1fr] gap-4 p-6">
+        <h4 className="truncate text-base font-black" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map((col) => (
+            <div key={col} className="grid content-start gap-1.5">
+              {[100, 90, 95, 70, 85].map((w, i) => (
+                <div key={i} className="h-1.5 rounded" style={{ width: `${w}%`, background: col === 1 && i === 0 ? accent : lineColor }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewComparisonTable({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const lineColor = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.15)";
+  const tileBg = surfaceLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="grid h-full grid-rows-[auto_1fr] gap-4 p-6">
+        <h4 className="truncate text-base font-black" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="grid content-start gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="h-5 rounded" />
+            <div className="h-5 rounded" style={{ background: tileBg }} />
+            <div className="h-5 rounded" style={{ background: tileBg }} />
+          </div>
+          {[1, 2, 3].map((row) => (
+            <div key={row} className="grid grid-cols-3 gap-1.5">
+              <div className="h-5 rounded" style={{ background: lineColor }} />
+              <div className="grid h-5 place-items-center rounded" style={{ background: row === 2 ? `${accent}33` : tileBg }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: row === 2 ? accent : lineColor }} />
+              </div>
+              <div className="grid h-5 place-items-center rounded" style={{ background: tileBg }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: lineColor }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
+function PreviewVisionStatement({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const onSurface = surfaceLight ? "#18181b" : "#ffffff";
+  const onSurfaceMuted = surfaceLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.65)";
+
+  return (
+    <DocumentPageFrame surface={surface}>
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+        <span className="text-3xl font-black" style={{ color: accent }}>&ldquo;</span>
+        <h4 className="text-xl font-black leading-snug" style={{ color: onSurface }}>{screenName}</h4>
+        <div className="h-1.5 w-12 rounded-full" style={{ background: accent }} />
+        <p className="text-xs leading-5" style={{ color: onSurfaceMuted }}>핵심 메시지를 큰 타이포로 선언하는 결론 화면</p>
+      </div>
+    </DocumentPageFrame>
+  );
+}
+
 // 내부 enum 이름을 화면에 그대로 노출하면 "generic-dashboard"가 실제 관제 대시보드처럼 보여 혼동을 준다.
 const STRUCTURE_LABELS: Record<LayoutVariant["structure"], string> = {
   "command-center": "관제 센터형",
@@ -1225,6 +1578,21 @@ const STRUCTURE_LABELS: Record<LayoutVariant["structure"], string> = {
   "generic-dashboard": "정보형 콘텐츠 레이아웃",
   "generic-list": "목록형 레이아웃",
   "generic-detail": "상세형 레이아웃",
+  "cover-logotype": "로고/타이포 중심형",
+  "cover-full-bleed": "풀블리드 이미지형",
+  "cover-minimal-text": "미니멀 텍스트형",
+  "numbered-list": "넘버드 리스트형",
+  timeline: "타임라인형",
+  "card-grid": "카드 그리드형",
+  "split-content": "좌우 분할형",
+  "editorial-grid": "에디토리얼 그리드형",
+  "page-spread": "페이지 스프레드형",
+  "infographic-page": "인포그래픽형",
+  "comparison-table": "비교 테이블형",
+  "vision-statement": "비전 선언형",
+  "proposal-section": "제안서 섹션형",
+  "report-page": "보고서 페이지형",
+  "poster-layout": "포스터형",
 };
 
 function LayoutVariantPreview({ variant, colors, screenName, domainHint }: { variant: LayoutVariant; colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
@@ -1243,6 +1611,34 @@ function LayoutVariantPreview({ variant, colors, screenName, domainHint }: { var
       return <PreviewList colors={colors} screenName={screenName} domainHint={domainHint} />;
     case "generic-detail":
       return <PreviewDetail colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "cover-logotype":
+      return <PreviewCoverVariant colors={colors} screenName={screenName} domainHint={domainHint} variant="logotype" />;
+    case "cover-full-bleed":
+    case "poster-layout":
+      return <PreviewCoverVariant colors={colors} screenName={screenName} domainHint={domainHint} variant="full-bleed" />;
+    case "cover-minimal-text":
+      return <PreviewCoverVariant colors={colors} screenName={screenName} domainHint={domainHint} variant="minimal-text" />;
+    case "numbered-list":
+      return <PreviewNumberedList colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "timeline":
+      return <PreviewTimeline colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "card-grid":
+    case "editorial-grid":
+      return <PreviewEditorialSpread colors={colors} screenName={screenName} domainHint={domainHint} dense />;
+    case "split-content":
+      return <PreviewEditorialSpread colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "page-spread":
+      return <PreviewPageSpread colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "infographic-page":
+      return <PreviewInfographicPage colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "comparison-table":
+      return <PreviewComparisonTable colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "vision-statement":
+      return <PreviewVisionStatement colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "proposal-section":
+      return <PreviewProposalSection colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "report-page":
+      return <PreviewReportPage colors={colors} screenName={screenName} domainHint={domainHint} />;
     default:
       return <PreviewDashboard colors={colors} screenName={screenName} domainHint={domainHint} />;
   }
@@ -1298,7 +1694,7 @@ function ImplementationSample({
   const projectTitle = analysis.projectIntent.title;
   const screenTypes = direction.ui?.screenTypes || [];
 
-  const handleDownload = () => {
+  const buildHtml = (): string => {
     const primary = colors[0] || "#111827";
     const accent = colors[1] || "#2563eb";
     const surface = pickSurfaceColor(colors, analysis.assetProfile.domainHint, isLightColor(colors[0] || "#111827"));
@@ -1310,10 +1706,170 @@ function ImplementationSample({
     const onPrimary = isLightColor(primary) ? "#18181b" : "#ffffff";
     const onPrimaryMuted = isLightColor(primary) ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
     const isMobile = analysis.assetProfile.domainHint === "mobile-app";
+    const isDocument = analysis.assetProfile.domainHint === "document";
 
     let html: string;
 
-    if (ENTRY_LAYOUTS.includes(layout)) {
+    if (isDocument) {
+      // 문서형은 entry-layout/모바일 분류보다 항상 먼저 처리한다 — 화면명이 "약관"/"가입" 같은
+      // 진입형 키워드와 우연히 겹쳐도 화면 미리보기와 동일한 에디토리얼 페이지로 내려받혀야 한다.
+      const onSurfaceMuted = surfaceLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.65)";
+      const lineBg = surfaceLight ? "#e4e4e7" : "rgba(255,255,255,0.15)";
+      const tileBg = surfaceLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)";
+
+      const coverLogotypeBody = `<div style="display:flex;flex-direction:column;height:100%;padding:36px;">
+  <div style="width:96px;height:40px;border:1px solid ${onSurfaceMuted};border-radius:4px;display:flex;align-items:center;justify-content:center;">
+    <div style="width:56px;height:8px;border-radius:999px;background:${accent};"></div>
+  </div>
+  <div style="flex:1;"></div>
+  <h1 style="font-size:26px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h1>
+  <div style="width:64px;height:6px;border-radius:999px;background:${accent};margin-top:12px;"></div>
+</div>`;
+
+      const coverFullBleedBody = `<div style="display:flex;flex-direction:column;height:100%;gap:20px;padding:36px;">
+  <div style="width:48px;height:6px;border-radius:999px;background:${accent};"></div>
+  <div style="flex:1;border-radius:10px;background:linear-gradient(135deg, ${primary}, ${accent});"></div>
+  <h1 style="font-size:26px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h1>
+  <div style="width:64px;height:5px;border-radius:999px;background:${onSurfaceMuted};"></div>
+</div>`;
+
+      const coverMinimalTextBody = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:48px;text-align:center;">
+  <div style="width:40px;height:1px;background:${onSurfaceMuted};"></div>
+  <h1 style="font-size:22px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h1>
+  <p style="font-size:12px;line-height:1.6;color:${onSurfaceMuted};">여백을 살린 절제된 표지 카피</p>
+  <div style="width:40px;height:1px;background:${onSurfaceMuted};"></div>
+</div>`;
+
+      const numberedListBody = `<div style="display:flex;flex-direction:column;height:100%;gap:24px;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    ${[1, 2, 3, 4].map((i) => `<div style="display:flex;align-items:center;gap:12px;"><span style="width:24px;height:24px;border-radius:999px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;flex-shrink:0;">${i}</span><div style="height:8px;flex:1;border-radius:4px;background:${lineBg};"></div></div>`).join("")}
+  </div>
+</div>`;
+
+      const timelineBody = `<div style="display:flex;flex-direction:column;height:100%;gap:24px;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="position:relative;margin-top:16px;">
+    <div style="position:absolute;left:0;right:0;top:5px;height:1px;background:${lineBg};"></div>
+    <div style="position:relative;display:flex;justify-content:space-between;">
+      ${[1, 2, 3, 4].map((i) => `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:999px;background:${i === 1 ? accent : lineBg};"></span><div style="height:6px;width:32px;border-radius:4px;background:${lineBg};"></div></div>`).join("")}
+    </div>
+  </div>
+</div>`;
+
+      const visionStatementBody = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:48px;text-align:center;">
+  <span style="font-size:32px;font-weight:900;color:${accent};">&ldquo;</span>
+  <h2 style="font-size:22px;font-weight:900;color:${onSurface};line-height:1.3;">${escapeHtml(screen.name)}</h2>
+  <div style="width:48px;height:6px;border-radius:999px;background:${accent};"></div>
+  <p style="font-size:12px;line-height:1.6;color:${onSurfaceMuted};">핵심 메시지를 큰 타이포로 선언하는 결론 화면</p>
+</div>`;
+
+      const spreadBody = `<div style="display:grid;grid-template-rows:auto 1fr;gap:24px;height:100%;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div style="border-radius:10px;background:${accent}33;"></div>
+    <div style="display:grid;gap:10px;align-content:start;">
+      ${[90, 100, 95, 70].map((w) => `<div style="height:8px;border-radius:4px;background:${lineBg};width:${w}%;"></div>`).join("")}
+    </div>
+  </div>
+</div>`;
+
+      const gridBody = `<div style="display:grid;grid-template-rows:auto 1fr;gap:24px;height:100%;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    ${[1, 2, 3, 4].map((i) => `<div style="display:grid;gap:8px;border-radius:10px;padding:14px;background:${tileBg};"><div style="height:48px;border-radius:6px;background:${i % 2 === 0 ? accent : primary};opacity:0.7;"></div><div style="height:8px;width:75%;border-radius:4px;background:${lineBg};"></div><div style="height:8px;width:50%;border-radius:4px;background:${lineBg};"></div></div>`).join("")}
+  </div>
+</div>`;
+
+      const infographicBody = `<div style="display:grid;grid-template-rows:auto auto 1fr;gap:24px;height:100%;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+    ${[1, 2, 3].map((i) => `<div style="display:grid;justify-items:center;gap:8px;border-radius:10px;padding:14px;background:${tileBg};"><div style="width:34px;height:34px;border-radius:999px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;">${i}</div><div style="height:8px;width:60%;border-radius:4px;background:${lineBg};"></div></div>`).join("")}
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:8px;border-radius:10px;padding:16px;background:${tileBg};">
+    ${[30, 55, 40, 70, 50].map((h, i) => `<div style="flex:1;border-radius:4px 4px 0 0;height:${h}%;background:${i === 3 ? accent : lineBg};"></div>`).join("")}
+  </div>
+</div>`;
+
+      const pageSpreadBody = `<div style="display:grid;grid-template-rows:auto 1fr;gap:24px;height:100%;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+    ${[0, 1, 2]
+      .map(
+        (col) =>
+          `<div style="display:flex;flex-direction:column;gap:6px;">${[100, 90, 95, 70, 85]
+            .map((w, i) => `<div style="height:6px;border-radius:4px;width:${w}%;background:${col === 1 && i === 0 ? accent : lineBg};"></div>`)
+            .join("")}</div>`,
+      )
+      .join("")}
+  </div>
+</div>`;
+
+      const comparisonTableBody = `<div style="display:grid;grid-template-rows:auto 1fr;gap:24px;height:100%;padding:36px;">
+  <h2 style="font-size:20px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+      <div style="height:20px;border-radius:4px;"></div>
+      <div style="height:20px;border-radius:4px;background:${tileBg};"></div>
+      <div style="height:20px;border-radius:4px;background:${tileBg};"></div>
+    </div>
+    ${[1, 2, 3]
+      .map(
+        (row) =>
+          `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"><div style="height:20px;border-radius:4px;background:${lineBg};"></div><div style="height:20px;border-radius:4px;background:${row === 2 ? `${accent}33` : tileBg};display:flex;align-items:center;justify-content:center;"><span style="width:6px;height:6px;border-radius:999px;background:${row === 2 ? accent : lineBg};"></span></div><div style="height:20px;border-radius:4px;background:${tileBg};display:flex;align-items:center;justify-content:center;"><span style="width:6px;height:6px;border-radius:999px;background:${lineBg};"></span></div></div>`,
+      )
+      .join("")}
+  </div>
+</div>`;
+
+      const proposalBody = `<div style="display:grid;grid-template-rows:auto auto 1fr;gap:20px;height:100%;padding:36px;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <span style="width:32px;height:32px;border-radius:999px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;">1</span>
+    <h2 style="font-size:18px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+  </div>
+  <div style="display:grid;gap:10px;">
+    ${[1, 2, 3].map(() => `<div style="display:flex;gap:10px;align-items:flex-start;"><span style="margin-top:7px;width:5px;height:5px;border-radius:999px;background:${accent};flex-shrink:0;"></span><div style="height:9px;flex:1;border-radius:4px;background:${lineBg};"></div></div>`).join("")}
+  </div>
+  <div style="border-radius:10px;background:${tileBg};"></div>
+</div>`;
+
+      const reportBody = `<div style="display:grid;grid-template-rows:auto auto 1fr;gap:18px;height:100%;padding:36px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${lineBg};padding-bottom:10px;">
+    <h2 style="font-size:18px;font-weight:900;color:${onSurface};">${escapeHtml(screen.name)}</h2>
+    <span style="font-size:11px;font-weight:700;color:${textMuted};">p.01</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+    ${[["284", false], ["87%", true], ["12", false]].map(([v, isAccent]) => `<div style="border-radius:8px;padding:12px;background:${tileBg};"><div style="height:7px;width:40%;border-radius:4px;background:${lineBg};margin-bottom:8px;"></div><div style="font-size:18px;font-weight:900;color:${isAccent ? accent : onSurface};">${v}</div></div>`).join("")}
+  </div>
+  <div style="display:grid;gap:10px;align-content:start;">
+    ${[1, 2, 3, 4].map(() => `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid ${surfaceLight ? "#f4f4f5" : "rgba(255,255,255,0.08)"};padding-bottom:8px;"><div style="height:8px;flex:1;border-radius:4px;background:${lineBg};"></div><div style="height:8px;width:40px;border-radius:4px;background:${lineBg};"></div></div>`).join("")}
+  </div>
+</div>`;
+
+      // 화면 미리보기(LayoutVariantPreview)와 동일하게 다운로드 HTML도 15종 구조마다 전용
+      // 바디를 쓴다 — card-grid/editorial-grid, split-content는 화면 쪽 컴포넌트 재사용과 같은
+      // 이유로 같은 바디를 공유한다(같은 Deliverable 후보 풀 안에서 겹치지 않으면 문제 없음).
+      const bodyByDocumentStructure: Partial<Record<LayoutVariant["structure"], string>> = {
+        "cover-logotype": coverLogotypeBody,
+        "cover-full-bleed": coverFullBleedBody,
+        "cover-minimal-text": coverMinimalTextBody,
+        "poster-layout": coverFullBleedBody,
+        "numbered-list": numberedListBody,
+        timeline: timelineBody,
+        "card-grid": gridBody,
+        "split-content": spreadBody,
+        "editorial-grid": gridBody,
+        "page-spread": pageSpreadBody,
+        "infographic-page": infographicBody,
+        "comparison-table": comparisonTableBody,
+        "vision-statement": visionStatementBody,
+        "proposal-section": proposalBody,
+        "report-page": reportBody,
+      };
+      const pageBody = bodyByDocumentStructure[variant.structure] || spreadBody;
+
+      html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: #e4e4e7; display: flex; justify-content: center; padding: 48px 16px; }</style>\n</head>\n<body>\n<div style="width:100%;max-width:560px;aspect-ratio:3/4;border-radius:4px;box-shadow:0 24px 60px rgba(0,0,0,0.25);overflow:hidden;background:${surface};">${pageBody}</div>\n</body>\n</html>`;
+    } else if (ENTRY_LAYOUTS.includes(layout)) {
       const fragment = buildEntryScreenFragment({ layout, screen, primary, accent, cardBg, cardLine, onSurface, textMuted });
 
       html = isMobile
@@ -1418,7 +1974,7 @@ function ImplementationSample({
 
       const splitMonitoringContent = `<main style="flex:1;display:flex;"><div style="flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;padding:8px;">${[1, 2, 3, 4].map((i) => `<div style="background:#27272a;border-radius:6px;min-height:120px;display:flex;align-items:center;justify-content:center;color:#a1a1aa;font-size:11px;">CAM ${i}</div>`).join("")}</div><div style="width:200px;border-left:1px solid #e4e4e7;background:#fff;padding:16px;">${[1, 2, 3].map((i) => `<div style="display:flex;justify-content:space-between;align-items:center;background:#f4f4f5;border-radius:8px;padding:8px 10px;margin-bottom:8px;"><span style="font-size:12px;color:#71717a;">상태 ${i}</span><span style="width:8px;height:8px;border-radius:50%;background:${i === 1 ? "#22c55e" : accent};"></span></div>`).join("")}</div></main>`;
 
-      const contentByStructure: Record<LayoutVariant["structure"], string> = {
+      const contentByStructure: Partial<Record<LayoutVariant["structure"], string>> = {
         "generic-dashboard": dashboardContent,
         "generic-list": listContent,
         "generic-detail": detailContent,
@@ -1435,7 +1991,34 @@ function ImplementationSample({
       html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; }</style>\n</head>\n<body>\n${navHtml}\n${contentHtml}\n</body>\n</html>`;
     }
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    return html;
+  };
+
+  // 매번 파일을 내려받아 직접 열어야 하는 게 번거롭다는 피드백 → 기본 동작은 새 탭에서 바로
+  // 렌더링하고, 파일이 실제로 필요한 경우만 별도 다운로드 버튼을 쓰도록 분리했다. blob URL은
+  // 그걸 만든 이 탭(메인 앱)이 살아있는 동안 계속 메모리에 남는다 — 새로 연 미리보기 탭을 닫아도
+  // 자동으로 해제되지 않으므로, 새 탭이 로드되면(또는 로드 이벤트에 접근 못 하는 경우를 대비해
+  // 최대 60초 후) 명시적으로 revoke한다.
+  const handleOpenPreview = () => {
+    const blob = new Blob([buildHtml()], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const popup = window.open(url, "_blank");
+    let revoked = false;
+    const revoke = () => {
+      if (revoked) return;
+      revoked = true;
+      URL.revokeObjectURL(url);
+    };
+    try {
+      popup?.addEventListener("load", revoke, { once: true });
+    } catch {
+      // 팝업 차단 등으로 접근이 막히면 아래 타임아웃 fallback에 맡긴다.
+    }
+    window.setTimeout(revoke, 60_000);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([buildHtml()], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -1448,15 +2031,34 @@ function ImplementationSample({
     <WorkCard className="p-5">
       <div className="mb-4 flex items-center justify-between">
         <SectionTitle label="Screen Preview" meta={`${screen.name} · ${mood.title}`} />
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="shrink-0 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-teal-300 hover:text-teal-800"
-        >
-          HTML 다운로드
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpenPreview}
+            className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-teal-300 hover:text-teal-800"
+          >
+            새 탭에서 보기
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            title="HTML 다운로드"
+            aria-label="HTML 다운로드"
+            className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 hover:border-teal-300 hover:text-teal-800"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v12" />
+              <path d="M7 11l5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+          </button>
+        </div>
       </div>
-      {analysis.assetProfile.domainHint === "mobile-app" ? (
+      {analysis.assetProfile.domainHint === "document" ? (
+        // 문서형은 화면명이 우연히 "약관"/"가입" 같은 진입형 키워드와 겹쳐도 항상 에디토리얼
+        // 구조로 렌더링해야 한다 — entry-layout 분류가 끼어들면 다시 일반 UI 카드로 보인다.
+        <LayoutVariantPreview variant={variant} colors={colors} screenName={screen.name} domainHint={analysis.assetProfile.domainHint} />
+      ) : analysis.assetProfile.domainHint === "mobile-app" ? (
         <PreviewMobile colors={colors} screenName={screen.name} layout={layout} />
       ) : ENTRY_LAYOUTS.includes(layout) ? (
         <PreviewCentered colors={colors} screenName={screen.name} domainHint={analysis.assetProfile.domainHint} layout={layout} />
@@ -1702,11 +2304,20 @@ function Result({
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [regenerateNote, setRegenerateNote] = useState<string | null>(null);
   const selectedMood = analysis.moods[selectedMoodIndex] || analysis.moods[0];
-  const [selectedLayoutVariantId, setSelectedLayoutVariantId] = useState<string | undefined>(uiDirection?.ui?.layoutVariants[0]?.id);
-  const [selectedImageDirectionId, setSelectedImageDirectionId] = useState<string | undefined>(visualDirection?.visual?.imageDirections[0]?.id);
+  const screenTypes = uiDirection?.ui?.screenTypes || [];
   const [selectedScreenIndex, setSelectedScreenIndex] = useState(0);
+  const selectedScreen = screenTypes[selectedScreenIndex] || screenTypes[0];
+  // layoutVariants는 selectedScreen(Deliverable) 전용 풀이라, Deliverable을 바꾸면 이전 선택 id가
+  // 새 풀에 없을 수 있다 — handleSelectScreen/handleAssetTypeChange에서 같이 리셋해준다.
+  const [selectedLayoutVariantId, setSelectedLayoutVariantId] = useState<string | undefined>(selectedScreen?.layoutVariants[0]?.id);
+  const [selectedImageDirectionId, setSelectedImageDirectionId] = useState<string | undefined>(visualDirection?.visual?.imageDirections[0]?.id);
   const [reclassifying, setReclassifying] = useState(false);
   const [reclassifyError, setReclassifyError] = useState<string | null>(null);
+
+  const handleSelectScreen = (index: number) => {
+    setSelectedScreenIndex(index);
+    setSelectedLayoutVariantId(screenTypes[index]?.layoutVariants[0]?.id);
+  };
 
   const handleAssetTypeChange = async (assetType: string) => {
     setReclassifying(true);
@@ -1723,7 +2334,7 @@ function Result({
       onAnalysisUpdate(updated);
       const nextUi = updated.directions.find((item) => item.ui);
       const nextVisual = updated.directions.find((item) => item.visual);
-      setSelectedLayoutVariantId(nextUi?.ui?.layoutVariants[0]?.id);
+      setSelectedLayoutVariantId(nextUi?.ui?.screenTypes[0]?.layoutVariants[0]?.id);
       setSelectedImageDirectionId(nextVisual?.visual?.imageDirections[0]?.id);
       setSelectedScreenIndex(0);
     } catch (err) {
@@ -1733,10 +2344,8 @@ function Result({
     }
   };
 
-  const selectedLayoutVariant = uiDirection?.ui?.layoutVariants.find((item) => item.id === selectedLayoutVariantId) ?? uiDirection?.ui?.layoutVariants[0];
+  const selectedLayoutVariant = selectedScreen?.layoutVariants.find((item) => item.id === selectedLayoutVariantId) ?? selectedScreen?.layoutVariants[0];
   const selectedImageDirection = visualDirection?.visual?.imageDirections.find((item) => item.id === selectedImageDirectionId) ?? visualDirection?.visual?.imageDirections[0];
-  const screenTypes = uiDirection?.ui?.screenTypes || [];
-  const selectedScreen = screenTypes[selectedScreenIndex] || screenTypes[0];
   const showImageWorkshop = Boolean(visualDirection?.visual) && Boolean(selectedImageDirection) && Boolean(selectedMood);
   const defaultCollapsed = Boolean(uiDirection) && Boolean(visualDirection) && !hasLoginScreen(screenTypes);
 
@@ -1766,17 +2375,20 @@ function Result({
 
   const compositionSummary = [
     uiDirection?.ui
-      ? { tag: "UI", title: uiDirection.label, detail: uiDirection.appliesTo || "레이아웃/화면 구성", meta: `레이아웃 변형 ${uiDirection.ui.layoutVariants.length}개` }
+      ? { tag: "UI", title: uiDirection.label, detail: uiDirection.appliesTo || "레이아웃/화면 구성", meta: `Deliverable ${uiDirection.ui.screenTypes.length}개` }
       : null,
     visualDirection?.visual
       ? { tag: "비주얼", title: visualDirection.label, detail: visualDirection.appliesTo || "키비주얼/이미지 방향", meta: `키비주얼 방향 ${visualDirection.visual.imageDirections.length}개` }
       : null,
   ].filter((item): item is { tag: string; title: string; detail: string; meta: string } => Boolean(item));
 
-  // UI/비주얼 양쪽에 다 쓸모 있는 플랫폼(Dribbble 등, purpose: "both")을 공통 섹션에서 한 번만
-  // 보여주기 위해, 두 direction의 references를 합친다. 같은 direction(mixed)이면 자기 자신과
-  // 합치는 셈이라 no-op이다.
-  const commonReferences = mergeReferenceQueries(uiDirection?.references || [], visualDirection?.references || []);
+  // ui-only/visual-only로 분리되지 않고 같은 direction이 ui+visual을 동시에 갖는 경우(Gemini
+  // 미응답 시 fallback 경로)에는 uiDirection과 visualDirection이 동일 객체라 references도 완전히
+  // 같다 — 이때만 비주얼 섹션에서 "both" 플랫폼을 빼서 동일 키워드가 두 섹션에 그대로 중복되는
+  // 것을 막는다. 분리된 정상 케이스(예: 브로셔의 편집 레이아웃 방향 + 표지 키비주얼 방향)는 같은
+  // 플랫폼이라도 각 방향마다 다른 키워드를 갖고 있으므로 양쪽에 다 보여주는 게 맞다.
+  const sameDirection = Boolean(uiDirection && visualDirection && uiDirection === visualDirection);
+  const layoutReferenceTitle = analysis.assetProfile.domainHint === "document" ? "편집·레이아웃 Reference Platforms" : "UI Reference Platforms";
 
   const keywordGroups = useMemo(
     () =>
@@ -1884,37 +2496,19 @@ function Result({
         />
       )}
 
-      <References references={commonReferences} mode="both" title="공통 Reference Platforms" />
-
       {uiDirection?.ui && (
         <>
           <GroupDivider label="UI 방향" detail={uiDirection.label} />
 
-          <WorkCard className="p-5">
-            <SectionTitle label="Layout Variants" meta={`${uiDirection.ui.layoutVariants.length} variants`} />
-            <LayoutVariantPicker
-              variants={uiDirection.ui.layoutVariants}
-              selectedId={selectedLayoutVariantId}
-              onSelect={setSelectedLayoutVariantId}
-            />
-            {selectedLayoutVariant && selectedLayoutVariant.notes.length > 0 && (
-              <ul className="mt-4 grid gap-1.5 text-sm leading-6 text-zinc-600">
-                {selectedLayoutVariant.notes.map((note) => (
-                  <li key={note}>· {note}</li>
-                ))}
-              </ul>
-            )}
-          </WorkCard>
-
           <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
             <WorkCard className="p-5">
-              <SectionTitle label="Deliverables" meta="화면 선택 → 오른쪽 미리보기에 반영" />
+              <SectionTitle label="Deliverables" meta="화면 선택 → 레이아웃 후보도 같이 바뀝니다" />
               <div className="grid gap-2">
                 {screenTypes.map((item, index) => (
                   <button
                     key={item.name}
                     type="button"
-                    onClick={() => setSelectedScreenIndex(index)}
+                    onClick={() => handleSelectScreen(index)}
                     className={`grid grid-cols-[40px_1fr_auto] items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
                       selectedScreenIndex === index
                         ? "border-teal-400 bg-teal-50 ring-2 ring-teal-100"
@@ -1939,7 +2533,25 @@ function Result({
             )}
           </div>
 
-          <References references={uiDirection.references} mode="layout" title="UI Reference Platforms" />
+          {selectedScreen && selectedScreen.layoutVariants.length > 1 && (
+            <WorkCard className="p-5">
+              <SectionTitle label="Layout Variants" meta={`${selectedScreen.name} · ${selectedScreen.layoutVariants.length} variants`} />
+              <LayoutVariantPicker
+                variants={selectedScreen.layoutVariants}
+                selectedId={selectedLayoutVariantId}
+                onSelect={setSelectedLayoutVariantId}
+              />
+              {selectedLayoutVariant && selectedLayoutVariant.notes.length > 0 && (
+                <ul className="mt-4 grid gap-1.5 text-sm leading-6 text-zinc-600">
+                  {selectedLayoutVariant.notes.map((note) => (
+                    <li key={note}>· {note}</li>
+                  ))}
+                </ul>
+              )}
+            </WorkCard>
+          )}
+
+          <References references={uiDirection.references} mode="layout" title={layoutReferenceTitle} />
         </>
       )}
 
@@ -1958,7 +2570,7 @@ function Result({
             />
           )}
 
-          <References references={visualDirection.references} mode="image" title="비주얼 Reference Platforms" />
+          <References references={visualDirection.references} mode="image" title="비주얼 Reference Platforms" includeBoth={!sameDirection} />
         </>
       )}
     </section>

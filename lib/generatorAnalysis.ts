@@ -36,16 +36,23 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
       "needsUi": true,
       "needsVisual": false,
       "ui": {
-        "screenTypes": [{"icon": "기호", "name": "필요 산출물 구성", "count": 1, "desc": "필요한 이유"}],
-        "layoutVariants": [
+        "screenTypes": [
           {
-            "id": "v1",
-            "structure": "command-center|map-centric|kpi-wall|incident-focused|split-monitoring|generic-dashboard|generic-list|generic-detail",
-            "title": "변형 이름 (예: 지도 중심 관제형)",
-            "description": "이 구조가 적합한 이유",
-            "density": "compact|comfortable|spacious",
-            "modules": [{"id": "module-id", "label": "모듈 이름", "weight": "primary|secondary|support"}],
-            "notes": ["이 변형에 대한 판단 근거"]
+            "icon": "기호",
+            "name": "필요 산출물 구성",
+            "count": 1,
+            "desc": "필요한 이유",
+            "layoutVariants": [
+              {
+                "id": "v1",
+                "structure": "command-center|map-centric|kpi-wall|incident-focused|split-monitoring|generic-dashboard|generic-list|generic-detail|cover-logotype|cover-full-bleed|cover-minimal-text|numbered-list|timeline|card-grid|split-content|editorial-grid|page-spread|infographic-page|comparison-table|vision-statement|proposal-section|report-page|poster-layout",
+                "title": "변형 이름 (예: 지도 중심 관제형)",
+                "description": "이 구조가 적합한 이유",
+                "density": "compact|comfortable|spacious",
+                "modules": [{"id": "module-id", "label": "모듈 이름", "weight": "primary|secondary|support"}],
+                "notes": ["이 변형에 대한 판단 근거"]
+              }
+            ]
           }
         ]
       },
@@ -67,7 +74,14 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - assetTypeRaw는 "이 문서 자체가 최종적으로 어떤 산출물로 제작되는가"를 기준으로 판단하세요. 문서 본문이 설명하는 대상 제품/서비스가 어떤 UI를 갖추면 좋겠는지를 기준으로 판단하지 마세요. 예를 들어 회사소개서/브로셔 문서 안에 "우리 플랫폼은 홈페이지, 모듈 소개, 데모 신청 화면이 있다"는 내용이 있어도, 이 문서 자체는 웹사이트가 아니라 브로셔이므로 assetTypeRaw는 "brochure"여야 합니다. 파일명(아래 "문서 파일명")에 브로셔/제안서/보고서/포스터 등의 단어가 있으면 강한 우선 신호로 사용하세요.
 - 이 프로젝트에 UI 레이아웃 방향과 비주얼/키비주얼 방향이 모두 필요하면 directions 배열에 각각 별도의 항목을 만드세요. 하나의 direction에 ui와 visual을 동시에 넣지 말고 분리하세요 (예: 관제 대시보드 프로젝트라면 "관제 대시보드" ui-only 방향 1개 + "로그인 키비주얼" visual-only 방향 1개).
 - needsUi가 true인 direction은 ui 필드를 반드시 채우고, needsVisual이 true인 direction은 visual 필드를 반드시 채우세요. 반대 필드는 생략하세요.
-- 대시보드/관리자/운영 화면이면 ui-only 방향을 만들고, layoutVariants를 정확히 다른 구조로 2~4개 작성하세요. 문서 내용이 관제실/지도/교통/장애대응/CCTV/모니터링과 관련 있으면 command-center, map-centric, kpi-wall, incident-focused, split-monitoring 중 어울리는 구조를 우선 사용하세요. 그렇지 않으면 generic-dashboard/generic-list/generic-detail을 사용하세요.
+- layoutVariants는 direction 전체가 공유하는 풀이 아니라 **각 screenType(화면/Deliverable) 전용**입니다. screenType마다 그 화면 성격에 맞는 layoutVariants를 1~3개씩 따로 작성하세요 — 예를 들어 "표지" screenType과 "본문" screenType은 서로 다른 구조 후보를 가져야 하며, 같은 구조를 두 screenType에 그대로 복사하지 마세요.
+- 대시보드/관리자/운영 문서: "Main"류(대표/현황) 화면은 command-center, map-centric, kpi-wall, incident-focused, split-monitoring, generic-dashboard 중에서 고르세요(관제실/지도/교통/장애대응/CCTV/모니터링 내용이 있으면 command-center/map-centric/kpi-wall/incident-focused/split-monitoring을 우선 사용). 목록류 화면은 generic-list, 상세류 화면은 generic-detail을 사용하세요.
+- 브로셔/포스터/제안서/보고서처럼 이 문서 자체가 인쇄물·편집물(assetTypeRaw가 brochure/poster/proposal/report)이면, screenType의 성격별로 다음 후보 중에서 구조를 고르세요(generic-dashboard 계열은 쓰지 마세요):
+  - 표지 화면: cover-logotype(로고/타이포 중심), cover-full-bleed(풀블리드 이미지), cover-minimal-text(미니멀 텍스트) 중 1~3개
+  - 목차·소개 화면: numbered-list(넘버드 리스트), timeline(타임라인), card-grid(카드 그리드) 중 1~3개
+  - 본문 화면: split-content(좌우 분할), editorial-grid(에디토리얼 그리드), page-spread(페이지 스프레드) 중 1~3개
+  - 차별화요소·결론 화면: infographic-page(인포그래픽), comparison-table(비교 테이블), vision-statement(비전 선언) 중 1~3개
+  - 포스터(assetTypeRaw가 poster)는 표지 화면에 poster-layout을 우선 포함하세요. 제안서는 본문/결론 화면에 proposal-section을, 보고서는 report-page를 후보로 포함할 수 있습니다.
 - 로그인/인증 화면, 홈페이지 히어로, 제안서 표지, 브로셔 표지처럼 키비주얼이 필요한 화면이 문서에 있으면 visual-only 방향을 별도로 만들고 promptSeeds를 3개 작성하세요.
 - 홈페이지/랜딩/이벤트 페이지는 ui(섹션 레이아웃)와 visual(히어로 키비주얼)을 모두 필요로 하는 경우가 많습니다 — 이 경우에도 두 개의 별도 direction으로 분리하세요.
 - 브로셔/제안서/보고서/포스터는 ui(편집 레이아웃)와 visual(표지 키비주얼) 모두 별도 direction으로 만드세요.
@@ -75,7 +89,9 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - stockQueries는 Freepik 같은 생성형 이미지가 아니라 Pexels/Unsplash 실제 사진 검색용입니다. abstract/background/futuristic/digital 같은 추상 표현만으로 구성하지 말고 실제로 사진에 찍힐 수 있는 구체적인 장면/장소/사물(예: smart city control room, gis dashboard map, hospital reception desk)을 도메인과 결합해 작성하세요.
 - 표지/표지 키비주얼은 악수, 회의 장면, 사무실 사람 사진을 피하고 기술 추상 배경, 제품/인프라 컨셉, 브랜드 비주얼 소재를 우선하세요.
 - keywordGroups는 산출물형태, 컬러무드, 디자인키워드, 도메인키워드 네 묶음으로 분리하세요. 너무 추상적인 한 단어를 피하고 산출물 유형과 도메인을 조합한 2~5단어 검색어로 작성하세요.
+- screenTypes의 icon은 이모지나 □▣◇▦◫ 같은 기호 1글자만 쓰세요. "Document", "Cover" 같은 단어를 icon 자리에 쓰지 마세요(그건 name 자리에 씁니다).
 - referenceKeywordsByPlatform은 direction마다 그 direction에 어울리는 플랫폼만 채우세요(예: ui-only 방향이면 Dribbble/Figma Community/Mobbin 등, visual-only 방향이면 Pinterest/Behance 등).
+- referenceKeywordsByPlatform 키워드는 플랫폼 성격에 맞게 작성하세요. Behance/Pinterest/Dribbble/Figma Community와 브랜드 계열 플랫폼(Brand New, BrandB, World Brand Design, Brand Archive, Fonts in Use)에는 기술 용어를 나열하지 마세요(예: "AI 빅데이터 지식그래프 온톨로지" 금지). 대신 산출물 종류 + 디자인 스타일 중심의 짧은 구문 2~4단어로 쓰세요(예: "technology brochure design", "editorial case study", "dashboard UI inspiration"). Mobbin/Page Flows/AppShots는 화면·플로우 명사 1~3단어만 쓰세요(예: "onboarding flow", "login screen"). Google과 GDWEB/DBDIC/DBCUT처럼 실제 서비스·홈페이지를 찾는 플랫폼에는 도메인 기술 용어를 그대로 써도 됩니다(최대 7단어).
 - 기술자료 추천은 만들지 마세요.
 - palette는 5~6개, moods는 정확히 3개를 제안하세요.
 {{PRIMARY_COLOR_RULE}}
@@ -159,7 +175,7 @@ function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
 }
 
-const VALID_STRUCTURES: LayoutStructure[] = [
+const UI_SCREEN_STRUCTURES: LayoutStructure[] = [
   "command-center",
   "map-centric",
   "kpi-wall",
@@ -170,8 +186,94 @@ const VALID_STRUCTURES: LayoutStructure[] = [
   "generic-detail",
 ];
 
-function normalizeStructure(value: unknown): LayoutStructure {
-  return typeof value === "string" && (VALID_STRUCTURES as string[]).includes(value) ? (value as LayoutStructure) : "generic-dashboard";
+const DOCUMENT_STRUCTURES: LayoutStructure[] = [
+  "cover-logotype",
+  "cover-full-bleed",
+  "cover-minimal-text",
+  "numbered-list",
+  "timeline",
+  "card-grid",
+  "split-content",
+  "editorial-grid",
+  "page-spread",
+  "infographic-page",
+  "comparison-table",
+  "vision-statement",
+  "proposal-section",
+  "report-page",
+  "poster-layout",
+];
+
+// A Deliverable's layoutVariants are scoped to what actually makes sense for that kind of
+// screen — a cover and a table-of-contents shouldn't draw from the same generic pool. This is
+// a code-side heuristic only (not part of the JSON contract); see
+// memory/project_deliverable-scoped-layouts.md for the full design.
+type DeliverableArchetype = "cover" | "toc" | "body" | "closing" | "main" | "list" | "detail";
+
+function detectDeliverableArchetype(domainHint: AssetProfile["domainHint"], name: string, desc: string): DeliverableArchetype {
+  const text = `${name} ${desc}`.toLowerCase();
+  if (domainHint === "document") {
+    if (/cover|표지/.test(text)) return "cover";
+    if (/toc|목차|소개|intro|overview/.test(text)) return "toc";
+    if (/infographic|차별화|결론|마무리|conclusion|closing|differentiat/.test(text)) return "closing";
+    return "body";
+  }
+  if (/list|table|목록|테이블|history|이력/.test(text)) return "list";
+  if (/detail|상세/.test(text)) return "detail";
+  return "main";
+}
+
+const ARCHETYPE_STRUCTURE_CANDIDATES: Record<DeliverableArchetype, Array<{ structure: LayoutStructure; title: string; description: string }>> = {
+  cover: [
+    { structure: "cover-logotype", title: "로고/타이포 중심형", description: "로고와 타이포그래피 중심으로 정돈된 표지입니다." },
+    { structure: "cover-full-bleed", title: "풀블리드 이미지형", description: "이미지가 전면을 채우는 임팩트 있는 표지입니다." },
+    { structure: "cover-minimal-text", title: "미니멀 텍스트형", description: "여백을 살리고 텍스트만으로 절제된 인상을 주는 표지입니다." },
+  ],
+  toc: [
+    { structure: "numbered-list", title: "넘버드 리스트형", description: "번호를 붙여 순서대로 항목을 나열합니다." },
+    { structure: "timeline", title: "타임라인형", description: "흐름이나 단계를 시간순으로 보여줍니다." },
+    { structure: "card-grid", title: "카드 그리드형", description: "항목을 카드 단위로 그리드에 배치합니다." },
+  ],
+  body: [
+    { structure: "split-content", title: "좌우 분할형", description: "이미지와 텍스트를 좌우로 나눠 배치합니다." },
+    { structure: "editorial-grid", title: "에디토리얼 그리드형", description: "콘텐츠를 균등한 그리드로 정리합니다." },
+    { structure: "page-spread", title: "페이지 스프레드형", description: "여러 컬럼으로 텍스트를 흐르게 하는 잡지형 본문입니다." },
+  ],
+  closing: [
+    { structure: "infographic-page", title: "인포그래픽형", description: "수치와 프로세스를 시각화합니다." },
+    { structure: "comparison-table", title: "비교 테이블형", description: "표 형태로 비교 정보를 정리합니다." },
+    { structure: "vision-statement", title: "비전 선언형", description: "핵심 메시지를 큰 타이포로 선언합니다." },
+  ],
+  main: [
+    { structure: "generic-dashboard", title: "기본 대시보드형", description: "정보 구조를 우선 정리하는 기본 레이아웃입니다." },
+    { structure: "kpi-wall", title: "KPI 월형", description: "핵심 지표를 큰 타일로 강조합니다." },
+    { structure: "command-center", title: "관제 센터형", description: "지도/지표/알림을 한 화면에 모읍니다." },
+  ],
+  list: [{ structure: "generic-list", title: "목록형 레이아웃", description: "탐색과 비교를 위한 목록 레이아웃입니다." }],
+  detail: [{ structure: "generic-detail", title: "상세형 레이아웃", description: "상세 확인과 후속 행동을 위한 레이아웃입니다." }],
+};
+
+function defaultLayoutVariantsForArchetype(archetype: DeliverableArchetype): LayoutVariant[] {
+  return ARCHETYPE_STRUCTURE_CANDIDATES[archetype].map((entry, index) => ({
+    id: `variant-${index + 1}`,
+    structure: entry.structure,
+    title: entry.title,
+    description: entry.description,
+    density: "comfortable",
+    modules: [],
+    notes: [],
+  }));
+}
+
+// Restricting to "is this any known structure" wasn't enough — Gemini could still hand back a
+// UI-screen structure (e.g. generic-dashboard) for a brochure direction and it would pass
+// straight through, reproducing the exact "brochure rendered as an app dashboard" bug this
+// enum split exists to fix. Only accept structures from the family that matches domainHint, and
+// fall back to that Deliverable's own first archetype candidate (not a fixed global default).
+function normalizeStructure(value: unknown, domainHint: AssetProfile["domainHint"], archetype: DeliverableArchetype): LayoutStructure {
+  const allowed = domainHint === "document" ? DOCUMENT_STRUCTURES : UI_SCREEN_STRUCTURES;
+  if (typeof value === "string" && (allowed as string[]).includes(value)) return value as LayoutStructure;
+  return ARCHETYPE_STRUCTURE_CANDIDATES[archetype][0].structure;
 }
 
 function normalizeLayoutModule(raw: unknown): LayoutModule {
@@ -183,11 +285,11 @@ function normalizeLayoutModule(raw: unknown): LayoutModule {
   };
 }
 
-function normalizeLayoutVariant(raw: unknown, index: number): LayoutVariant {
+function normalizeLayoutVariant(raw: unknown, index: number, domainHint: AssetProfile["domainHint"], archetype: DeliverableArchetype): LayoutVariant {
   const data = (raw || {}) as Partial<LayoutVariant>;
   return {
     id: data.id || `variant-${index + 1}`,
-    structure: normalizeStructure(data.structure),
+    structure: normalizeStructure(data.structure, domainHint, archetype),
     title: data.title || `레이아웃 ${index + 1}`,
     description: data.description || "",
     density: data.density === "compact" || data.density === "spacious" ? data.density : "comfortable",
@@ -196,39 +298,53 @@ function normalizeLayoutVariant(raw: unknown, index: number): LayoutVariant {
   };
 }
 
-function defaultLayoutVariant(): LayoutVariant {
-  return {
-    id: "variant-default",
-    structure: "generic-dashboard",
-    title: "기본 대시보드",
-    description: "정보 구조를 먼저 정리하는 기본 레이아웃입니다.",
-    density: "comfortable",
-    modules: [],
-    notes: ["정보 구조를 먼저 정리", "산출물 유형에 맞는 레이아웃 밀도 선택", "브랜드 톤과 접근성 균형 유지"],
-  };
+const FALLBACK_SCREEN_ICONS = ["▦", "▣", "◇", "▤", "◫", "□"];
+
+// Gemini is told to put a single emoji/symbol in `icon`, but sometimes puts a whole word
+// (e.g. "Document") there instead — that overflows the fixed-size icon box in the
+// Deliverables UI. Treat anything that looks like a real word (2+ letters) as invalid.
+function isValidIcon(icon: unknown): icon is string {
+  if (typeof icon !== "string") return false;
+  const trimmed = icon.trim();
+  return Boolean(trimmed) && trimmed.length <= 4 && !/[a-zA-Z가-힣]{2,}/.test(trimmed);
 }
 
 function defaultScreenTypes(domainHint: AssetProfile["domainHint"]): UiDirection["screenTypes"] {
   if (domainHint === "document") {
     return [
-      { icon: "□", name: "Cover", count: 1, desc: "첫 인상과 핵심 메시지를 전달하는 표지" },
-      { icon: "▣", name: "Content Spread", count: 3, desc: "주요 정보와 가치 제안을 정리하는 본문" },
-      { icon: "◇", name: "Infographic", count: 1, desc: "수치와 프로세스를 시각화하는 영역" },
+      { icon: "□", name: "Cover", count: 1, desc: "첫 인상과 핵심 메시지를 전달하는 표지", layoutVariants: defaultLayoutVariantsForArchetype("cover") },
+      { icon: "▣", name: "Content Spread", count: 3, desc: "주요 정보와 가치 제안을 정리하는 본문", layoutVariants: defaultLayoutVariantsForArchetype("body") },
+      { icon: "◇", name: "Infographic", count: 1, desc: "수치와 프로세스를 시각화하는 영역", layoutVariants: defaultLayoutVariantsForArchetype("closing") },
     ];
   }
   return [
-    { icon: "▦", name: "Main", count: 1, desc: "핵심 정보와 행동을 모으는 대표 화면" },
-    { icon: "▤", name: "List / Table", count: 1, desc: "탐색과 비교를 위한 목록 화면" },
-    { icon: "◫", name: "Detail", count: 1, desc: "상세 확인과 후속 행동을 위한 화면" },
+    { icon: "▦", name: "Main", count: 1, desc: "핵심 정보와 행동을 모으는 대표 화면", layoutVariants: defaultLayoutVariantsForArchetype("main") },
+    { icon: "▤", name: "List / Table", count: 1, desc: "탐색과 비교를 위한 목록 화면", layoutVariants: defaultLayoutVariantsForArchetype("list") },
+    { icon: "◫", name: "Detail", count: 1, desc: "상세 확인과 후속 행동을 위한 화면", layoutVariants: defaultLayoutVariantsForArchetype("detail") },
   ];
 }
 
-function normalizeUiDirection(raw: unknown, domainHint: AssetProfile["domainHint"]): UiDirection {
-  const data = (raw || {}) as { screenTypes?: unknown; layoutVariants?: unknown[] };
-  const variants = Array.isArray(data.layoutVariants) ? data.layoutVariants.map((variant, index) => normalizeLayoutVariant(variant, index)).slice(0, 4) : [];
+function normalizeScreenType(raw: unknown, index: number, domainHint: AssetProfile["domainHint"]): UiDirection["screenTypes"][number] {
+  const data = (raw || {}) as Partial<{ icon: string; name: string; count: number; desc: string; layoutVariants: unknown[] }>;
+  const name = data.name || `화면 ${index + 1}`;
+  const desc = data.desc || "";
+  const archetype = detectDeliverableArchetype(domainHint, name, desc);
+  const rawVariants = Array.isArray(data.layoutVariants) ? data.layoutVariants : [];
+  const variants = rawVariants.map((variant, vIndex) => normalizeLayoutVariant(variant, vIndex, domainHint, archetype)).slice(0, 4);
   return {
-    layoutVariants: variants.length ? variants : [defaultLayoutVariant()],
-    screenTypes: Array.isArray(data.screenTypes) && data.screenTypes.length ? (data.screenTypes as UiDirection["screenTypes"]) : defaultScreenTypes(domainHint),
+    icon: isValidIcon(data.icon) ? data.icon.trim() : FALLBACK_SCREEN_ICONS[index % FALLBACK_SCREEN_ICONS.length],
+    name,
+    count: typeof data.count === "number" && data.count > 0 ? data.count : 1,
+    desc,
+    layoutVariants: variants.length ? variants : defaultLayoutVariantsForArchetype(archetype),
+  };
+}
+
+function normalizeUiDirection(raw: unknown, domainHint: AssetProfile["domainHint"]): UiDirection {
+  const data = (raw || {}) as { screenTypes?: unknown };
+  const rawScreenTypes = Array.isArray(data.screenTypes) ? data.screenTypes : [];
+  return {
+    screenTypes: rawScreenTypes.length ? rawScreenTypes.map((item, index) => normalizeScreenType(item, index, domainHint)) : defaultScreenTypes(domainHint),
   };
 }
 

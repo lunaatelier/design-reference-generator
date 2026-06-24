@@ -34,7 +34,26 @@ export type LayoutStructure =
   | "split-monitoring"
   | "generic-dashboard"
   | "generic-list"
-  | "generic-detail";
+  | "generic-detail"
+  // Document/editorial structures (brochure, proposal, report, poster) — these render as
+  // print/editorial layouts, not app screens, so they're kept distinct from the UI structures above.
+  // Grouped by deliverable archetype (cover/toc/body/closing) — see
+  // memory/project_deliverable-scoped-layouts.md for the full taxonomy and rationale.
+  | "cover-logotype"
+  | "cover-full-bleed"
+  | "cover-minimal-text"
+  | "numbered-list"
+  | "timeline"
+  | "card-grid"
+  | "split-content"
+  | "editorial-grid"
+  | "page-spread"
+  | "infographic-page"
+  | "comparison-table"
+  | "vision-statement"
+  | "proposal-section"
+  | "report-page"
+  | "poster-layout";
 
 export type LayoutModule = {
   id: string;
@@ -53,12 +72,15 @@ export type LayoutVariant = {
 };
 
 export type UiDirection = {
-  layoutVariants: LayoutVariant[];
+  // layoutVariants live per-screenType (not a single direction-wide pool) so picking a
+  // different Deliverable actually changes which structural candidates are offered, instead
+  // of every Deliverable sharing one generic set. See memory/project_deliverable-scoped-layouts.md.
   screenTypes: Array<{
     icon: string;
     name: string;
     count: number;
     desc: string;
+    layoutVariants: LayoutVariant[];
   }>;
 };
 
