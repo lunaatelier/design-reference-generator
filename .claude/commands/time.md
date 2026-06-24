@@ -123,6 +123,7 @@ Write-Output "$weekStart ~ $weekEnd"
 
 과거에 경로 혼동(`design-reference-generator\work-log\...`라는 프로젝트 내부 경로에 잘못 저장)과 전체 덮어쓰기가 겹쳐 기존 세션 6개가 통째로 사라진 사고가 있었습니다. 세션 로그 파일에 쓰기 전 반드시 아래 순서를 지킵니다.
 
+0. **PowerShell로 쓸 때는 반드시 single-quoted here-string(`@'...'@`)을 사용**: 작업 내용 요약에 백틱(`` ` ``, 코드 포맷용)이 들어가는 경우가 많은데, 큰따옴표 here-string(`@"..."@`)을 쓰면 PowerShell이 백틱을 escape 문자로 해석합니다 — `` `t ``/`` `n ``/`` `r ``이 각각 tab/newline/carriage-return으로 치환되며 그 뒤 글자(t/n/r)가 사라져 "tsc"가 "sc", "resolveX"가 "esolveX"처럼 손상됩니다. 변수 보간이 필요 없는 고정 텍스트라면 항상 `@'...'@`(single-quoted, 리터럴)를 쓰고, `@"..."@`는 쓰지 않습니다. (실제 사고: 2026-06-24, 다른 세션이 작성한 항목에서 이 문제로 텍스트가 손상된 채 커밋된 것을 발견해 별도 수정 커밋으로 복구함)
 1. **경로 검증**: 대상 경로에 `design-reference-generator\work-log\`가 포함되면(프로젝트 폴더 내부) 금지 경로이므로 즉시 중단하고 사용자에게 알립니다. 올바른 경로는 `$workspace\work-log\design-reference-generator\session_[weekStart].md`처럼 workspace 루트(프로젝트 폴더의 부모 폴더) 기준이어야 합니다.
 2. **파일이 이미 존재하면**:
    - 먼저 `Get-Content`로 전체 내용을 읽어 기존 세션 개수와 내용을 확인합니다.
