@@ -86,6 +86,86 @@ const PLATFORMS: Record<string, PlatformConfig> = {
   "Fonts in Use": { siteUrl: "https://fontsinuse.com", note: "실제 사용된 서체 레퍼런스 — 키워드 복사 후 사이트에서 직접 검색", purpose: "image" },
 };
 
+// Word-count ceiling per platform so creative/portfolio platforms (Behance, Pinterest, ...)
+// don't receive long technical term chains the way Google/GDWEB-style discovery platforms can.
+// Mirrors docs/reference-platform-keyword-audit.md "Query Length Limits".
+const PLATFORM_KEYWORD_WORD_LIMIT: Record<string, number> = {
+  Dribbble: 4,
+  Behance: 4,
+  Pinterest: 5,
+  Mobbin: 3,
+  "Page Flows": 3,
+  AppShots: 3,
+  "UI Bowl": 4,
+  "Figma Community": 5,
+  Google: 7,
+  GDWEB: 4,
+  "Land-book": 4,
+  Awwwards: 4,
+  "Lapa Ninja": 4,
+  DBDIC: 4,
+  DBCUT: 4,
+  "Brand New": 4,
+  BrandB: 4,
+  "World Brand Design": 4,
+  "Brand Archive": 4,
+  "Fonts in Use": 4,
+};
+const DEFAULT_KEYWORD_WORD_LIMIT = 4;
+const MAX_KEYWORDS_PER_PLATFORM = 3;
+
+// Splits on whitespace AND on comma/slash/middle-dot/ampersand so a no-space list like
+// "AI,빅데이터,지식그래프,온톨로지" still counts as 4 words instead of bypassing the limit as 1.
+const WORD_SEPARATOR = /[\s,，、/·&]+/u;
+
+function wordCount(text: string): number {
+  return text.trim().split(WORD_SEPARATOR).filter(Boolean).length;
+}
+
+/**
+ * Drops any keyword (from Gemini OR from this file's own local default builders) that
+ * exceeds the platform's word-count ceiling. Applied to both sources so a default template
+ * that happens to interpolate a long domain string can't reproduce the same raw technical
+ * term chain problem this layer exists to prevent.
+ */
+function sanitizeQueriesForPlatformLimits(queries: ReferenceQuery[]): ReferenceQuery[] {
+  return queries
+    .map((query) => {
+      const limit = PLATFORM_KEYWORD_WORD_LIMIT[query.platform] ?? DEFAULT_KEYWORD_WORD_LIMIT;
+      return { platform: query.platform, keywords: query.keywords.filter((k) => k && wordCount(k) <= limit) };
+    })
+    .filter((query) => query.keywords.length > 0);
+}
+
+/**
+ * Collapses a long, comma/slash-separated domain description (e.g. "AI, 빅데이터,
+ * 지식그래프, 온톨로지") down to its first couple of tokens so local keyword builders
+ * don't inherit an overly long domain string into every platform's queries.
+ */
+function compressDomain(domain: string, maxTokens = 2, maxWords = 4): string {
+  const tokens = domain
+    .split(/[,\/·&]|\bx\b|및/giu)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  const selectedTokens = tokens.length > maxTokens ? tokens.slice(0, maxTokens) : tokens.length ? tokens : [domain.trim()];
+  const primary = selectedTokens.join(" ");
+  const words = primary.split(/\s+/).filter(Boolean);
+  return words.length > maxWords ? words.slice(0, maxWords).join(" ") : primary;
+}
+
+/**
+ * Joins a domain with static descriptor words for a given platform, but drops the domain
+ * entirely if including it would push the keyword past that platform's word-count ceiling.
+ * This is what keeps e.g. Behance queries at "brochure case study" instead of
+ * "AI 빅데이터 brochure case study" when the domain doesn't fit.
+ */
+function dk(platform: string, domain: string, ...staticWords: string[]): string {
+  const limit = PLATFORM_KEYWORD_WORD_LIMIT[platform] ?? DEFAULT_KEYWORD_WORD_LIMIT;
+  const staticText = staticWords.join(" ");
+  const withDomain = `${domain} ${staticText}`.trim();
+  return wordCount(withDomain) <= limit ? withDomain : staticText;
+}
+
 type DomainHint = AssetProfile["domainHint"];
 
 function allowedLayoutPlatforms(domainHint: DomainHint): Set<string> {
@@ -110,30 +190,30 @@ function buildLayoutKeywordsByPlatform(domain: string, assetType: string, domain
   const isDashboard = domainHint === "dashboard-ops";
   const isMobile = domainHint === "mobile-app";
   const isDocument = domainHint === "document";
-  const primaryLayoutKeyword = isDocument ? `${domain} ${assetType} layout` : isDashboard ? `${domain} dashboard UI` : `${domain} UI design`;
-  const secondaryLayoutKeyword = isDocument ? `${domain} editorial layout` : isDashboard ? `${domain} admin dashboard` : `${domain} interface design`;
+  const primaryLayoutWords = isDocument ? [assetType, "layout"] : isDashboard ? ["dashboard", "UI"] : ["UI", "design"];
+  const secondaryLayoutWords = isDocument ? ["editorial", "layout"] : isDashboard ? ["admin", "dashboard"] : ["interface", "design"];
   return {
-    Dribbble: [primaryLayoutKeyword, secondaryLayoutKeyword],
-    Behance: [`${domain} ${assetType} case study`, isDocument ? "enterprise brochure layout" : "enterprise dashboard case study"],
+    Dribbble: [dk("Dribbble", domain, ...primaryLayoutWords), dk("Dribbble", domain, ...secondaryLayoutWords)],
+    Behance: [dk("Behance", domain, assetType, "case", "study"), isDocument ? "enterprise brochure layout" : "enterprise dashboard case study"],
     Mobbin: isMobile ? ["mobile onboarding flow", "mobile profile setup"] : isDashboard ? ["dashboard app screen", "admin settings flow"] : [],
-    Pinterest: [`${domain} layout inspiration`, isDocument ? "editorial design moodboard" : "dashboard UI inspiration"],
+    Pinterest: [dk("Pinterest", domain, "layout", "inspiration"), isDocument ? "editorial design moodboard" : "dashboard UI inspiration"],
     "Figma Community": [isDocument ? "proposal brochure layout template" : "dashboard UI kit", isWeb ? "landing page template" : "admin dashboard template", "component library"],
     Google: isWeb
-      ? [`${domain} company website`, `${domain} service homepage reference`, `${domain} competitor website`]
+      ? [dk("Google", domain, "company", "website"), dk("Google", domain, "service", "homepage", "reference"), dk("Google", domain, "competitor", "website")]
       : isDashboard
-        ? [`${domain} dashboard UI reference`, `${domain} admin dashboard example`]
+        ? [dk("Google", domain, "dashboard", "UI", "reference"), dk("Google", domain, "admin", "dashboard", "example")]
         : [],
-    GDWEB: isWeb ? [`${domain} 홈페이지`, `${domain} 이벤트페이지`, "기업 홈페이지"] : [],
-    "Land-book": isWeb ? [`${domain} landing page`, "SaaS landing page design"] : [],
+    GDWEB: isWeb ? [dk("GDWEB", domain, "홈페이지"), dk("GDWEB", domain, "이벤트페이지"), "기업 홈페이지"] : [],
+    "Land-book": isWeb ? [dk("Land-book", domain, "landing", "page"), "SaaS landing page design"] : [],
     "Page Flows": isDashboard || isMobile ? ["onboarding flow", "settings flow", "account setup flow"] : [],
-    Awwwards: isWeb ? [`${domain} corporate website`, "agency website design"] : [],
-    "Lapa Ninja": isWeb ? [`${domain} landing page`, "SaaS homepage design"] : [],
-    DBDIC: isWeb ? [`${domain} 홈페이지 레이아웃`, "GNB 구조 레퍼런스"] : [],
-    DBCUT: isWeb ? [`${domain} 홈페이지 리뉴얼`, "기업사이트 트렌드"] : [],
+    Awwwards: isWeb ? [dk("Awwwards", domain, "corporate", "website"), "agency website design"] : [],
+    "Lapa Ninja": isWeb ? [dk("Lapa Ninja", domain, "landing", "page"), "SaaS homepage design"] : [],
+    DBDIC: isWeb ? [dk("DBDIC", domain, "홈페이지", "레이아웃"), "GNB 구조 레퍼런스"] : [],
+    DBCUT: isWeb ? [dk("DBCUT", domain, "홈페이지", "리뉴얼"), "기업사이트 트렌드"] : [],
     AppShots: isMobile ? ["mobile app screen", "profile setup screen"] : /login/i.test(assetType) ? ["login UI flow"] : [],
     "UI Bowl": isMobile ? ["탭 컴포넌트", "카드 컴포넌트", "폼 컴포넌트"] : [],
-    "Brand New": isDocument ? [`${domain} rebrand case study`, "identity redesign"] : [],
-    BrandB: isDocument ? [`${domain} CI BI 디자인`, "브랜드 리뉴얼"] : [],
+    "Brand New": isDocument ? [dk("Brand New", domain, "rebrand", "case", "study"), "identity redesign"] : [],
+    BrandB: isDocument ? [dk("BrandB", domain, "CI", "BI", "디자인"), "브랜드 리뉴얼"] : [],
   };
 }
 
@@ -143,16 +223,16 @@ function buildImageKeywordsByPlatform(domain: string, assetType: string, domainH
   const isMobile = domainHint === "mobile-app";
   const isDocument = domainHint === "document";
   return {
-    Dribbble: [`${domain} cover visual`, `${domain} hero visual`],
-    Behance: [`${domain} brand visual case study`, `${assetType} cover visual design`],
+    Dribbble: [dk("Dribbble", domain, "cover", "visual"), dk("Dribbble", domain, "hero", "visual")],
+    Behance: [dk("Behance", domain, "brand", "visual", "case", "study"), `${assetType} cover visual design`],
     Mobbin: isDashboard || isMobile || /login/i.test(assetType) ? ["login screen visual", "authentication screen illustration"] : [],
-    Pinterest: [`${domain} key visual`, "technology abstract background"],
+    Pinterest: [dk("Pinterest", domain, "key", "visual"), "technology abstract background"],
     "Figma Community": ["hero section visual template", "proposal cover template"],
-    Google: isMarketingWeb ? [`${domain} hero image website`, `${domain} landing page hero visual`] : [],
-    GDWEB: isMarketingWeb ? [`${domain} 홈페이지 비주얼`, `${domain} 랜딩페이지 히어로`] : [],
-    "Land-book": isMarketingWeb ? [`${domain} landing page`] : [],
+    Google: isMarketingWeb ? [dk("Google", domain, "hero", "image", "website"), dk("Google", domain, "landing", "page", "hero", "visual")] : [],
+    GDWEB: isMarketingWeb ? [dk("GDWEB", domain, "홈페이지", "비주얼"), dk("GDWEB", domain, "랜딩페이지", "히어로")] : [],
+    "Land-book": isMarketingWeb ? [dk("Land-book", domain, "landing", "page")] : [],
     "Page Flows": [],
-    "World Brand Design": isDocument ? [`${domain} brand identity`, "corporate branding visual"] : [],
+    "World Brand Design": isDocument ? [dk("World Brand Design", domain, "brand", "identity"), "corporate branding visual"] : [],
     "Brand Archive": isDocument ? ["art direction reference", "brand application visual"] : [],
     "Fonts in Use": isDocument ? ["editorial typography", "report typography reference"] : [],
   };
@@ -189,18 +269,23 @@ export function resolveDirectionReferenceQueries(
 ): ReferenceQuery[] {
   const allowed = new Set<string>();
   let defaults: ReferenceQuery[] = [];
+  const compressedDomain = compressDomain(domain);
 
   if (needsLayout) {
     allowedLayoutPlatforms(assetProfile.domainHint).forEach((p) => allowed.add(p));
-    defaults = defaults.concat(toReferenceQueries(buildLayoutKeywordsByPlatform(domain, assetProfile.assetType, assetProfile.domainHint), allowedLayoutPlatforms(assetProfile.domainHint)));
+    defaults = defaults.concat(toReferenceQueries(buildLayoutKeywordsByPlatform(compressedDomain, assetProfile.assetType, assetProfile.domainHint), allowedLayoutPlatforms(assetProfile.domainHint)));
   }
   if (needsImage) {
     allowedImagePlatforms(assetProfile.domainHint).forEach((p) => allowed.add(p));
-    defaults = defaults.concat(toReferenceQueries(buildImageKeywordsByPlatform(domain, assetProfile.assetType, assetProfile.domainHint), allowedImagePlatforms(assetProfile.domainHint)));
+    defaults = defaults.concat(toReferenceQueries(buildImageKeywordsByPlatform(compressedDomain, assetProfile.assetType, assetProfile.domainHint), allowedImagePlatforms(assetProfile.domainHint)));
   }
 
-  const merged = mergeReferenceQueries(defaults, geminiQueries || []);
-  return merged.filter((query) => allowed.has(query.platform) && query.keywords.length > 0);
+  // Gemini's keywords go first so they fill the per-platform cap before local defaults do —
+  // otherwise platforms whose defaults alone already reach MAX_KEYWORDS_PER_PLATFORM (e.g.
+  // Figma Community, GDWEB, Page Flows, UI Bowl) would silently drop every Gemini keyword.
+  const merged = mergeReferenceQueries(sanitizeQueriesForPlatformLimits(geminiQueries || []), sanitizeQueriesForPlatformLimits(defaults));
+  const capped = merged.map((query) => ({ ...query, keywords: query.keywords.slice(0, MAX_KEYWORDS_PER_PLATFORM) }));
+  return capped.filter((query) => allowed.has(query.platform) && query.keywords.length > 0);
 }
 
 export function buildReferenceGroups(references: ReferenceQuery[]): ReferenceGroup[] {
