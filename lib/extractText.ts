@@ -2,7 +2,11 @@ import { OfficeParser, type SupportedFileType } from "officeparser";
 
 const TEXT_EXTENSIONS = new Set(["md", "txt"]);
 const OFFICE_EXTENSIONS = new Set(["pdf", "ppt", "pptx"]);
-const MAX_TEXT_LENGTH = 18000;
+// 18,000자는 근거 없는 초기값이었음 — 메뉴가 여러 개인 홈페이지 리뉴얼 통합본처럼 메인페이지
+// 분량만으로도 18K를 넘는 설계 문서가 있어, 그 이후 서브페이지 내용이 통째로 잘려나가는
+// 문제가 있었다(메인페이지만 인식되는 버그의 원인). gemini-2.5-flash-lite는 컨텍스트가
+// 넉넉해 60K자 정도는 비용/한도에 영향이 없다.
+const MAX_TEXT_LENGTH = 60000;
 
 function getExtension(fileName: string): string {
   const dot = fileName.lastIndexOf(".");

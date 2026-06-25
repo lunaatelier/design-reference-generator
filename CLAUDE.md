@@ -12,7 +12,7 @@
 3. `app/api/analyze/route.ts` — 파일 받아서 처리
 4. `lib/extractText.ts` — 파일에서 텍스트 추출
    - md/txt: 그대로 읽음
-   - pdf/ppt/pptx: `officeparser`로 텍스트 추출 (최대 18,000자)
+   - pdf/ppt/pptx: `officeparser`로 텍스트 추출 (최대 60,000자)
 5. `lib/promptMasking.ts` — Gemini 호출 전 마스킹 전처리 (이메일/전화번호/주민번호 형식/IP/내부 URL/API 키 패턴 → `[MASKED_*]` 치환). 분석/재생성 호출 모두 이 마스킹된 텍스트만 사용
 6. `lib/assetProfile.ts` — 산출물 유형(`assetType`) → `projectKind`(ui/visual/mixed) · `domainHint` 단일 판단 (다른 파일에 흩어진 분기 없음)
 7. `lib/generatorAnalysis.ts` — 핵심 분석 로직
