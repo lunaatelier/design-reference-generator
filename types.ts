@@ -104,6 +104,9 @@ export type UiDirection = {
     layoutVariants: LayoutVariant[];
     content?: DeliverableContent;
   }>;
+  /** 문서에 메뉴/사이트맵처럼 여러 화면 신호가 있는데 screenTypes가 1개뿐일 때의 검증 경고.
+   * 코드가 화면을 지어내지는 않고, 사용자에게 "분리가 부족할 수 있다"고만 알린다. */
+  warning?: string;
 };
 
 export type ImageDirection = {

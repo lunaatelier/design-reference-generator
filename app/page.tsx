@@ -84,23 +84,26 @@ function buildImagePromptsFromImage(projectTitle: string, imageDirection: ImageD
   const colors = mood.colors.slice(0, 4).join(", ");
   const query = image.query;
   const directionText = `${imageDirection.title} ${imageDirection.id}`;
+  // mood.title은 "무드명"(한국어 표시용) 필드라 영문 프롬프트에 그대로 넣으면 한글이 섞인다.
+  // mood.keywords는 스키마상 이미 영문으로 설계된 필드라 영문 템플릿엔 이걸 쓴다.
+  const moodEn = mood.keywords[0] || "professional";
 
   if (/login|로그인|인증/i.test(directionText)) {
     return [
-      `Login hero image for ${projectTitle}, inspired by ${query}, ${mood.title} mood, colors ${colors}, clean secure service atmosphere, no text`,
+      `Login hero image for ${projectTitle}, inspired by ${query}, ${moodEn} mood, colors ${colors}, clean secure service atmosphere, no text`,
       `Authentication background visual for ${projectTitle}, ${query}, soft depth, trustworthy digital product style, spacious composition, no text`,
       `Cropped login-side image for a web app, ${query}, refined brand visual, room for form panel on one side, no text`,
     ];
   }
   if (/landing|web|homepage|hero|event|홈페이지|랜딩|히어로/i.test(directionText)) {
     return [
-      `Homepage hero image for ${projectTitle}, inspired by ${query}, ${mood.title} mood, colors ${colors}, strong focal point, no text`,
+      `Homepage hero image for ${projectTitle}, inspired by ${query}, ${moodEn} mood, colors ${colors}, strong focal point, no text`,
       `Landing page support visual for ${projectTitle}, ${query}, premium digital service mood, clean composition with copy space, no text`,
       `Wide web hero background, ${query}, modern brand direction, polished realistic/abstract blend, no text, no logos`,
     ];
   }
   return [
-    `Proposal cover image for ${projectTitle}, inspired by ${query}, ${mood.title} mood, colors ${colors}, editorial composition, no text`,
+    `Proposal cover image for ${projectTitle}, inspired by ${query}, ${moodEn} mood, colors ${colors}, editorial composition, no text`,
     `Brochure cover visual for ${projectTitle}, ${query}, refined technology abstract background, strong but uncluttered focal area, no text`,
     `Document section background image, ${query}, professional brand mood, subtle depth, suitable for overlaying headings, no text`,
   ];
@@ -1217,7 +1220,9 @@ function ImagePromptWorkshop({
 
   const selectedPrompt = prompts[selectedPromptIndex] || "";
   const selectedPromptKo = promptsKo[selectedPromptIndex] || "";
-  const basePromptVariants = selectedPrompt ? buildImagePromptVariants(selectedPrompt, mood.title, mood.colors) : [];
+  // mood.title은 "무드명"(한국어 표시용)으로 설계된 필드라 영문 프롬프트 템플릿에 그대로 넣으면
+  // 한글이 섞인다. mood.keywords는 스키마상 이미 영문으로 설계된 필드라 영문 변형엔 이걸 쓴다.
+  const basePromptVariants = selectedPrompt ? buildImagePromptVariants(selectedPrompt, mood.keywords[0] || "professional", mood.colors) : [];
   const basePromptVariantsKo = selectedPromptKo ? buildImagePromptVariantsKo(selectedPromptKo, mood.title, mood.colors) : [];
   const imagePromptVariants = selectedImage ? buildImagePromptsFromImage(projectTitle, imageDirection, mood, selectedImage) : [];
   const imagePromptVariantsKo = selectedImage ? buildImagePromptsFromImageKo(projectTitle, imageDirection, mood, selectedImage) : [];
@@ -1313,9 +1318,9 @@ function ImagePromptWorkshop({
             </>
           ) : (
             <>
-              <h3 className="mb-3 text-sm font-bold text-zinc-700">기본 프롬프트</h3>
               <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
                 <div className="grid gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-500">비주얼 방향 선택 ({prompts.length}개)</h3>
                   {prompts.map((prompt, index) => (
                     <button
                       key={prompt}
@@ -1333,6 +1338,7 @@ function ImagePromptWorkshop({
                   ))}
                 </div>
                 <div className="grid gap-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-500">선택한 방향의 생성용 변형 3종</h3>
                   {basePromptVariants.map((prompt, index) => (
                     <p key={prompt} className="rounded-lg border border-zinc-200 bg-white p-4 font-mono text-sm leading-7 text-zinc-700">
                       {prompt}
@@ -1577,6 +1583,9 @@ function Result({
           <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
             <WorkCard className="p-5">
               <SectionTitle label="Deliverables" meta="화면 선택 → 레이아웃 후보도 같이 바뀝니다" />
+              {uiDirection.ui.warning && (
+                <p className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">{uiDirection.ui.warning}</p>
+              )}
               <div className="grid gap-2">
                 {screenTypes.map((item, index) => (
                   <button

@@ -61,7 +61,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
       "visual": {
         "promptSeeds": ["english image generation prompt"],
         "promptSeedsKo": ["promptSeeds와 같은 순서로, 무슨 이미지인지 한국어로 직역"],
-        "imageDirections": [{"id": "id", "title": "방향 이름", "styleNotes": "스타일 방향 설명", "promptSeedIndexes": [0], "stockQueries": ["Pexels/Unsplash 검색용 2~4단어 영어 명사구"]}],
+        "imageDirections": [{"id": "id", "title": "방향 이름", "styleNotes": "스타일 방향 설명", "promptSeedIndexes": [0, 1, 2], "stockQueries": ["Pexels/Unsplash 검색용 2~4단어 영어 명사구"]}],
         "themeRecommendation": {"preferred": "light|dark|both", "reason": "테마 제안 이유", "alternatives": ["고려사항"]}
       },
       "referenceKeywordsByPlatform": {"Dribbble": ["keyword"], "Pinterest": ["keyword"]}
@@ -79,6 +79,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - layoutVariants는 direction 전체가 공유하는 풀이 아니라 **각 screenType(화면/Deliverable) 전용**입니다. screenType마다 그 화면 성격에 맞는 layoutVariants를 1~3개씩 따로 작성하세요 — 예를 들어 "표지" screenType과 "본문" screenType은 서로 다른 구조 후보를 가져야 하며, 같은 구조를 두 screenType에 그대로 복사하지 마세요.
 - 대시보드/관리자/운영 문서: "Main"류(대표/현황) 화면은 command-center, map-centric, kpi-wall, incident-focused, split-monitoring, generic-dashboard 중에서 고르세요(관제실/지도/교통/장애대응/CCTV/모니터링 내용이 있으면 command-center/map-centric/kpi-wall/incident-focused/split-monitoring을 우선 사용). 목록류 화면은 generic-list, 상세류 화면은 generic-detail을 사용하세요.
 - 웹사이트/홈페이지/랜딩/이벤트 페이지(assetTypeRaw가 webpage/web-app/landing/event-page)는 관제실/대시보드 구조를 쓰지 마세요. "Main"류(메인페이지/홈) 화면은 hero-banner(풀스크린 히어로), split-hero(좌우 분할 히어로), section-stack(히어로 아래 기능/통계/뉴스 섹션이 쌓이는 구조) 중에서 고르세요. 목록류 화면은 generic-list, 상세류 화면은 generic-detail을 사용하세요.
+- 웹사이트/홈페이지 문서에 "메뉴 체계"/사이트맵처럼 여러 페이지·섹션을 나열한 부분이 있으면, 그걸 무시하고 screenTypes를 1개로 합치지 마세요. 메뉴 항목이 여러 개면 주요 페이지(예: 메인페이지/회사소개/뉴스룸)나, 메인페이지 안에서도 명확히 구분되는 섹션 묶음(예: 히어로/서비스소개/실적·파트너/CTA)을 각각 별도 screenType으로 분리하세요. 문서에 실제로 그렇게 구분할 근거가 없는 진짜 단일 화면(예: 랜딩 1페이지 전체가 정말 하나의 섹션뿐인 경우)에만 1개로 유지하세요.
 - 브로셔/포스터/제안서/보고서처럼 이 문서 자체가 인쇄물·편집물(assetTypeRaw가 brochure/poster/proposal/report)이면, screenType의 성격별로 다음 후보 중에서 구조를 고르세요(generic-dashboard 계열은 쓰지 마세요):
   - 표지 화면: cover-logotype(로고/타이포 중심), cover-full-bleed(풀블리드 이미지), cover-minimal-text(미니멀 텍스트) 중 1~3개
   - 목차·소개 화면: numbered-list(넘버드 리스트), timeline(타임라인), card-grid(카드 그리드) 중 1~3개
@@ -86,6 +87,8 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
   - 차별화요소·결론 화면: infographic-page(인포그래픽), comparison-table(비교 테이블), vision-statement(비전 선언) 중 1~3개
   - 포스터(assetTypeRaw가 poster)는 표지 화면에 poster-layout을 우선 포함하세요. 제안서는 본문/결론 화면에 proposal-section을, 보고서는 report-page를 후보로 포함할 수 있습니다.
 - 로그인/인증 화면, 홈페이지 히어로, 제안서 표지, 브로셔 표지처럼 키비주얼이 필요한 화면이 문서에 있으면 visual-only 방향을 별도로 만들고 promptSeeds를 3개 작성하세요.
+- promptSeeds 3개는 같은 장면을 다른 말로 바꿔 쓴 게 아니라 **서로 다른 비주얼 컨셉**이어야 합니다 — 예를 들어 (1) 와이드 히어로 장면(첫 화면용, 카피 들어갈 여백 포함) (2) 추상적 컨셉·데이터/네트워크 시각화 (3) 실제 서비스·제품·인프라가 보이는 맥락 장면처럼, 화면에 펼쳐놓고 비교했을 때 명확히 다른 그림이 떠올라야 합니다.
+- imageDirections의 promptSeedIndexes는 특별한 이유가 없으면 [0, 1, 2] 전체를 참조해서 사용자가 3가지 컨셉을 다 비교해볼 수 있게 하세요. 정말로 서로 다른 키비주얼이 필요한 경우(예: 로그인 화면용과 홈페이지 히어로용처럼 용도가 다른 경우)에만 imageDirections를 여러 개로 나누고 각각 다른 부분집합을 참조하세요.
 - 홈페이지/랜딩/이벤트 페이지는 ui(섹션 레이아웃)와 visual(히어로 키비주얼)을 모두 필요로 하는 경우가 많습니다 — 이 경우에도 두 개의 별도 direction으로 분리하세요.
 - 브로셔/제안서/보고서/포스터는 ui(편집 레이아웃)와 visual(표지 키비주얼) 모두 별도 direction으로 만드세요.
 - promptSeedsKo는 promptSeeds 각 문장을 빠짐없이 직역한 한국어 문장이어야 합니다. 구도/조명/크롭/스타일 등 세부 묘사를 생략하거나 한 줄로 뭉뚱그려 요약하지 마세요. promptSeeds와 같은 개수, 같은 순서여야 합니다.
@@ -95,7 +98,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - screenTypes의 icon은 이모지나 □▣◇▦◫ 같은 기호 1글자만 쓰세요. "Document", "Cover" 같은 단어를 icon 자리에 쓰지 마세요(그건 name 자리에 씁니다).
 - screenTypes의 content는 아래 "문서 내용"(이미 마스킹 처리된 텍스트)에서 그 화면에 해당하는 부분을 찾아 **원문 그대로** 옮기세요. 요약하거나 다른 말로 바꾸지 마세요. title/body에 들어가는 문장은 문서에 실제로 있는 문장이어야 합니다. 문서에 해당 화면에 대응하는 내용이 명확히 없으면 content 자체를 생략하세요(빈 문자열로 추측해서 채우지 마세요). imageHint는 원문에 없을 수 있으므로 화면 성격에 맞게 새로 작성해도 됩니다.
 - referenceKeywordsByPlatform은 direction마다 그 direction에 어울리는 플랫폼만 채우세요(예: ui-only 방향이면 Dribbble/Figma Community/Mobbin 등, visual-only 방향이면 Pinterest/Behance 등).
-- referenceKeywordsByPlatform 키워드는 플랫폼 성격에 맞게 작성하세요. Behance/Pinterest/Dribbble/Figma Community와 브랜드 계열 플랫폼(Brand New, BrandB, World Brand Design, Brand Archive, Fonts in Use)에는 기술 용어를 나열하지 마세요(예: "AI 빅데이터 지식그래프 온톨로지" 금지). 대신 산출물 종류 + 디자인 스타일 중심의 짧은 구문 2~4단어로 쓰세요(예: "technology brochure design", "editorial case study", "dashboard UI inspiration"). Mobbin/Page Flows/AppShots는 화면·플로우 명사 1~3단어만 쓰세요(예: "onboarding flow", "login screen"). Google과 GDWEB/DBDIC/DBCUT처럼 실제 서비스·홈페이지를 찾는 플랫폼에는 도메인 기술 용어를 그대로 써도 됩니다(최대 7단어).
+- referenceKeywordsByPlatform 키워드는 플랫폼 성격에 맞게 작성하세요. Behance/Pinterest/Dribbble/Figma Community와 브랜드 계열 플랫폼(Brand New, BrandB, World Brand Design, Brand Archive, Fonts in Use)에는 기술 용어를 나열하지 마세요(예: "AI 빅데이터 지식그래프 온톨로지" 금지). 대신 산출물 종류 + 디자인 스타일 중심의 짧은 구문 2~4단어로 쓰세요(예: "technology brochure design", "editorial case study", "landing page moodboard"). **이 산출물의 실제 assetTypeRaw에 맞는 단어만 쓰세요** — assetTypeRaw가 webpage/web-app/landing/event-page면 "dashboard"/"admin" 단어를 절대 쓰지 말고 "landing page"/"website"/"corporate site" 계열을 쓰고, assetTypeRaw가 dashboard일 때만 "dashboard UI inspiration" 같은 표현을 쓰세요. Mobbin/Page Flows/AppShots는 화면·플로우 명사 1~3단어만 쓰세요(예: "onboarding flow", "login screen"). Google과 GDWEB/DBDIC/DBCUT처럼 실제 서비스·홈페이지를 찾는 플랫폼에는 도메인 기술 용어를 그대로 써도 됩니다(최대 7단어).
 - 기술자료 추천은 만들지 마세요.
 - palette는 5~6개, moods는 정확히 3개를 제안하세요.
 {{PRIMARY_COLOR_RULE}}
@@ -414,10 +417,12 @@ function buildFallbackStockQueries(domain: string, assetType: string): string[] 
 }
 
 function defaultPromptSeeds(domain: string, assetType: string): string[] {
+  // domain은 "AI 솔루션"처럼 한글일 수 있어 영문 템플릿엔 domainToEnglish()로 변환한 값을 쓴다.
+  const domainEn = domainToEnglish(domain);
   return [
-    `premium ${domain} ${assetType} cover key visual, abstract technology background, layered depth, refined editorial composition, no people, no handshake`,
-    `modern ${domain} brand visual for ${assetType}, product and infrastructure concept, clean lighting, professional presentation cover, no office meeting scene`,
-    `sophisticated ${domain} hero image, geometric data-inspired forms, subtle texture, high-end corporate brochure visual, minimal and credible`,
+    `premium ${domainEn} ${assetType} cover key visual, abstract technology background, layered depth, refined editorial composition, no people, no handshake`,
+    `modern ${domainEn} brand visual for ${assetType}, product and infrastructure concept, clean lighting, professional presentation cover, no office meeting scene`,
+    `sophisticated ${domainEn} hero image, geometric data-inspired forms, subtle texture, high-end corporate brochure visual, minimal and credible`,
   ];
 }
 
@@ -437,13 +442,20 @@ function normalizePromptSeeds(promptSeeds: unknown, promptSeedsKo: unknown, doma
   return { en: defaultPromptSeeds(domain, assetType), ko: defaultPromptSeedsKo(domain, assetType) };
 }
 
-function normalizeImageDirection(raw: unknown, index: number): ImageDirection {
+// Gemini 프롬프트가 promptSeedIndexes는 보통 [0,1,2] 전체를 쓰라고 안내하지만(이 함수 위 PROMPT 참고),
+// 그래도 줄여서 줄 수 있다. imageDirection이 1개뿐인데 그게 3개 중 일부만 가리키면 나머지
+// promptSeeds는 화면에서 영영 안 보이게 된다 — Gemini가 이미 써준 내용을 숨기는 것뿐이라 가짜
+// 콘텐츠를 만드는 게 아니므로, 이 경우엔 안전하게 [0,1,2] 전체로 보정한다. direction이 여러 개일
+// 때(예: 로그인용 vs 홈페이지 히어로용)는 각자 다른 부분집합을 가리키는 게 의도된 경우라 보정하지 않는다.
+function normalizeImageDirection(raw: unknown, index: number, totalDirections: number): ImageDirection {
   const data = (raw || {}) as Partial<ImageDirection>;
+  const rawIndexes = Array.isArray(data.promptSeedIndexes) && data.promptSeedIndexes.length ? data.promptSeedIndexes : [0];
+  const promptSeedIndexes = totalDirections === 1 && rawIndexes.length < 3 ? [0, 1, 2] : rawIndexes;
   return {
     id: data.id || `image-direction-${index + 1}`,
     title: data.title || `이미지 방향 ${index + 1}`,
     styleNotes: data.styleNotes || "",
-    promptSeedIndexes: Array.isArray(data.promptSeedIndexes) && data.promptSeedIndexes.length ? data.promptSeedIndexes : [0],
+    promptSeedIndexes,
     stockQueries: asStringArray(data.stockQueries),
   };
 }
@@ -461,7 +473,10 @@ function defaultImageDirection(domain: string, assetType: string): ImageDirectio
 function normalizeVisualDirection(raw: unknown, domain: string, assetType: string): VisualDirection {
   const data = (raw || {}) as { promptSeeds?: unknown; promptSeedsKo?: unknown; imageDirections?: unknown[]; themeRecommendation?: unknown };
   const { en, ko } = normalizePromptSeeds(data.promptSeeds, data.promptSeedsKo, domain, assetType);
-  const rawImageDirections = Array.isArray(data.imageDirections) ? data.imageDirections.map((item, index) => normalizeImageDirection(item, index)) : [];
+  const totalDirections = Array.isArray(data.imageDirections) ? data.imageDirections.length : 0;
+  const rawImageDirections = Array.isArray(data.imageDirections)
+    ? data.imageDirections.map((item, index) => normalizeImageDirection(item, index, totalDirections))
+    : [];
   const imageDirections = rawImageDirections.length ? rawImageDirections : [defaultImageDirection(domain, assetType)];
   const theme = (data.themeRecommendation || {}) as Partial<VisualDirection["themeRecommendation"]>;
   return {
@@ -752,6 +767,28 @@ function buildFallbackRegenerate(brief?: string, primaryColor?: string): Regener
   return primaryColor ? enforcePrimaryColor(preset, primaryColor) : preset;
 }
 
+const MENU_OR_SITEMAP_PATTERN = /메뉴\s*체계|사이트맵|site\s*map/i;
+
+/**
+ * Gemini가 marketing-web 문서를 screenType 1개로 합쳐버렸는데, 문서 자체엔 메뉴/사이트맵처럼
+ * 여러 화면이 있다는 신호가 있으면 화면을 지어내지 않고 검증 경고만 붙인다. 가짜 screenType을
+ * 만들면 "content는 원문 그대로, 없으면 생략" 원칙과 충돌하므로 경고만 표시하는 쪽을 택했다.
+ */
+function applyMarketingWebScreenTypeWarning(analysis: GeneratorAnalysis, documentText: string): GeneratorAnalysis {
+  if (analysis.assetProfile.domainHint !== "marketing-web") return analysis;
+  if (!MENU_OR_SITEMAP_PATTERN.test(documentText)) return analysis;
+
+  const directions = analysis.directions.map((direction) => {
+    if (!direction.ui || direction.ui.screenTypes.length !== 1) return direction;
+    return {
+      ...direction,
+      ui: { ...direction.ui, warning: "문서에 메뉴/사이트맵 등 여러 화면 신호가 있는데 Deliverable이 1개로만 분리됐습니다. 화면 구성을 다시 확인해보세요." },
+    };
+  });
+
+  return { ...analysis, directions };
+}
+
 /** Gemini SDK가 던지는 에러에서 사용자에게 보여줄 한 줄 메시지를 뽑아낸다. */
 function describeGeminiError(error: unknown): string {
   if (error instanceof Error) {
@@ -776,7 +813,8 @@ export async function analyzeDocument(
       const model = genAI.getGenerativeModel({ model: MODEL_NAME });
       const result = await model.generateContent(buildPrompt(masked, primaryColor, fileTitle));
       const json = extractJson(result.response.text());
-      return { analysis: normalizeAnalysis(JSON.parse(json)), source: "gemini", documentText: masked };
+      const analysis = applyMarketingWebScreenTypeWarning(normalizeAnalysis(JSON.parse(json)), masked);
+      return { analysis, source: "gemini", documentText: masked };
     } catch (error) {
       console.error("Gemini 분석 실패, 키워드 기반 추정 결과로 대체합니다.", error);
       return {

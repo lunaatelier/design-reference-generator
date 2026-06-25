@@ -194,10 +194,22 @@ function buildLayoutKeywordsByPlatform(domain: string, assetType: string, domain
   const secondaryLayoutWords = isDocument ? ["editorial", "layout"] : isDashboard ? ["admin", "dashboard"] : ["interface", "design"];
   return {
     Dribbble: [dk("Dribbble", domain, ...primaryLayoutWords), dk("Dribbble", domain, ...secondaryLayoutWords)],
-    Behance: [dk("Behance", domain, assetType, "case", "study"), isDocument ? "enterprise brochure layout" : "enterprise dashboard case study"],
+    // isDocument/else 2분기였던 것을 isWeb까지 4분기로 늘림 — "비문서형이면 무조건 대시보드"라고
+    // 가정하던 이전 버전은 marketing-web에도 "dashboard UI inspiration" 같은 키워드가 새는 원인이었다.
+    Behance: [
+      dk("Behance", domain, assetType, "case", "study"),
+      isDocument ? "enterprise brochure layout" : isWeb ? "corporate website case study" : isDashboard ? "enterprise dashboard case study" : "product UI case study",
+    ],
     Mobbin: isMobile ? ["mobile onboarding flow", "mobile profile setup"] : isDashboard ? ["dashboard app screen", "admin settings flow"] : [],
-    Pinterest: [dk("Pinterest", domain, "layout", "inspiration"), isDocument ? "editorial design moodboard" : "dashboard UI inspiration"],
-    "Figma Community": [isDocument ? "proposal brochure layout template" : "dashboard UI kit", isWeb ? "landing page template" : "admin dashboard template", "component library"],
+    Pinterest: [
+      dk("Pinterest", domain, "layout", "inspiration"),
+      isDocument ? "editorial design moodboard" : isWeb ? "landing page moodboard" : isDashboard ? "dashboard UI inspiration" : "product UI inspiration",
+    ],
+    "Figma Community": [
+      isDocument ? "proposal brochure layout template" : isWeb ? "website design system" : isDashboard ? "dashboard UI kit" : "mobile UI kit",
+      isDocument ? "editorial layout template" : isWeb ? "landing page template" : isDashboard ? "admin dashboard template" : "mobile screen template",
+      "component library",
+    ],
     Google: isWeb
       ? [dk("Google", domain, "company", "website"), dk("Google", domain, "service", "homepage", "reference"), dk("Google", domain, "competitor", "website")]
       : isDashboard

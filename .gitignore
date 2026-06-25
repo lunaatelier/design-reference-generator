@@ -9,6 +9,7 @@ yarn-error.log*
 _backup/
 result/
 
-docs/2026 솔루션 브로셔.온톨로지.2060615.pptx
-docs/sample.png
-docs/엠큐닉_홈페이지_리뉴얼_20260623.통합본.pptx
+docs/samples/2026 솔루션 브로셔.온톨로지.2060615.pptx
+docs/samples/엠큐닉_홈페이지_리뉴얼_20260623.통합본.pptx
+# 결과 화면 스크린샷(공유/리뷰용) 폴더 — 매번 새 파일이 쌓이는 작업 폴더라 전체를 무시
+docs/results/
