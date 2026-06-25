@@ -109,9 +109,9 @@ $workspace = @("D:\workspace", "C:\workspace", "$env:USERPROFILE\workspace") |
 
 $today = Get-Date
 $dow = [int]$today.DayOfWeek
-$daysSinceSat = ($dow - 6 + 7) % 7
-$weekStart = $today.AddDays(-$daysSinceSat).ToString("yyyy-MM-dd")
-$weekEnd = $today.AddDays(-$daysSinceSat + 6).ToString("yyyy-MM-dd")
+$daysSinceFri = ($dow - 5 + 7) % 7
+$weekStart = $today.AddDays(-$daysSinceFri).ToString("yyyy-MM-dd")
+$weekEnd = $today.AddDays(-$daysSinceFri + 6).ToString("yyyy-MM-dd")
 Write-Output "$weekStart ~ $weekEnd"
 ```
 
@@ -144,7 +144,7 @@ Write-Output "$weekStart ~ $weekEnd"
 
 ```
 # design-reference-generator — AI 협업 세션 로그
-## 주간: [weekStart](토) ~ [weekEnd](금)
+## 주간: [weekStart](금) ~ [weekEnd](목)
 
 ---
 ```
@@ -161,14 +161,14 @@ Write-Output "$weekStart ~ $weekEnd"
 
 ```
 
-오늘이 **금요일**이면 주간 합계를 파일 끝에 추가합니다:
+오늘이 **목요일**이면 주간 합계를 파일 끝에 추가합니다:
 
 ```
 ---
 ## 주간 합계
 - 총 AI 협업 사람 능동시간: XX분
 - 세션 수: N개 (Claude Code N개 / Codex N개)
-- 집계 기간: [weekStart](토) ~ [weekEnd](금)
+- 집계 기간: [weekStart](금) ~ [weekEnd](목)
 - 기준: IDLE_CAP 10분, KST 기준
 ```
 

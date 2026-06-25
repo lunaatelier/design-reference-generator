@@ -10,9 +10,9 @@ $workspace = @("D:\workspace", "C:\workspace", "$env:USERPROFILE\workspace") |
 
 $today = Get-Date
 $dow = [int]$today.DayOfWeek
-$daysSinceSat = ($dow - 6 + 7) % 7
-$weekStart = $today.AddDays(-$daysSinceSat).ToString("yyyy-MM-dd")
-$weekEnd = $today.AddDays(-$daysSinceSat + 6).ToString("yyyy-MM-dd")
+$daysSinceFri = ($dow - 5 + 7) % 7
+$weekStart = $today.AddDays(-$daysSinceFri).ToString("yyyy-MM-dd")
+$weekEnd = $today.AddDays(-$daysSinceFri + 6).ToString("yyyy-MM-dd")
 Write-Output "$weekStart ~ $weekEnd"
 ```
 

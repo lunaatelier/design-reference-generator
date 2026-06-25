@@ -43,9 +43,9 @@
 3. `/timestart` 이후 사용자의 입력 간격을 기준으로 능동시간을 계산한다.
 4. 정확한 메시지 타임스탬프에 접근할 수 없으면, 확인 가능한 대화 흐름과 시작/종료 시각을 기준으로 보수적으로 산정하고 그 사실을 짧게 알린다.
 5. 이번 세션 작업 내용을 3~5줄로 요약한다.
-6. 현재 주차를 토요일 시작, 금요일 종료로 계산한다.
+6. 현재 주차를 금요일 시작, 목요일 종료로 계산한다.
 7. `work-log\design-reference-generator\session_[weekStart].md` 파일에 세션 내용을 추가한다.
-8. 오늘이 금요일이면 파일 끝에 주간 합계를 추가한다.
+8. 오늘이 목요일이면 파일 끝에 주간 합계를 추가한다.
 9. 아래 형식으로 응답한다.
 
 ```text
@@ -81,7 +81,7 @@ AI 협업 사람 능동시간 : XX분
 
 ```markdown
 # design-reference-generator — AI 협업 세션 로그
-## 주간: [weekStart](토) ~ [weekEnd](금)
+## 주간: [weekStart](금) ~ [weekEnd](목)
 
 ---
 ```
@@ -99,20 +99,20 @@ AI 협업 사람 능동시간 : XX분
 
 ```
 
-금요일에는 필요한 경우 아래 주간 합계를 추가한다.
+목요일에는 필요한 경우 아래 주간 합계를 추가한다.
 
 ```markdown
 ---
 ## 주간 합계
 - 총 AI 협업 사람 능동시간: XX분
 - 세션 수: N개 (Claude Code N개 / Codex N개)
-- 집계 기간: [weekStart](토) ~ [weekEnd](금)
+- 집계 기간: [weekStart](금) ~ [weekEnd](목)
 - 기준: IDLE_CAP 10분, KST 기준
 ```
 
 ## `/w-note`
 
-1. 현재 주차를 토요일 시작, 금요일 종료로 계산한다.
+1. 현재 주차를 금요일 시작, 목요일 종료로 계산한다.
 2. `work-log\design-reference-generator\session_[weekStart].md`를 읽는다.
 3. 연구노트 초안을 작성해 사용자에게 확인받는다.
 4. 확인 후 `work-log\design-reference-generator\research_[weekStart].md`에 저장한다.
