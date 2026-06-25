@@ -166,7 +166,7 @@ Write-Output "$weekStart ~ $weekEnd"
 ```
 ---
 ## 주간 합계
-- 총 AI 협업 사람 능동시간: XX분
+- 총 AI 협업 사람 능동시간: H시간 M분 (60분 미만이면 M분만 표기. 예: 102분 → 1시간 42분, 762분 → 12시간 42분)
 - 세션 수: N개 (Claude Code N개 / Codex N개)
 - 집계 기간: [weekStart](금) ~ [weekEnd](목)
 - 기준: IDLE_CAP 10분, KST 기준
