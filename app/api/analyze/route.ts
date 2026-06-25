@@ -14,12 +14,18 @@ export async function POST(request: Request) {
     }
 
     const text = await extractText(file);
-    const { analysis, source, documentText } = await analyzeDocument(
+    const { analysis, source, documentText, error } = await analyzeDocument(
       text,
       typeof primaryColor === "string" && primaryColor.trim() ? primaryColor.trim() : undefined,
       getFileTitle(file.name),
     );
-    const response: AnalyzeResponse = { analysis, extractedTextLength: text.length, documentText, analysisSource: source };
+    const response: AnalyzeResponse = {
+      analysis,
+      extractedTextLength: text.length,
+      documentText,
+      analysisSource: source,
+      ...(error ? { analysisError: error } : {}),
+    };
     return NextResponse.json(response);
   } catch (error) {
     console.error("analyze 실패:", error);

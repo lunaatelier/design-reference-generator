@@ -37,6 +37,12 @@ export type LayoutStructure =
   | "generic-dashboard"
   | "generic-list"
   | "generic-detail"
+  // marketing-web(웹사이트/홈페이지/랜딩) 전용 Main 화면 구조 — generic-dashboard 계열(관제실/
+  // 대시보드 가정)은 웹사이트 메인페이지엔 안 맞아서 별도 패밀리로 분리. 자세한 배경은
+  // memory/project_marketing-web-layout-family.md 참고.
+  | "hero-banner"
+  | "split-hero"
+  | "section-stack"
   // Document/editorial structures (brochure, proposal, report, poster) — these render as
   // print/editorial layouts, not app screens, so they're kept distinct from the UI structures above.
   // Grouped by deliverable archetype (cover/toc/body/closing) — see
@@ -177,6 +183,8 @@ export type AnalyzeResponse = {
   /** Masked text (see lib/promptMasking.ts) — never the raw uploaded document text. */
   documentText: string;
   analysisSource: AnalysisSource;
+  /** analysisSource가 "fallback"일 때 Gemini 호출이 실패한 실제 이유(사용자에게 표시용) */
+  analysisError?: string;
 };
 
 export type RegenerateMoodsResponse = {
@@ -186,6 +194,9 @@ export type RegenerateMoodsResponse = {
 
 export type RegenerateMoodsApiResponse = RegenerateMoodsResponse & {
   source: AnalysisSource;
+  /** source가 "fallback"일 때 Gemini 호출이 실패한 실제 이유(사용자에게 표시용). 라우트가
+   * 하드 실패 시 쓰는 top-level "error" 필드와 헷갈리지 않도록 이름을 분리했다. */
+  regenerateError?: string;
 };
 
 export type MoodImageProvider = "Pexels" | "Unsplash";

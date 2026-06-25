@@ -1033,6 +1033,13 @@ function ImplementationSample({
 
       const splitMonitoringContent = `<main style="flex:1;display:flex;"><div style="flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;padding:8px;">${[1, 2, 3, 4].map((i) => `<div style="background:#27272a;border-radius:6px;min-height:120px;display:flex;align-items:center;justify-content:center;color:#a1a1aa;font-size:11px;">CAM ${i}</div>`).join("")}</div><div style="width:200px;border-left:1px solid #e4e4e7;background:#fff;padding:16px;">${[1, 2, 3].map((i) => `<div style="display:flex;justify-content:space-between;align-items:center;background:#f4f4f5;border-radius:8px;padding:8px 10px;margin-bottom:8px;"><span style="font-size:12px;color:#71717a;">상태 ${i}</span><span style="width:8px;height:8px;border-radius:50%;background:${i === 1 ? "#22c55e" : accent};"></span></div>`).join("")}</div></main>`;
 
+      const onAccentLocal = isLightColor(accent) ? "#18181b" : "#ffffff";
+      const heroBannerContent = `<main style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:60px 40px;text-align:center;background:linear-gradient(160deg, ${surface}, ${accent}22);"><div style="height:8px;width:120px;border-radius:999px;background:rgba(0,0,0,0.1);"></div><h2 style="font-size:28px;font-weight:900;color:#09090b;max-width:480px;">${escapeHtml(screen.name)}</h2><p style="font-size:14px;color:#52525b;max-width:420px;line-height:1.6;">${escapeHtml(screen.desc || "핵심 메시지와 행동 유도를 담은 히어로 영역입니다.")}</p><button style="margin-top:8px;padding:14px 32px;border-radius:999px;background:${accent};color:${onAccentLocal};border:none;font-weight:700;font-size:14px;cursor:pointer;">자세히 보기</button></main>`;
+
+      const splitHeroContent = `<main style="flex:1;display:grid;grid-template-columns:1fr 1fr;"><div style="display:flex;flex-direction:column;justify-content:center;gap:14px;padding:48px;"><div style="height:6px;width:60px;border-radius:999px;background:${accent};"></div><h2 style="font-size:24px;font-weight:900;color:#09090b;">${escapeHtml(screen.name)}</h2><p style="font-size:13.5px;color:#52525b;line-height:1.6;">${escapeHtml(screen.desc || "텍스트와 비주얼을 좌우로 나눈 히어로 영역입니다.")}</p><button style="margin-top:8px;width:fit-content;padding:12px 28px;border-radius:999px;background:${accent};color:${onAccentLocal};border:none;font-weight:700;font-size:13.5px;cursor:pointer;">시작하기</button></div><div style="margin:24px;border-radius:16px;background:linear-gradient(135deg, ${accent}55, ${primary}33);"></div></main>`;
+
+      const sectionStackContent = `<main style="flex:1;"><div style="padding:36px 40px 24px;text-align:center;border-bottom:1px solid #f4f4f5;"><h2 style="font-size:22px;font-weight:900;color:#09090b;">${escapeHtml(screen.name)}</h2><p style="font-size:13px;color:#71717a;margin-top:6px;">${escapeHtml(screen.desc || "여러 섹션이 세로로 쌓이는 구조입니다.")}</p></div>${(variant.modules.length ? variant.modules.map((m) => m.label) : ["사업 영역", "주요 지표", "최신 소식"]).slice(0, 3).map((label, sectionIndex) => `<div style="padding:24px 40px;border-bottom:1px solid #f4f4f5;"><div style="font-size:12px;font-weight:700;color:#71717a;margin-bottom:12px;">${escapeHtml(label)}</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">${[1, 2, 3].map((i) => `<div style="border:1px solid #e4e4e7;border-radius:10px;padding:14px;"><div style="height:24px;border-radius:6px;background:${(sectionIndex + i) % 2 === 0 ? `${accent}33` : "#f4f4f5"};margin-bottom:10px;"></div><div style="height:8px;width:70%;border-radius:4px;background:#e4e4e7;"></div></div>`).join("")}</div></div>`).join("")}</main>`;
+
       const contentByStructure: Partial<Record<LayoutVariant["structure"], string>> = {
         "generic-dashboard": dashboardContent,
         "generic-list": listContent,
@@ -1042,10 +1049,16 @@ function ImplementationSample({
         "kpi-wall": kpiWallContent,
         "incident-focused": incidentFocusedContent,
         "split-monitoring": splitMonitoringContent,
+        "hero-banner": heroBannerContent,
+        "split-hero": splitHeroContent,
+        "section-stack": sectionStackContent,
       };
 
+      // hero-banner/split-hero/section-stack(marketing-web)는 풀와이드 웹사이트 화면이라 다른
+      // 구조처럼 어드민형 좌측 sidebar를 끼우면 안 어울린다 — 이 3종만 sidebar 없이 본문 단독 렌더.
+      const isWebMainStructure = variant.structure === "hero-banner" || variant.structure === "split-hero" || variant.structure === "section-stack";
       const mainContent = contentByStructure[variant.structure] || dashboardContent;
-      const contentHtml = `<div style="display:flex;"><div>${sidebarHtml}</div>${mainContent}</div>`;
+      const contentHtml = isWebMainStructure ? mainContent : `<div style="display:flex;"><div>${sidebarHtml}</div>${mainContent}</div>`;
 
       html = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${escapeHtml(projectTitle)} — ${escapeHtml(screen.name)}</title>\n  <style>* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } body { background: ${surface}; }</style>\n</head>\n<body>\n${navHtml}\n${contentHtml}\n</body>\n</html>`;
     }
@@ -1347,7 +1360,7 @@ function Result({
   primaryColor: string;
   onAnalysisUpdate: (analysis: GeneratorAnalysis) => void;
 }) {
-  const { analysis, documentText, analysisSource } = response;
+  const { analysis, documentText, analysisSource, analysisError } = response;
   // 탭으로 "UI냐 비주얼이냐"를 고르게 하지 않고, 이 산출물에 필요한 UI 방향과 비주얼 방향을
   // 둘 다 찾아서 한 화면에 동시에 보여준다. 스키마상 한 프로젝트에 ui 방향과 visual 방향은
   // 각각 최대 1개씩만 나오므로(같은 direction에 둘 다 있는 mixed 케이스 포함) find()로 충분하다.
@@ -1420,7 +1433,11 @@ function Result({
       onAnalysisUpdate({ ...analysis, palette: data.palette, moods: data.moods });
       setSelectedMoodIndex(0);
       if (data.source === "fallback") {
-        setRegenerateNote("Gemini 응답을 받지 못해 키워드 기반 추정 팔레트/무드로 대체했습니다.");
+        setRegenerateNote(
+          data.regenerateError
+            ? `Gemini 응답을 받지 못해 키워드 기반 추정 팔레트/무드로 대체했습니다. ${data.regenerateError}`
+            : "Gemini 응답을 받지 못해 키워드 기반 추정 팔레트/무드로 대체했습니다.",
+        );
       }
     } catch (err) {
       setRegenerateError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
@@ -1461,7 +1478,8 @@ function Result({
     <section className="grid gap-5">
       {analysisSource === "fallback" && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-          Gemini 응답을 받지 못해 키워드 기반 추정 결과를 표시하고 있습니다. (예: API 할당량 초과)
+          Gemini 응답을 받지 못해 키워드 기반 추정 결과를 표시하고 있습니다.
+          {analysisError && <span className="block font-normal text-amber-700">{analysisError}</span>}
         </div>
       )}
 

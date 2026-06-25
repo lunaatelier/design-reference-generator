@@ -514,6 +514,88 @@ function PreviewSplitMonitoring({ colors, screenName, domainHint, modules }: { c
   );
 }
 
+// marketing-web(웹사이트/홈페이지/랜딩) "web-main" 아키타입 3종. generic-dashboard 계열(관제실/
+// 대시보드 가정)과 시각적으로 뚜렷이 구분되도록 히어로/섹션 중심 구도로 그린다. 자세한 배경은
+// memory/project_marketing-web-layout-family.md 참고.
+function PreviewHeroBanner({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div
+        className="flex min-h-72 flex-col items-center justify-center gap-4 px-8 text-center"
+        style={{ background: surfaceLight ? `linear-gradient(160deg, ${surface}, ${accent}22)` : `linear-gradient(160deg, ${surface}, ${accent}33)` }}
+      >
+        <div className={`h-2 w-24 rounded-full ${surfaceLight ? "bg-black/10" : "bg-white/15"}`} />
+        <h4 className={`max-w-xs truncate text-lg font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+        <div className={`h-2.5 w-56 rounded ${surfaceLight ? "bg-black/10" : "bg-white/15"}`} />
+        <div className={`h-2.5 w-44 rounded ${surfaceLight ? "bg-black/10" : "bg-white/15"}`} />
+        <div className="mt-2 h-9 w-32 rounded-full" style={{ background: accent }} />
+      </div>
+    </div>
+  );
+}
+
+function PreviewSplitHero({ colors, screenName, domainHint }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="grid min-h-72 grid-cols-2" style={{ background: surface }}>
+        <div className="flex flex-col justify-center gap-3 p-6">
+          <div className="h-2 w-16 rounded-full" style={{ background: accent }} />
+          <h4 className={`truncate text-base font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          <div className={`h-2 w-40 rounded ${surfaceLight ? "bg-black/12" : "bg-white/20"}`} />
+          <div className={`h-2 w-32 rounded ${surfaceLight ? "bg-black/12" : "bg-white/20"}`} />
+          <div className="mt-2 h-8 w-28 rounded-full" style={{ background: accent }} />
+        </div>
+        <div className="relative m-4 rounded-xl" style={{ background: `linear-gradient(135deg, ${accent}55, ${primary}33)` }} />
+      </div>
+    </div>
+  );
+}
+
+function PreviewSectionStack({ colors, screenName, domainHint, modules }: { colors: string[]; screenName: string; domainHint: AssetProfile["domainHint"]; modules: LayoutModule[] }) {
+  const primary = colors[0] || "#111827";
+  const accent = colors[1] || "#2563eb";
+  const surface = pickSurfaceColor(colors, domainHint, isLightColor(colors[0] || "#111827"));
+  const surfaceLight = isLightColor(surface);
+  const sectionLabels = modules.length ? modules.map((m) => m.label) : ["사업 영역", "주요 지표", "최신 소식"];
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-200 select-none">
+      <PreviewNav primary={primary} />
+      <div className="grid min-h-72 gap-px" style={{ background: surfaceLight ? "#e4e4e7" : "#27272a" }}>
+        <div className="flex flex-col items-center justify-center gap-2 px-6 py-6 text-center" style={{ background: surface }}>
+          <h4 className={`truncate text-sm font-black ${surfaceLight ? "text-zinc-800" : "text-white"}`}>{screenName}</h4>
+          <div className={`h-2 w-40 rounded ${surfaceLight ? "bg-black/10" : "bg-white/15"}`} />
+        </div>
+        {sectionLabels.slice(0, 3).map((label, sectionIndex) => (
+          <div key={label} className="p-3" style={{ background: surface }}>
+            <div className="mb-2 text-xs font-bold text-zinc-500">{label}</div>
+            <div className="grid grid-cols-3 gap-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-lg border border-zinc-200 bg-white p-2">
+                  <div className="h-5 rounded" style={{ background: (sectionIndex + i) % 2 === 0 ? `${accent}33` : "#e4e4e7" }} />
+                  <div className="mt-2 h-1.5 w-3/4 rounded bg-zinc-200" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // 문서형(브로셔/제안서/보고서/포스터) 미리보기는 웹/앱 화면이 아니라 인쇄물 한 장이므로, 다른
 // Preview*가 공유하는 PreviewNav(상단 웹 nav바)를 쓰지 않고 종이 한 장처럼 보이는 프레임을 쓴다.
 function DocumentPageFrame({ surface, children }: { surface: string; children: ReactNode }) {
@@ -862,6 +944,9 @@ export const STRUCTURE_LABELS: Record<LayoutVariant["structure"], string> = {
   "generic-dashboard": "정보형 콘텐츠 레이아웃",
   "generic-list": "목록형 레이아웃",
   "generic-detail": "상세형 레이아웃",
+  "hero-banner": "풀스크린 히어로형",
+  "split-hero": "좌우 분할 히어로형",
+  "section-stack": "섹션 스택형",
   "cover-logotype": "로고/타이포 중심형",
   "cover-full-bleed": "풀블리드 이미지형",
   "cover-minimal-text": "미니멀 텍스트형",
@@ -896,6 +981,12 @@ export function LayoutVariantPreview({ variant, colors, screenName, domainHint }
       return <PreviewIncidentFocused colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} />;
     case "split-monitoring":
       return <PreviewSplitMonitoring colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} />;
+    case "hero-banner":
+      return <PreviewHeroBanner colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "split-hero":
+      return <PreviewSplitHero colors={colors} screenName={screenName} domainHint={domainHint} />;
+    case "section-stack":
+      return <PreviewSectionStack colors={colors} screenName={screenName} domainHint={domainHint} modules={variant.modules} />;
     case "generic-list":
       return <PreviewList colors={colors} screenName={screenName} domainHint={domainHint} />;
     case "generic-detail":

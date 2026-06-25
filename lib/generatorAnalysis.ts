@@ -46,7 +46,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
             "layoutVariants": [
               {
                 "id": "v1",
-                "structure": "command-center|map-centric|kpi-wall|incident-focused|split-monitoring|generic-dashboard|generic-list|generic-detail|cover-logotype|cover-full-bleed|cover-minimal-text|numbered-list|timeline|card-grid|split-content|editorial-grid|page-spread|infographic-page|comparison-table|vision-statement|proposal-section|report-page|poster-layout",
+                "structure": "command-center|map-centric|kpi-wall|incident-focused|split-monitoring|generic-dashboard|generic-list|generic-detail|hero-banner|split-hero|section-stack|cover-logotype|cover-full-bleed|cover-minimal-text|numbered-list|timeline|card-grid|split-content|editorial-grid|page-spread|infographic-page|comparison-table|vision-statement|proposal-section|report-page|poster-layout",
                 "title": "변형 이름 (예: 지도 중심 관제형)",
                 "description": "이 구조가 적합한 이유",
                 "density": "compact|comfortable|spacious",
@@ -78,6 +78,7 @@ const PROMPT = `당신은 설계 문서를 분석해 디자인 방향(레이아�
 - needsUi가 true인 direction은 ui 필드를 반드시 채우고, needsVisual이 true인 direction은 visual 필드를 반드시 채우세요. 반대 필드는 생략하세요.
 - layoutVariants는 direction 전체가 공유하는 풀이 아니라 **각 screenType(화면/Deliverable) 전용**입니다. screenType마다 그 화면 성격에 맞는 layoutVariants를 1~3개씩 따로 작성하세요 — 예를 들어 "표지" screenType과 "본문" screenType은 서로 다른 구조 후보를 가져야 하며, 같은 구조를 두 screenType에 그대로 복사하지 마세요.
 - 대시보드/관리자/운영 문서: "Main"류(대표/현황) 화면은 command-center, map-centric, kpi-wall, incident-focused, split-monitoring, generic-dashboard 중에서 고르세요(관제실/지도/교통/장애대응/CCTV/모니터링 내용이 있으면 command-center/map-centric/kpi-wall/incident-focused/split-monitoring을 우선 사용). 목록류 화면은 generic-list, 상세류 화면은 generic-detail을 사용하세요.
+- 웹사이트/홈페이지/랜딩/이벤트 페이지(assetTypeRaw가 webpage/web-app/landing/event-page)는 관제실/대시보드 구조를 쓰지 마세요. "Main"류(메인페이지/홈) 화면은 hero-banner(풀스크린 히어로), split-hero(좌우 분할 히어로), section-stack(히어로 아래 기능/통계/뉴스 섹션이 쌓이는 구조) 중에서 고르세요. 목록류 화면은 generic-list, 상세류 화면은 generic-detail을 사용하세요.
 - 브로셔/포스터/제안서/보고서처럼 이 문서 자체가 인쇄물·편집물(assetTypeRaw가 brochure/poster/proposal/report)이면, screenType의 성격별로 다음 후보 중에서 구조를 고르세요(generic-dashboard 계열은 쓰지 마세요):
   - 표지 화면: cover-logotype(로고/타이포 중심), cover-full-bleed(풀블리드 이미지), cover-minimal-text(미니멀 텍스트) 중 1~3개
   - 목차·소개 화면: numbered-list(넘버드 리스트), timeline(타임라인), card-grid(카드 그리드) 중 1~3개
@@ -187,6 +188,9 @@ const UI_SCREEN_STRUCTURES: LayoutStructure[] = [
   "generic-dashboard",
   "generic-list",
   "generic-detail",
+  "hero-banner",
+  "split-hero",
+  "section-stack",
 ];
 
 const DOCUMENT_STRUCTURES: LayoutStructure[] = [
@@ -211,7 +215,7 @@ const DOCUMENT_STRUCTURES: LayoutStructure[] = [
 // screen — a cover and a table-of-contents shouldn't draw from the same generic pool. This is
 // a code-side heuristic only (not part of the JSON contract); see
 // memory/project_deliverable-scoped-layouts.md for the full design.
-type DeliverableArchetype = "cover" | "toc" | "body" | "closing" | "main" | "list" | "detail";
+type DeliverableArchetype = "cover" | "toc" | "body" | "closing" | "main" | "web-main" | "list" | "detail";
 
 function detectDeliverableArchetype(domainHint: AssetProfile["domainHint"], name: string, desc: string): DeliverableArchetype {
   const text = `${name} ${desc}`.toLowerCase();
@@ -223,6 +227,9 @@ function detectDeliverableArchetype(domainHint: AssetProfile["domainHint"], name
   }
   if (/list|table|목록|테이블|history|이력/.test(text)) return "list";
   if (/detail|상세/.test(text)) return "detail";
+  // marketing-web(웹사이트/홈페이지/랜딩)의 "Main"류 화면은 관제실/대시보드 가정인 "main"
+  // 풀이 아니라 히어로/섹션 중심의 "web-main" 풀을 써야 한다.
+  if (domainHint === "marketing-web") return "web-main";
   return "main";
 }
 
@@ -251,6 +258,11 @@ const ARCHETYPE_STRUCTURE_CANDIDATES: Record<DeliverableArchetype, Array<{ struc
     { structure: "generic-dashboard", title: "기본 대시보드형", description: "정보 구조를 우선 정리하는 기본 레이아웃입니다." },
     { structure: "kpi-wall", title: "KPI 월형", description: "핵심 지표를 큰 타일로 강조합니다." },
     { structure: "command-center", title: "관제 센터형", description: "지도/지표/알림을 한 화면에 모읍니다." },
+  ],
+  "web-main": [
+    { structure: "hero-banner", title: "풀스크린 히어로형", description: "메인 메시지와 CTA가 화면 전체를 채우는 히어로 중심 구조입니다." },
+    { structure: "split-hero", title: "좌우 분할 히어로형", description: "텍스트와 비주얼 이미지를 좌우로 나눈 히어로입니다." },
+    { structure: "section-stack", title: "섹션 스택형", description: "히어로 아래 기능/통계/뉴스 등 여러 섹션이 세로로 쌓이는 구조입니다." },
   ],
   list: [{ structure: "generic-list", title: "목록형 레이아웃", description: "탐색과 비교를 위한 목록 레이아웃입니다." }],
   detail: [{ structure: "generic-detail", title: "상세형 레이아웃", description: "상세 확인과 후속 행동을 위한 레이아웃입니다." }],
@@ -321,7 +333,7 @@ function defaultScreenTypes(domainHint: AssetProfile["domainHint"]): UiDirection
     ];
   }
   return [
-    { icon: "▦", name: "Main", count: 1, desc: "핵심 정보와 행동을 모으는 대표 화면", layoutVariants: defaultLayoutVariantsForArchetype("main") },
+    { icon: "▦", name: "Main", count: 1, desc: "핵심 정보와 행동을 모으는 대표 화면", layoutVariants: defaultLayoutVariantsForArchetype(domainHint === "marketing-web" ? "web-main" : "main") },
     { icon: "▤", name: "List / Table", count: 1, desc: "탐색과 비교를 위한 목록 화면", layoutVariants: defaultLayoutVariantsForArchetype("list") },
     { icon: "◫", name: "Detail", count: 1, desc: "상세 확인과 후속 행동을 위한 화면", layoutVariants: defaultLayoutVariantsForArchetype("detail") },
   ];
@@ -588,11 +600,20 @@ const DOMAIN_RULES: Array<{ pattern: RegExp; domain: string }> = [
 ];
 
 function detectAssetType(documentText: string): string {
-  const rule = ASSET_TYPE_RULES.find((item) => item.pattern.test(documentText));
+  // 배열 순서로 첫 매칭 규칙을 고르면 본문 어딘가에 "브로셔" 한 단어만 있어도
+  // 파일명의 "홈페이지" 같은 더 이른(더 강한) 신호를 항상 덮어써버린다. 텍스트 내
+  // 가장 먼저 등장하는 키워드의 규칙을 채택해야 파일명/제목 신호가 제대로 우선된다.
+  let best: { assetType: string; index: number } | null = null;
+  for (const item of ASSET_TYPE_RULES) {
+    const match = item.pattern.exec(documentText);
+    if (match && (best === null || match.index < best.index)) {
+      best = { assetType: item.assetType, index: match.index };
+    }
+  }
   // No keyword matched: don't default to "dashboard" — that silently pulls every
   // unclassified document (e.g. a brochure with no recognizable keyword) toward a
   // dashboard-shaped result. "other" instead surfaces as "needs review" to the user.
-  return rule?.assetType || "other";
+  return best?.assetType || "other";
 }
 
 function detectDomain(documentText: string): string {
@@ -731,11 +752,22 @@ function buildFallbackRegenerate(brief?: string, primaryColor?: string): Regener
   return primaryColor ? enforcePrimaryColor(preset, primaryColor) : preset;
 }
 
+/** Gemini SDK가 던지는 에러에서 사용자에게 보여줄 한 줄 메시지를 뽑아낸다. */
+function describeGeminiError(error: unknown): string {
+  if (error instanceof Error) {
+    const status = (error as Error & { status?: number }).status;
+    if (status === 429) return `API 할당량 초과 (429): ${error.message}`;
+    if (status) return `Gemini 호출 실패 (${status}): ${error.message}`;
+    return error.message;
+  }
+  return String(error);
+}
+
 export async function analyzeDocument(
   documentText: string,
   primaryColor?: string,
   fileTitle?: string,
-): Promise<{ analysis: GeneratorAnalysis; source: AnalysisSource; documentText: string }> {
+): Promise<{ analysis: GeneratorAnalysis; source: AnalysisSource; documentText: string; error?: string }> {
   const { masked } = maskSensitiveText(documentText);
   const apiKey = process.env.GEMINI_API_KEY;
   if (apiKey) {
@@ -747,6 +779,12 @@ export async function analyzeDocument(
       return { analysis: normalizeAnalysis(JSON.parse(json)), source: "gemini", documentText: masked };
     } catch (error) {
       console.error("Gemini 분석 실패, 키워드 기반 추정 결과로 대체합니다.", error);
+      return {
+        analysis: buildFallbackAnalysis(masked, primaryColor, fileTitle),
+        source: "fallback",
+        documentText: masked,
+        error: describeGeminiError(error),
+      };
     }
   }
   return { analysis: buildFallbackAnalysis(masked, primaryColor, fileTitle), source: "fallback", documentText: masked };
@@ -757,7 +795,7 @@ export async function regenerateMoods(
   projectIntent: ProjectIntent,
   brief?: string,
   primaryColor?: string,
-): Promise<{ result: RegenerateMoodsResponse; source: AnalysisSource }> {
+): Promise<{ result: RegenerateMoodsResponse; source: AnalysisSource; error?: string }> {
   const { masked } = maskSensitiveText(documentText);
   const apiKey = process.env.GEMINI_API_KEY;
   if (apiKey) {
@@ -776,22 +814,42 @@ export async function regenerateMoods(
       return { result: primaryColor ? enforcePrimaryColor(normalized, primaryColor) : normalized, source: "gemini" };
     } catch (error) {
       console.error("Gemini 재생성 실패, 키워드 기반 추정 결과로 대체합니다.", error);
+      return { result: buildFallbackRegenerate(brief, primaryColor), source: "fallback", error: describeGeminiError(error) };
     }
   }
   return { result: buildFallbackRegenerate(brief, primaryColor), source: "fallback" };
 }
 
+// defaultScreenTypes()/detectDeliverableArchetype()가 "Main"류 화면에 쓰는 구조 후보 풀은
+// domainHint를 3개 패밀리로 나눈다 — document(Cover/Content Spread/Infographic),
+// marketing-web(web-main: hero-banner/split-hero/section-stack), 그 외 전부(main:
+// generic-dashboard/kpi-wall/command-center). applyAssetTypeOverride가 재분류 전후 domainHint를
+// "document 여부"만으로 2분류하면 dashboard→webpage처럼 두 비문서형 사이를 넘는 재분류를
+// "패밀리 안 바뀜"으로 오판해 옛 대시보드 구조가 그대로 남는다 — 항상 이 3분류로 비교해야 한다.
+function uiStructureFamily(domainHint: AssetProfile["domainHint"]): "document" | "marketing-web" | "other" {
+  if (domainHint === "document") return "document";
+  if (domainHint === "marketing-web") return "marketing-web";
+  return "other";
+}
+
 /**
  * AI(또는 키워드 휴리스틱)가 추정한 assetType이 틀렸을 때, 사용자가 직접 고른 값으로
- * UI/비주얼 블록 존재 여부와 레퍼런스 검색어를 다시 계산한다. Gemini를 다시 호출하지
- * 않는 순수 로컬 재계산이라 결과는 즉시 반영되고 quota를 쓰지 않는다.
+ * UI/비주얼 블록 존재 여부, 산출물 형태/디자인 태그, 레퍼런스 검색어를 다시 계산한다.
+ * Gemini를 다시 호출하지 않는 순수 로컬 재계산이라 결과는 즉시 반영되고 quota를 쓰지 않는다.
  */
 export function applyAssetTypeOverride(analysis: GeneratorAnalysis, assetTypeOverride: string): GeneratorAnalysis {
   const assetProfile = buildAssetProfile({ assetType: assetTypeOverride });
   const domain = analysis.projectIntent.domain;
 
+  // 패밀리가 안 바뀌면(예: dashboard→web-app, 둘 다 "other") 구조 풀이 동일하므로 기존 ui 콘텐츠를
+  // 유지하고, 바뀌면(예: dashboard→webpage, brochure→webpage) 새 domainHint에 맞는 기본 구조로
+  // 다시 만든다.
+  const structureFamilyChanged = uiStructureFamily(analysis.assetProfile.domainHint) !== uiStructureFamily(assetProfile.domainHint);
+
   const directions = analysis.directions.map((direction) => {
-    const ui = assetProfile.needsLayoutVariants ? direction.ui || normalizeUiDirection(undefined, assetProfile.domainHint) : undefined;
+    const ui = assetProfile.needsLayoutVariants
+      ? (!structureFamilyChanged && direction.ui) || normalizeUiDirection(undefined, assetProfile.domainHint)
+      : undefined;
     const visual = assetProfile.needsImageDirections
       ? direction.visual || normalizeVisualDirection(undefined, domain, assetProfile.assetType)
       : undefined;
@@ -803,5 +861,13 @@ export function applyAssetTypeOverride(analysis: GeneratorAnalysis, assetTypeOve
     };
   });
 
-  return { ...analysis, assetProfile, directions };
+  // deliverable/design 태그는 assetType 문구를 그대로 포함하므로(normalizeKeywordGroups의
+  // 기본값 포맷과 동일하게), 재분류 후에도 옛 assetType 단어가 남아있지 않도록 새 값으로 교체한다.
+  const keywordGroups: GeneratorAnalysis["keywordGroups"] = {
+    ...analysis.keywordGroups,
+    deliverable: [assetTypeOverride, `${domain} ${assetTypeOverride}`],
+    design: [`${domain} ${assetTypeOverride} design`, "reference moodboard"],
+  };
+
+  return { ...analysis, assetProfile, directions, keywordGroups };
 }

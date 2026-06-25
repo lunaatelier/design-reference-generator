@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { result, source } = await regenerateMoods(documentText, projectIntent, brief, primaryColor);
-    const response: RegenerateMoodsApiResponse = { ...result, source };
+    const { result, source, error } = await regenerateMoods(documentText, projectIntent, brief, primaryColor);
+    const response: RegenerateMoodsApiResponse = { ...result, source, ...(error ? { regenerateError: error } : {}) };
     return NextResponse.json(response);
   } catch (error) {
     const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
