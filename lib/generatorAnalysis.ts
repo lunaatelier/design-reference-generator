@@ -598,7 +598,7 @@ const ASSET_TYPE_RULES: Array<{ pattern: RegExp; assetType: string }> = [
   { pattern: /포스터|poster/i, assetType: "poster" },
   { pattern: /이벤트\s*페이지|event\s*page/i, assetType: "event-page" },
   { pattern: /랜딩\s*페이지|landing\s*page/i, assetType: "landing" },
-  { pattern: /홈페이지|기업\s*사이트|웹사이트|website|homepage/i, assetType: "webpage" },
+  { pattern: /홈페이지|기업\s*사이트|웹사이트|웹페이지|website|homepage|webpage/i, assetType: "webpage" },
   { pattern: /대시보드|관리자|admin|dashboard/i, assetType: "dashboard" },
 ];
 
