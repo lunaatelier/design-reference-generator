@@ -806,24 +806,29 @@ export async function analyzeDocument(
   fileTitle?: string,
 ): Promise<{ analysis: GeneratorAnalysis; source: AnalysisSource; documentText: string; error?: string }> {
   const { masked } = maskSensitiveText(documentText);
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey) {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-      const result = await model.generateContent(buildPrompt(masked, primaryColor, fileTitle));
-      const json = extractJson(result.response.text());
-      const analysis = applyMarketingWebScreenTypeWarning(normalizeAnalysis(JSON.parse(json)), masked);
-      return { analysis, source: "gemini", documentText: masked };
-    } catch (error) {
-      console.error("Gemini 분석 실패, 키워드 기반 추정 결과로 대체합니다.", error);
-      return {
-        analysis: buildFallbackAnalysis(masked, primaryColor, fileTitle),
-        source: "fallback",
-        documentText: masked,
-        error: describeGeminiError(error),
-      };
+  const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2].filter(Boolean) as string[];
+  if (apiKeys.length > 0) {
+    let lastError: unknown;
+    for (const apiKey of apiKeys) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+        const result = await model.generateContent(buildPrompt(masked, primaryColor, fileTitle));
+        const json = extractJson(result.response.text());
+        const analysis = applyMarketingWebScreenTypeWarning(normalizeAnalysis(JSON.parse(json)), masked);
+        return { analysis, source: "gemini", documentText: masked };
+      } catch (error) {
+        lastError = error;
+        console.error(`Gemini 분석 실패 (키 ${apiKeys.indexOf(apiKey) + 1}/${apiKeys.length}):`, error);
+      }
     }
+    console.error("모든 API 키 실패, 키워드 기반 추정 결과로 대체합니다.");
+    return {
+      analysis: buildFallbackAnalysis(masked, primaryColor, fileTitle),
+      source: "fallback",
+      documentText: masked,
+      error: describeGeminiError(lastError),
+    };
   }
   return { analysis: buildFallbackAnalysis(masked, primaryColor, fileTitle), source: "fallback", documentText: masked };
 }
@@ -835,25 +840,30 @@ export async function regenerateMoods(
   primaryColor?: string,
 ): Promise<{ result: RegenerateMoodsResponse; source: AnalysisSource; error?: string }> {
   const { masked } = maskSensitiveText(documentText);
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey) {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-      const result = await model.generateContent(buildRegeneratePrompt(masked, projectIntent, brief, primaryColor));
-      const json = extractJson(result.response.text());
-      const data = JSON.parse(json) as Partial<RegenerateMoodsResponse>;
+  const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2].filter(Boolean) as string[];
+  if (apiKeys.length > 0) {
+    let lastError: unknown;
+    for (const apiKey of apiKeys) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+        const result = await model.generateContent(buildRegeneratePrompt(masked, projectIntent, brief, primaryColor));
+        const json = extractJson(result.response.text());
+        const data = JSON.parse(json) as Partial<RegenerateMoodsResponse>;
 
-      const normalized: RegenerateMoodsResponse = {
-        palette: Array.isArray(data.palette) && data.palette.length ? data.palette : defaultPalette(),
-        moods: Array.isArray(data.moods) && data.moods.length ? data.moods.slice(0, 3) : defaultMoods(),
-      };
+        const normalized: RegenerateMoodsResponse = {
+          palette: Array.isArray(data.palette) && data.palette.length ? data.palette : defaultPalette(),
+          moods: Array.isArray(data.moods) && data.moods.length ? data.moods.slice(0, 3) : defaultMoods(),
+        };
 
-      return { result: primaryColor ? enforcePrimaryColor(normalized, primaryColor) : normalized, source: "gemini" };
-    } catch (error) {
-      console.error("Gemini 재생성 실패, 키워드 기반 추정 결과로 대체합니다.", error);
-      return { result: buildFallbackRegenerate(brief, primaryColor), source: "fallback", error: describeGeminiError(error) };
+        return { result: primaryColor ? enforcePrimaryColor(normalized, primaryColor) : normalized, source: "gemini" };
+      } catch (error) {
+        lastError = error;
+        console.error(`Gemini 재생성 실패 (키 ${apiKeys.indexOf(apiKey) + 1}/${apiKeys.length}):`, error);
+      }
     }
+    console.error("모든 API 키 실패, 키워드 기반 추정 결과로 대체합니다.");
+    return { result: buildFallbackRegenerate(brief, primaryColor), source: "fallback", error: describeGeminiError(lastError) };
   }
   return { result: buildFallbackRegenerate(brief, primaryColor), source: "fallback" };
 }
